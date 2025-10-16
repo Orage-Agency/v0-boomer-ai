@@ -1,6 +1,7 @@
 "use client"
 
 import type { UserProfile } from "@/app/page"
+import { Brain, Headphones, MessageSquare, Sparkles, GraduationCap, Lightbulb, Rocket, Clock } from "lucide-react"
 
 interface MainMenuProps {
   userProfile: UserProfile
@@ -12,8 +13,8 @@ export function MainMenu({ userProfile, onNavigate }: MainMenuProps) {
   const hasProfile = userProfile.persona && userProfile.level
 
   return (
-    <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="p-8 text-center border-b border-slate-200/70">
+    <section className="animate-in fade-in slide-in-from-bottom-4 duration-300 h-[calc(100vh-8rem)] flex flex-col">
+      <div className="flex-shrink-0 p-8 text-center border-b border-slate-200/70">
         <h2 className="text-3xl font-bold text-slate-900 mb-2">
           {hasProfile ? `Welcome, ${displayName}!` : "Welcome to your AI companion"}
         </h2>
@@ -24,62 +25,70 @@ export function MainMenu({ userProfile, onNavigate }: MainMenuProps) {
         </p>
       </div>
 
-      <div className="p-6 space-y-3">
+      <div className="flex-grow overflow-y-auto p-6 space-y-3">
         <button
           onClick={() => onNavigate("lesson-what-is-ai")}
-          className="w-full bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-6 rounded-xl transition-all duration-200 text-left hover:shadow-md"
+          className="w-full bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-6 rounded-xl transition-all duration-200 text-left hover:shadow-md flex items-center gap-3"
         >
-          What is AI? An introduction
+          <Brain className="w-6 h-6 text-blue-600 flex-shrink-0" />
+          <span>What is AI? An introduction</span>
         </button>
 
         <button
           onClick={() => onNavigate("audio-lessons")}
-          className="w-full bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-6 rounded-xl transition-all duration-200 text-left hover:shadow-md"
+          className="w-full bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-6 rounded-xl transition-all duration-200 text-left hover:shadow-md flex items-center gap-3"
         >
-          Listen to Audio Lessons
+          <Headphones className="w-6 h-6 text-blue-600 flex-shrink-0" />
+          <span>Listen to Audio Lessons</span>
         </button>
 
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => onNavigate("ai-chat")}
-            className="bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-4 rounded-xl transition-all duration-200 text-left hover:shadow-md"
+            className="bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-4 rounded-xl transition-all duration-200 text-left hover:shadow-md flex items-center gap-2"
           >
-            Ask a question
+            <MessageSquare className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <span>Ask a question</span>
           </button>
           <button
             onClick={() => onNavigate("lesson-meet-ai")}
-            className="bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-4 rounded-xl transition-all duration-200 text-left hover:shadow-md"
+            className="bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-4 rounded-xl transition-all duration-200 text-left hover:shadow-md flex items-center gap-2"
           >
-            Meet AI
+            <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <span>Meet AI</span>
           </button>
         </div>
 
         <button
           onClick={() => onNavigate("lesson-first-lesson")}
-          className="w-full bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-6 rounded-xl transition-all duration-200 text-left hover:shadow-md"
+          className="w-full bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-6 rounded-xl transition-all duration-200 text-left hover:shadow-md flex items-center gap-3"
         >
-          Begin your first lesson
+          <GraduationCap className="w-6 h-6 text-blue-600 flex-shrink-0" />
+          <span>Begin your first lesson</span>
         </button>
 
         <button
           onClick={() => onNavigate("lesson-everyday-uses")}
-          className="w-full bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-6 rounded-xl transition-all duration-200 text-left hover:shadow-md"
+          className="w-full bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-6 rounded-xl transition-all duration-200 text-left hover:shadow-md flex items-center gap-3"
         >
-          Everyday uses
+          <Lightbulb className="w-6 h-6 text-blue-600 flex-shrink-0" />
+          <span>Everyday uses</span>
         </button>
 
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => onNavigate("lesson-more-ai")}
-            className="bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-4 rounded-xl transition-all duration-200 text-left hover:shadow-md"
+            className="bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-4 rounded-xl transition-all duration-200 text-left hover:shadow-md flex items-center gap-2"
           >
-            More AI…
+            <Rocket className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <span>More AI…</span>
           </button>
           <button
             onClick={() => onNavigate("lesson-coming-soon")}
-            className="bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-4 rounded-xl transition-all duration-200 text-left hover:shadow-md"
+            className="bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-blue-500 font-semibold text-lg py-5 px-4 rounded-xl transition-all duration-200 text-left hover:shadow-md flex items-center gap-2"
           >
-            Coming Soon
+            <Clock className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <span>Coming Soon</span>
           </button>
         </div>
       </div>

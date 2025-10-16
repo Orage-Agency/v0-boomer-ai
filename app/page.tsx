@@ -109,7 +109,7 @@ export default function BoomerAIPage() {
       <div className="relative bg-white w-full max-w-md mx-auto h-screen sm:h-[calc(100vh-3rem)] sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-slate-200/60">
         {/* Subtle top accent */}
         <div className="absolute inset-x-0 -top-24 h-36 pointer-events-none opacity-30">
-          <div className="mx-auto h-full w-[600px] bg-gradient-to-r from-blue-400 via-blue-300 to-sky-400 blur-3xl rounded-full" />
+          <div className="mx-auto h-full w-[600px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 blur-3xl rounded-full" />
         </div>
 
         {!isIntroView && (

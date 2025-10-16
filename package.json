@@ -9,7 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/openai": "latest",
+    "@ai-sdk/openrouter": "latest",
     "@ai-sdk/react": "latest",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.2.2",
@@ -32,7 +32,7 @@
     "@radix-ui/react-select": "2.1.4",
     "@radix-ui/react-separator": "1.1.1",
     "@radix-ui/react-slider": "1.2.2",
-    "@radix-ui/react-slot": "1.1.1",
+    "@radix-ui/react-slot": "latest",
     "@radix-ui/react-switch": "1.1.2",
     "@radix-ui/react-tabs": "1.1.2",
     "@radix-ui/react-toast": "1.2.4",
@@ -51,7 +51,7 @@
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
     "next": "15.2.4",
-    "next-themes": "^0.4.6",
+    "next-themes": "latest",
     "react": "^19",
     "react-day-picker": "9.8.0",
     "react-dom": "^19",
@@ -61,7 +61,7 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
-    "vaul": "^1.0.0",
+    "vaul": "^0.9.9",
     "zod": "3.25.76"
   },
   "devDependencies": {

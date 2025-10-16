@@ -1,6 +1,19 @@
 "use client"
 
-import { Mail, Newspaper, UtensilsCrossed, Music, Pill, Calendar, Users, BookOpen, Search } from "lucide-react"
+import {
+  Brain,
+  Headphones,
+  Mail,
+  Newspaper,
+  UtensilsCrossed,
+  Music,
+  Pill,
+  Calendar,
+  Users,
+  BookOpen,
+  Search,
+  ExternalLink,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AIChatInterface } from "./ai-chat-interface"
 
@@ -57,23 +70,20 @@ function WhatIsAI({ level, onNavigate }: { level: string; onNavigate?: (view: st
     <div className="flex flex-col h-[calc(100vh-8rem)] justify-between px-6 py-8">
       <div className="flex-grow flex flex-col items-center justify-center text-center">
         <div className="bg-blue-100 p-6 rounded-full mb-6">
-          <svg
-            className="w-16 h-16 text-blue-600"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M8.25 3.75H19.5M8.25 6.75H19.5M8.25 9.75H19.5M8.25 12.75H19.5m-11.25 4.5h11.25c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <Brain className="w-16 h-16 text-blue-600" />
         </div>
         <h2 className="text-4xl font-bold mb-4 text-slate-900">{currentContent.title}</h2>
         <p className="text-lg leading-relaxed max-w-md text-slate-700">{currentContent.description}</p>
+
+        <a
+          href="https://youtu.be/c0m6yaGlZh4?si=Rjmo1CJ05ZVndmEq"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+        >
+          <ExternalLink className="w-5 h-5" />
+          Watch Introduction Video
+        </a>
       </div>
 
       <div className="pt-6">
@@ -89,45 +99,60 @@ function WhatIsAI({ level, onNavigate }: { level: string; onNavigate?: (view: st
 }
 
 function FirstLesson() {
+  const lessons = [
+    {
+      title: "Lesson 1: Introduction to AI",
+      url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/4b3e23ac-d014-420c-9189-f91877c98e5d.mp4",
+    },
+    {
+      title: "Lesson 2: Getting Started",
+      url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/b397f50d-34b5-461e-bc14-a19abc3b66db.mp4",
+    },
+    {
+      title: "Lesson 3: Your First Prompt",
+      url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/bf06e1a1-37a6-46f5-9ba6-ec12a739e098.mp4",
+    },
+    {
+      title: "Lesson 4: Everyday AI Uses",
+      url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/33a0a5dc-ee0b-4eff-a9e7-a3e8bed599be.mp4",
+    },
+    {
+      title: "Lesson 5: Advanced Tips",
+      url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/dace82a2-eb45-4c97-8337-4e2ceb2c211f.mp4",
+    },
+    {
+      title: "Lesson 6: AI Safety",
+      url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/c276a675-587e-4ceb-9450-af896cf79fc4.mp4",
+    },
+    {
+      title: "Lesson 7: Practice & Review",
+      url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/424fdb71-3868-4075-8785-45d414ebf5ad.mp4",
+    },
+  ]
+
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] px-6 py-6">
-      <div className="flex-grow flex flex-col space-y-4">
+    <div className="flex flex-col h-[calc(100vh-8rem)] overflow-hidden">
+      <div className="flex-shrink-0 px-6 pt-6 pb-4">
         <h3 className="text-2xl font-bold text-slate-900">Begin Your First Lesson</h3>
-        <p className="text-base text-slate-700">
-          Watch this short video, then open your AI chat and try any of the prompts below!
-        </p>
+        <p className="text-base text-slate-700 mt-2">Watch these video lessons to master AI step by step.</p>
+      </div>
 
-        <div className="flex-grow flex items-center justify-center">
-          <div className="w-full aspect-video rounded-xl overflow-hidden shadow-md bg-slate-100">
-            <iframe
-              width="100%"
-              height="100%"
-              src="https://www.youtube.com/embed/c0m6yaGlZh4"
-              title="AI Introduction Video"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full"
-            />
-          </div>
-        </div>
-
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-          <p className="font-semibold text-slate-900 mb-2 text-sm">Try these prompts:</p>
-          <ul className="space-y-1 text-sm text-slate-700">
-            <li className="flex items-start gap-2">
-              <span className="text-blue-600 font-bold">•</span>
-              <span>"Tell me a joke about computers."</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-blue-600 font-bold">•</span>
-              <span>"Write a short, happy poem about sunshine."</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-blue-600 font-bold">•</span>
-              <span>"What's a fun fact about the ocean?"</span>
-            </li>
-          </ul>
+      <div className="flex-grow overflow-y-auto px-6 pb-6">
+        <div className="space-y-4">
+          {lessons.map((lesson, index) => (
+            <div
+              key={index}
+              className="bg-white border-2 border-slate-200 rounded-xl overflow-hidden hover:border-blue-500 transition-colors"
+            >
+              <div className="p-4">
+                <h4 className="font-bold text-lg text-slate-900 mb-3">{lesson.title}</h4>
+                <video controls className="w-full rounded-lg" preload="metadata">
+                  <source src={lesson.url} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -249,9 +274,11 @@ function EverydayUses({ level }: { level: string }) {
   const uses = usesData[level as keyof typeof usesData] || usesData.beginner
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <div className="flex-grow overflow-y-auto px-6 py-6">
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">Here's how AI can help you:</h2>
+    <div className="flex flex-col h-[calc(100vh-8rem)] overflow-hidden">
+      <div className="flex-shrink-0 px-6 pt-6 pb-4">
+        <h2 className="text-2xl font-bold text-slate-900">Here's how AI can help you:</h2>
+      </div>
+      <div className="flex-grow overflow-y-auto px-6 pb-6">
         <div className="space-y-5">
           {uses.map((use, index) => {
             const Icon = use.icon
@@ -410,25 +437,34 @@ function AudioLessons({ level }: { level: string }) {
   const currentLessons = lessons[level as keyof typeof lessons] || lessons.beginner
 
   return (
-    <section className="p-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <h3 className="text-3xl font-bold text-slate-900">Audio Lessons</h3>
-      <p className="text-lg text-slate-700">Listen and learn at your own pace. Select a lesson below.</p>
-
-      <h4 className="text-2xl font-bold text-slate-900 border-b border-slate-200 pb-3 capitalize">
-        {level.replace("-", " ")} Lessons
-      </h4>
-
-      <div className="space-y-5">
-        {currentLessons.map((lesson) => (
-          <div key={lesson.title} className="bg-slate-50 p-5 rounded-xl border border-slate-200">
-            <p className="font-bold text-lg mb-3 text-slate-900">{lesson.title}</p>
-            <audio controls className="w-full" src={lesson.src}>
-              Your browser does not support the audio element.
-            </audio>
+    <div className="flex flex-col h-[calc(100vh-8rem)] overflow-hidden">
+      <div className="flex-shrink-0 px-6 pt-6 pb-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="bg-blue-100 p-3 rounded-full">
+            <Headphones className="w-6 h-6 text-blue-600" />
           </div>
-        ))}
+          <h3 className="text-2xl font-bold text-slate-900">Audio Lessons</h3>
+        </div>
+        <p className="text-base text-slate-700">Listen and learn at your own pace.</p>
       </div>
-    </section>
+
+      <div className="flex-grow overflow-y-auto px-6 pb-6">
+        <h4 className="text-xl font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 capitalize">
+          {level.replace("-", " ")} Lessons
+        </h4>
+
+        <div className="space-y-4">
+          {currentLessons.map((lesson) => (
+            <div key={lesson.title} className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <p className="font-bold text-base mb-3 text-slate-900">{lesson.title}</p>
+              <audio controls className="w-full" src={lesson.src}>
+                Your browser does not support the audio element.
+              </audio>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 

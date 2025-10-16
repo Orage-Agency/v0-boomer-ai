@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+
 interface AvatarSelectionProps {
   onSelect: (persona: string, userTitle: string, avatarSrc: string) => void
 }
@@ -18,6 +20,13 @@ const AVATARS = [
 ]
 
 export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
+  const [selected, setSelected] = useState<string | null>(null)
+
+  const handleSelect = (avatar: (typeof AVATARS)[0]) => {
+    setSelected(avatar.name)
+    onSelect(avatar.name, avatar.userTitle, avatar.image)
+  }
+
   return (
     <section className="flex flex-col items-center justify-center text-center p-8 min-h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div className="w-full max-w-sm">
@@ -28,8 +37,14 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
           {AVATARS.map((avatar) => (
             <button
               key={avatar.name}
-              onClick={() => onSelect(avatar.name, avatar.userTitle, avatar.image)}
-              className="group p-4 text-center rounded-2xl bg-white border-2 border-slate-200 hover:border-blue-500 hover:shadow-lg transition-all duration-200"
+              onClick={() => handleSelect(avatar)}
+              className={`group p-4 text-center rounded-2xl bg-white border-2 transition-all duration-200 ${
+                selected === avatar.name
+                  ? avatar.name === "Angela"
+                    ? "border-pink-500 shadow-lg"
+                    : "border-blue-500 shadow-lg"
+                  : "border-slate-200 hover:border-blue-500 hover:shadow-lg"
+              }`}
             >
               <img
                 src={avatar.image || "/placeholder.svg"}
