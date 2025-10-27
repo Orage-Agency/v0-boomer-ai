@@ -7,6 +7,7 @@ import { ChatTab } from "./chat-tab"
 import { LessonsTab } from "./lessons-tab"
 import { ProfileView } from "./profile-view"
 import { TipsTab } from "./tips-tab"
+import { CameraModal } from "./camera-modal"
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
@@ -21,6 +22,8 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
   const [isListening, setIsListening] = useState(false)
   const recognitionRef = useRef<any>(null)
   const [pendingMessage, setPendingMessage] = useState<string | null>(null)
+  const [isCameraOpen, setIsCameraOpen] = useState(false)
+  const [capturedImage, setCapturedImage] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
@@ -69,6 +72,12 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
     setActiveTab("chat")
   }
 
+  const handleCameraCapture = (imageData: string) => {
+    setCapturedImage(imageData)
+    setActiveTab("chat")
+    setInputValue("What can you tell me about this image?")
+  }
+
   return (
     <div className="flex flex-col h-screen bg-white">
       {/* Header with Stars */}
@@ -82,13 +91,17 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
 
       {/* Main Content - adjusted height to account for input */}
       <main className="flex-grow overflow-hidden" style={{ height: "calc(100vh - 64px - 100px - 80px)" }}>
-        {activeTab === "home" && <HomeTab userProfile={userProfile} onNavigate={setActiveTab} />}
+        {activeTab === "home" && (
+          <HomeTab userProfile={userProfile} onNavigate={setActiveTab} onOpenCamera={() => setIsCameraOpen(true)} />
+        )}
         {activeTab === "chat" && (
           <ChatTab
             userProfile={userProfile}
             updateProfile={updateProfile}
             pendingMessage={pendingMessage}
             onMessageSent={() => setPendingMessage(null)}
+            capturedImage={capturedImage}
+            onImageCleared={() => setCapturedImage(null)}
           />
         )}
         {activeTab === "lessons" && <LessonsTab userProfile={userProfile} updateProfile={updateProfile} />}
@@ -194,6 +207,9 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           <span className="text-xs font-semibold">Profile</span>
         </button>
       </nav>
+
+      {/* Camera Modal */}
+      <CameraModal isOpen={isCameraOpen} onClose={() => setIsCameraOpen(false)} onCapture={handleCameraCapture} />
     </div>
   )
 }

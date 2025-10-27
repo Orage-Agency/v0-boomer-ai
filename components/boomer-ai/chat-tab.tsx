@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, ArrowLeftRight } from "lucide-react"
+import { Sparkles, ArrowLeftRight, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -12,6 +12,8 @@ interface ChatTabProps {
   updateProfile: (updates: Partial<UserProfile>) => void
   pendingMessage: string | null
   onMessageSent: () => void
+  capturedImage: string | null
+  onImageCleared: () => void
 }
 
 const MODELS = {
@@ -51,7 +53,14 @@ const PROMPT_LIBRARY = [
   },
 ]
 
-export function ChatTab({ userProfile, updateProfile, pendingMessage, onMessageSent }: ChatTabProps) {
+export function ChatTab({
+  userProfile,
+  updateProfile,
+  pendingMessage,
+  onMessageSent,
+  capturedImage,
+  onImageCleared,
+}: ChatTabProps) {
   const [selectedModel, setSelectedModel] = useState<keyof typeof MODELS>("quick")
   const [showPromptLibrary, setShowPromptLibrary] = useState(false)
   const [compareMode, setCompareMode] = useState(false)
@@ -63,7 +72,21 @@ export function ChatTab({ userProfile, updateProfile, pendingMessage, onMessageS
 
   useEffect(() => {
     if (pendingMessage) {
-      sendMessage({ text: pendingMessage })
+      console.log("[v0] Sending message with image:", !!capturedImage)
+
+      const messageContent: any = { text: pendingMessage }
+
+      if (capturedImage) {
+        messageContent.experimental_attachments = [
+          {
+            contentType: "image/jpeg",
+            url: capturedImage,
+          },
+        ]
+        console.log("[v0] Image attachment added to message")
+      }
+
+      sendMessage(messageContent)
       onMessageSent()
 
       if (messages.length === 0 && !userProfile.badges.includes("First Chat")) {
@@ -104,6 +127,28 @@ export function ChatTab({ userProfile, updateProfile, pendingMessage, onMessageS
           ))}
         </div>
       </div>
+
+      {capturedImage && (
+        <div className="flex-shrink-0 px-4 py-3 bg-purple-50 border-b border-purple-200">
+          <div className="flex items-center gap-3">
+            <img
+              src={capturedImage || "/placeholder.svg"}
+              alt="Captured"
+              className="w-16 h-16 rounded-lg object-cover border-2 border-purple-300"
+            />
+            <div className="flex-grow">
+              <p className="text-sm font-bold text-purple-900">Image attached</p>
+              <p className="text-xs text-purple-700">Ask me anything about this image!</p>
+            </div>
+            <button
+              onClick={onImageCleared}
+              className="p-2 text-purple-600 hover:bg-purple-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Chat Messages */}
       <div className="flex-grow overflow-y-auto px-4 py-4">
@@ -166,6 +211,16 @@ export function ChatTab({ userProfile, updateProfile, pendingMessage, onMessageS
                         <p key={index} className="text-base leading-relaxed whitespace-pre-wrap">
                           {part.text}
                         </p>
+                      )
+                    }
+                    if (part.type === "image") {
+                      return (
+                        <img
+                          key={index}
+                          src={part.image || "/placeholder.svg"}
+                          alt="User uploaded"
+                          className="max-w-full rounded-lg mb-2"
+                        />
                       )
                     }
                     return null

@@ -6,9 +6,10 @@ import type { UserProfile } from "@/app/page"
 interface HomeTabProps {
   userProfile: UserProfile
   onNavigate: (tab: "home" | "chat" | "lessons" | "tips" | "profile") => void
+  onOpenCamera: () => void
 }
 
-export function HomeTab({ userProfile, onNavigate }: HomeTabProps) {
+export function HomeTab({ userProfile, onNavigate, onOpenCamera }: HomeTabProps) {
   const mainActions = [
     {
       id: "chat",
@@ -26,7 +27,7 @@ export function HomeTab({ userProfile, onNavigate }: HomeTabProps) {
       icon: Camera,
       color: "bg-purple-500",
       hoverColor: "hover:bg-purple-600",
-      action: () => onNavigate("lessons"), // Opens lessons tab which has camera feature
+      action: () => onOpenCamera(),
     },
     {
       id: "tips",
