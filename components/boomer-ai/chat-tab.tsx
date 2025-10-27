@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, ArrowLeftRight, X } from "lucide-react"
+import { Sparkles, ArrowLeftRight, X, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -14,6 +14,8 @@ interface ChatTabProps {
   onMessageSent: () => void
   capturedImage: string | null
   onImageCleared: () => void
+  conversationId: string | null
+  onNewConversation: () => void
 }
 
 const MODELS = {
@@ -60,20 +62,72 @@ export function ChatTab({
   onMessageSent,
   capturedImage,
   onImageCleared,
+  conversationId,
+  onNewConversation,
 }: ChatTabProps) {
   const [selectedModel, setSelectedModel] = useState<keyof typeof MODELS>("quick")
   const [showPromptLibrary, setShowPromptLibrary] = useState(false)
   const [compareMode, setCompareMode] = useState(false)
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
     body: {
       model: MODELS[selectedModel].id,
       capturedImage: capturedImage || undefined,
+      conversationId: conversationId || undefined,
     },
   })
+
+  useEffect(() => {
+    if (conversationId) {
+      loadConversation(conversationId)
+    }
+  }, [conversationId])
+
+  useEffect(() => {
+    if (messages.length > 0 && !conversationId) {
+      saveConversation()
+    }
+  }, [messages])
+
+  const loadConversation = async (id: string) => {
+    try {
+      const response = await fetch(`/api/conversations?id=${id}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.messages) {
+          setMessages(data.messages)
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load conversation:", error)
+    }
+  }
+
+  const saveConversation = async () => {
+    try {
+      const deviceId = localStorage.getItem("boomer-device-id")
+      if (!deviceId || messages.length === 0) return
+
+      const title = messages[0]?.parts?.[0]?.text?.substring(0, 50) || "New conversation"
+      const preview = messages[messages.length - 1]?.parts?.[0]?.text?.substring(0, 100) || ""
+
+      await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deviceId,
+          title,
+          preview,
+          messages,
+        }),
+      })
+    } catch (error) {
+      console.error("Failed to save conversation:", error)
+    }
+  }
 
   useEffect(() => {
     if (pendingMessage) {
@@ -101,28 +155,44 @@ export function ChatTab({
     setShowPromptLibrary(false)
   }
 
+  const handleNewConversation = () => {
+    setMessages([])
+    onNewConversation()
+  }
+
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Model Picker */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-slate-200 bg-slate-50">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2">
-          {Object.entries(MODELS).map(([key, model]) => (
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2 overflow-x-auto flex-grow">
+            {Object.entries(MODELS).map(([key, model]) => (
+              <button
+                key={key}
+                onClick={() => setSelectedModel(key as keyof typeof MODELS)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all ${
+                  selectedModel === key
+                    ? "bg-blue-600 text-white shadow-lg"
+                    : "bg-white text-slate-700 border border-slate-200 hover:border-blue-300"
+                }`}
+              >
+                <span className="text-lg">{model.icon}</span>
+                <div className="text-left">
+                  <div className="text-sm font-bold">{model.name}</div>
+                  <div className="text-xs opacity-90">{model.description}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+          {messages.length > 0 && (
             <button
-              key={key}
-              onClick={() => setSelectedModel(key as keyof typeof MODELS)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all ${
-                selectedModel === key
-                  ? "bg-blue-600 text-white shadow-lg"
-                  : "bg-white text-slate-700 border border-slate-200 hover:border-blue-300"
-              }`}
+              onClick={handleNewConversation}
+              className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors whitespace-nowrap"
             >
-              <span className="text-lg">{model.icon}</span>
-              <div className="text-left">
-                <div className="text-sm font-bold">{model.name}</div>
-                <div className="text-xs opacity-90">{model.description}</div>
-              </div>
+              <Plus className="w-4 h-4" />
+              <span className="text-sm font-bold">New</span>
             </button>
-          ))}
+          )}
         </div>
       </div>
 
