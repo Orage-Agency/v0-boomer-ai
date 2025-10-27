@@ -1,11 +1,11 @@
 "use client"
 
-import { MessageSquare, GraduationCap, Lightbulb, User } from "lucide-react"
+import { MessageSquare, Camera, Lightbulb, User } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 
 interface HomeTabProps {
   userProfile: UserProfile
-  onNavigate: (tab: "home" | "chat" | "lessons" | "profile") => void
+  onNavigate: (tab: "home" | "chat" | "lessons" | "tips" | "profile") => void
 }
 
 export function HomeTab({ userProfile, onNavigate }: HomeTabProps) {
@@ -20,13 +20,13 @@ export function HomeTab({ userProfile, onNavigate }: HomeTabProps) {
       action: () => onNavigate("chat"),
     },
     {
-      id: "lessons",
-      title: "Learn AI Basics",
-      description: "Watch & listen",
-      icon: GraduationCap,
+      id: "camera",
+      title: "Take a Picture",
+      description: "Scan & learn",
+      icon: Camera,
       color: "bg-purple-500",
       hoverColor: "hover:bg-purple-600",
-      action: () => onNavigate("lessons"),
+      action: () => onNavigate("lessons"), // Opens lessons tab which has camera feature
     },
     {
       id: "tips",
@@ -35,7 +35,7 @@ export function HomeTab({ userProfile, onNavigate }: HomeTabProps) {
       icon: Lightbulb,
       color: "bg-green-500",
       hoverColor: "hover:bg-green-600",
-      action: () => onNavigate("lessons"),
+      action: () => onNavigate("tips"),
     },
     {
       id: "profile",
@@ -48,32 +48,19 @@ export function HomeTab({ userProfile, onNavigate }: HomeTabProps) {
     },
   ]
 
+  const showRewardPrompt = userProfile.streak === 0 || userProfile.stars < 20
+
   return (
     <div className="h-full flex flex-col bg-white overflow-hidden">
-      <div className="flex-shrink-0 px-6 pt-3 pb-2 border-b border-slate-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">Welcome back, {userProfile.userTitle || "Friend"}!</h2>
-            <p className="text-xs text-slate-600">Level: {userProfile.learningLevel}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onNavigate("profile")}
-              className="flex items-center gap-1 bg-orange-50 hover:bg-orange-100 px-2.5 py-1.5 rounded-lg transition-colors"
-            >
-              <span className="text-base animate-pulse">🔥</span>
-              <span className="text-xs font-bold text-orange-600">{userProfile.streak}</span>
-            </button>
-            <button
-              onClick={() => onNavigate("profile")}
-              className="flex items-center gap-1 bg-yellow-50 hover:bg-yellow-100 px-2.5 py-1.5 rounded-lg transition-colors"
-            >
-              <span className="text-base animate-bounce">⭐</span>
-              <span className="text-xs font-bold text-yellow-600">{userProfile.stars}</span>
-            </button>
-          </div>
+      {showRewardPrompt && (
+        <div className="flex-shrink-0 mx-6 mt-3 bg-gradient-to-r from-yellow-100 to-orange-100 border-2 border-yellow-300 rounded-xl p-3">
+          <p className="text-sm font-bold text-orange-700 text-center">
+            {userProfile.streak === 0
+              ? "🔥 Start your learning streak today! Complete a lesson to begin."
+              : "⭐ Keep learning to earn more stars! Try a new lesson."}
+          </p>
         </div>
-      </div>
+      )}
 
       <div className="flex-grow flex items-center justify-center px-6 py-4">
         <div className="grid grid-cols-2 gap-4 w-full max-w-lg">

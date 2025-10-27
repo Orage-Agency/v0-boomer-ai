@@ -35,6 +35,8 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
   return (
     <section className="flex flex-col items-center justify-center text-center p-6 h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div className="w-full max-w-sm">
+        <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-16 w-auto object-contain mx-auto mb-6" />
+
         <h2 className="text-3xl font-bold text-slate-900 mb-2">Choose your companion</h2>
         <p className="text-base text-slate-600 mb-6">Pick a friendly guide for your journey.</p>
 

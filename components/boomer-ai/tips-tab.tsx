@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  Mail,
   Phone,
   FileText,
   Calendar,
@@ -11,6 +10,7 @@ import {
   Camera,
   MapPin,
   Clock,
+  Lightbulb,
 } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 
@@ -19,283 +19,115 @@ interface TipsTabProps {
   onTryPrompt: (prompt: string) => void
 }
 
-const TIPS_BY_LEVEL = {
-  "Absolute Beginner": [
-    {
-      icon: Mail,
-      title: "Write a simple email",
-      problem: "Need help with a message to family or friends",
-      prompt: "Help me write a simple email to [name] saying: [what you want to say]",
-    },
-    {
-      icon: Phone,
-      title: "Call the doctor",
-      problem: "Need to schedule or confirm an appointment",
-      prompt: "Give me a simple script to call my doctor's office to [schedule/confirm/cancel] an appointment",
-    },
-    {
-      icon: Search,
-      title: "Look something up",
-      problem: "Want to learn about something new",
-      prompt: "Help me understand [topic] in very simple words, like explaining to a friend",
-    },
-    {
-      icon: Calendar,
-      title: "Remember my appointments",
-      problem: "Keep track of doctor visits and events",
-      prompt: "Help me remember my appointment on [date] at [time] for [reason]",
-    },
-    {
-      icon: MessageSquare,
-      title: "Text my grandkids",
-      problem: "Send a nice message to family",
-      prompt: "Help me write a text message to my [grandchild/family member] about [topic]",
-    },
-    {
-      icon: FileText,
-      title: "Understand a letter",
-      problem: "Got mail that's confusing",
-      prompt: "Explain this letter to me in simple words: [paste the text]",
-    },
-    {
-      icon: ShoppingCart,
-      title: "Make a grocery list",
-      problem: "Remember what to buy at the store",
-      prompt: "Help me make a grocery list for [this week/dinner/occasion]",
-    },
-    {
-      icon: Camera,
-      title: "Take a nice photo",
-      problem: "Want to capture a special moment",
-      prompt: "Give me simple steps to take a good photo with my phone",
-    },
-    {
-      icon: MapPin,
-      title: "Get directions",
-      problem: "Need to find a place",
-      prompt: "Help me get directions from [my location] to [where I want to go]",
-    },
-    {
-      icon: Clock,
-      title: "Set a reminder",
-      problem: "Don't want to forget something important",
-      prompt: "Help me set a reminder to [task] at [time]",
-    },
-  ],
-  Beginner: [
-    {
-      icon: Mail,
-      title: "Fix my email",
-      problem: "Make my message sound better",
-      prompt: "Rewrite this email to be clear and polite: [paste your email]",
-    },
-    {
-      icon: Phone,
-      title: "Call about a bill",
-      problem: "Question about a charge",
-      prompt: "Give me a script to call [company] about a charge on my bill for [amount]",
-    },
-    {
-      icon: FileText,
-      title: "Understand my bill",
-      problem: "Medical or utility bill is confusing",
-      prompt: "Explain this bill to me in plain English: [paste the bill details]",
-    },
-    {
-      icon: Calendar,
-      title: "Plan my week",
-      problem: "Too many things to remember",
-      prompt: "Help me organize my week with these appointments: [list your schedule]",
-    },
-    {
-      icon: MessageSquare,
-      title: "Reply to a message",
-      problem: "Someone sent me something, not sure how to respond",
-      prompt: "Help me write a friendly reply to this message: [paste the message]",
-    },
-    {
-      icon: Search,
-      title: "Find a local service",
-      problem: "Need a plumber, doctor, or other service nearby",
-      prompt: "Help me find a good [service type] near [your city/zip code]",
-    },
-    {
-      icon: ShoppingCart,
-      title: "Compare prices",
-      problem: "Want to get the best deal",
-      prompt: "Help me compare [product A] and [product B] - which is better for me?",
-    },
-    {
-      icon: FileText,
-      title: "Write a thank you note",
-      problem: "Want to thank someone properly",
-      prompt: "Help me write a thank you note to [name] for [reason]",
-    },
-    {
-      icon: MapPin,
-      title: "Plan a trip",
-      problem: "Want to visit family or go somewhere",
-      prompt: "Help me plan a trip to [destination] - what should I know?",
-    },
-    {
-      icon: Clock,
-      title: "Organize my day",
-      problem: "Have a lot to do, need help prioritizing",
-      prompt: "Help me organize these tasks for today: [list your tasks]",
-    },
-  ],
-  Intermediate: [
-    {
-      icon: Mail,
-      title: "Write a business email",
-      problem: "Need to contact a company professionally",
-      prompt: "Write a professional email to [company/person] about [topic]",
-    },
-    {
-      icon: MessageSquare,
-      title: "Post on Facebook",
-      problem: "Share news with friends and family",
-      prompt: "Help me write a Facebook post about [topic] that my friends will enjoy",
-    },
-    {
-      icon: FileText,
-      title: "Fill out a form",
-      problem: "Application or form is complicated",
-      prompt: "Help me understand and fill out this form: [describe the form]",
-    },
-    {
-      icon: Calendar,
-      title: "Plan a family event",
-      problem: "Organizing a birthday or holiday gathering",
-      prompt: "Help me plan a [event type] for [number] people on [date]",
-    },
-    {
-      icon: Search,
-      title: "Research a health topic",
-      problem: "Want to understand a medical condition",
-      prompt: "Explain [health topic] to me in simple terms - what should I know?",
-    },
-    {
-      icon: ShoppingCart,
-      title: "Make a budget",
-      problem: "Track monthly expenses",
-      prompt: "Help me create a simple monthly budget for [category] with $[amount]",
-    },
-    {
-      icon: Phone,
-      title: "Negotiate a bill",
-      problem: "Bill is too high, want to ask for a discount",
-      prompt: "Give me a script to call [company] and ask for a lower rate on my [service]",
-    },
-    {
-      icon: FileText,
-      title: "Summarize an article",
-      problem: "Article is too long, want the main points",
-      prompt: "Summarize this article in simple bullet points: [paste article]",
-    },
-    {
-      icon: MapPin,
-      title: "Find local activities",
-      problem: "Looking for things to do in my area",
-      prompt: "What are fun activities for seniors in [your city]?",
-    },
-    {
-      icon: Clock,
-      title: "Create a routine",
-      problem: "Want to be more organized daily",
-      prompt: "Help me create a daily routine that includes [your goals/activities]",
-    },
-  ],
-  Advanced: [
-    {
-      icon: MessageSquare,
-      title: "Social media strategy",
-      problem: "Want to share regularly with family/community",
-      prompt: "Help me plan what to post on Facebook for the next month about [topics]",
-    },
-    {
-      icon: FileText,
-      title: "Write a formal letter",
-      problem: "Need to write to government or organization",
-      prompt: "Help me write a formal letter to [recipient] about [issue]",
-    },
-    {
-      icon: Search,
-      title: "Research thoroughly",
-      problem: "Need detailed information on a topic",
-      prompt: "Research [topic] and give me a detailed summary with sources",
-    },
-    {
-      icon: Mail,
-      title: "Email campaign",
-      problem: "Want to send updates to multiple people",
-      prompt: "Help me write an email to send to [group] about [topic]",
-    },
-    {
-      icon: Calendar,
-      title: "Coordinate multiple events",
-      problem: "Managing several appointments and activities",
-      prompt: "Help me coordinate these events and avoid conflicts: [list events]",
-    },
-    {
-      icon: ShoppingCart,
-      title: "Financial planning",
-      problem: "Want to plan for a big purchase or expense",
-      prompt: "Help me plan financially for [goal] over [timeframe]",
-    },
-    {
-      icon: Phone,
-      title: "Advocate for yourself",
-      problem: "Need to speak up about an issue",
-      prompt: "Give me a script to call [organization] about [problem] and request [solution]",
-    },
-    {
-      icon: FileText,
-      title: "Organize documents",
-      problem: "Have many papers to sort through",
-      prompt: "Help me create a system to organize [type of documents]",
-    },
-    {
-      icon: MapPin,
-      title: "Travel planning",
-      problem: "Planning a longer trip or vacation",
-      prompt: "Help me plan a [duration] trip to [destination] with [considerations]",
-    },
-    {
-      icon: Clock,
-      title: "Long-term planning",
-      problem: "Want to plan ahead for the future",
-      prompt: "Help me create a plan for [goal] over the next [timeframe]",
-    },
-  ],
-}
+const TIPS = [
+  {
+    icon: MessageSquare,
+    title: "Write Better Emails",
+    description: "Craft clear, professional messages for any situation",
+    problem: "Need help writing emails that get results",
+    prompt: "Help me write a professional email about [topic] to [person]. Make it clear and polite.",
+  },
+  {
+    icon: Search,
+    title: "Research Anything",
+    description: "Get instant answers to your questions in simple terms",
+    problem: "Want to understand complex topics quickly",
+    prompt: "Explain [topic] to me in simple, easy-to-understand terms with examples.",
+  },
+  {
+    icon: FileText,
+    title: "Summarize Long Text",
+    description: "Extract key points from articles, emails, or documents",
+    problem: "Too much to read, need the main points",
+    prompt: "Summarize this text in 3-5 bullet points, highlighting the most important information: [paste text]",
+  },
+  {
+    icon: Calendar,
+    title: "Plan Your Day",
+    description: "Organize tasks, appointments, and priorities efficiently",
+    problem: "Feeling overwhelmed with too much to do",
+    prompt: "Help me organize my day with these tasks: [list tasks]. Prioritize them and suggest a schedule.",
+  },
+  {
+    icon: Lightbulb,
+    title: "Get Creative Ideas",
+    description: "Brainstorm solutions, gifts, activities, or projects",
+    problem: "Stuck and need fresh ideas or inspiration",
+    prompt: "Give me 5 creative and practical ideas for [topic]. Make them easy to understand and do.",
+  },
+  {
+    icon: Phone,
+    title: "Practice Conversations",
+    description: "Prepare scripts for calls, meetings, or difficult talks",
+    problem: "Nervous about an important conversation",
+    prompt:
+      "Help me prepare a friendly but clear script to call [person/company] about [topic]. Include what to say if they ask questions.",
+  },
+  {
+    icon: ShoppingCart,
+    title: "Compare Options",
+    description: "Make smarter decisions by weighing pros and cons",
+    problem: "Can't decide between different choices",
+    prompt:
+      "Compare [option A] vs [option B] for me. List the pros and cons of each and help me decide which is better for [my situation].",
+  },
+  {
+    icon: MapPin,
+    title: "Plan Trips",
+    description: "Get travel tips, directions, and local recommendations",
+    problem: "Planning a trip and need guidance",
+    prompt:
+      "Help me plan a trip to [destination]. What should I know? Include tips on getting around, what to see, and what to avoid.",
+  },
+  {
+    icon: Camera,
+    title: "Identify & Learn",
+    description: "Understand objects, plants, or things you encounter",
+    problem: "Curious about something you see",
+    prompt: "What is this? [describe what you see in detail]. Tell me about it in simple terms.",
+  },
+  {
+    icon: Clock,
+    title: "Create Reminders",
+    description: "Set up helpful reminders for tasks and appointments",
+    problem: "Worried about forgetting important things",
+    prompt: "Help me create a reminder to [task] at [time]. Make it clear and include what I need to do.",
+  },
+]
 
 export function TipsTab({ userProfile, onTryPrompt }: TipsTabProps) {
-  const tips = TIPS_BY_LEVEL[userProfile.level as keyof typeof TIPS_BY_LEVEL] || TIPS_BY_LEVEL["Beginner"]
-
   return (
     <div className="flex flex-col h-full bg-white overflow-hidden">
       <div className="flex-shrink-0 px-4 py-3 border-b border-slate-200">
-        <h2 className="text-xl font-bold text-slate-900">Everyday Uses</h2>
-        <p className="text-sm text-slate-600">Tap to try in chat</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">10 Ways to Use AI</h2>
+            <p className="text-sm text-slate-600">Tap any tip to try it in chat</p>
+          </div>
+          <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-lg">
+            <span className="text-sm">⭐</span>
+            <span className="text-sm font-bold text-yellow-600">{userProfile.stars}</span>
+          </div>
+        </div>
       </div>
 
-      <div className="flex-grow px-4 py-3 overflow-hidden">
-        <div className="grid grid-cols-1 gap-2 h-full overflow-y-auto">
-          {tips.map((tip) => {
+      <div className="flex-grow px-4 py-3 overflow-y-auto">
+        <div className="grid grid-cols-1 gap-3">
+          {TIPS.map((tip) => {
             const Icon = tip.icon
             return (
               <button
                 key={tip.title}
                 onClick={() => onTryPrompt(tip.prompt)}
-                className="flex items-center gap-3 p-3 bg-white border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
+                className="flex items-start gap-3 p-4 bg-white border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 hover:shadow-md transition-all text-left group"
               >
-                <div className="flex-shrink-0 bg-blue-100 p-2 rounded-lg">
-                  <Icon className="w-5 h-5 text-blue-600" />
+                <div className="flex-shrink-0 bg-gradient-to-br from-blue-500 to-purple-500 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                  <Icon className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-grow min-w-0">
-                  <h3 className="font-bold text-slate-900 text-sm truncate">{tip.title}</h3>
-                  <p className="text-xs text-slate-600 truncate">{tip.problem}</p>
+                  <h3 className="font-bold text-slate-900 text-base mb-1">{tip.title}</h3>
+                  <p className="text-sm text-slate-600 mb-1">{tip.description}</p>
+                  <p className="text-xs text-blue-600 font-medium">💡 {tip.problem}</p>
                 </div>
               </button>
             )

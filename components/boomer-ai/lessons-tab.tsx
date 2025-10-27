@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Play, CheckCircle, ArrowRight, Brain, X, Headphones, Video, BookOpen, Flame } from "lucide-react"
+import { Play, CheckCircle, ArrowRight, Brain, X, Flame } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -62,16 +62,8 @@ const VIDEO_LESSONS = [
   },
 ]
 
-const PODCASTS = Array.from({ length: 15 }, (_, i) => ({
-  id: `podcast-${i + 1}`,
-  title: `AI Basics ${i + 1}`,
-  duration: `${5 + Math.floor(Math.random() * 10)} min`,
-  description: "Learn AI concepts through audio",
-}))
-
 export function LessonsTab({ userProfile, updateProfile }: LessonsTabProps) {
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null)
-  const [activeSection, setActiveSection] = useState<"videos" | "podcasts" | "lessons">("videos")
 
   const lesson = VIDEO_LESSONS.find((l) => l.id === selectedLesson)
   const isCompleted = (lessonId: string) => userProfile.lessonsCompleted?.includes(lessonId) ?? false
@@ -142,7 +134,7 @@ export function LessonsTab({ userProfile, updateProfile }: LessonsTabProps) {
               <Brain className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Learning Hub</h2>
+              <h2 className="text-lg font-bold text-slate-900">Video Lessons</h2>
               <p className="text-xs text-slate-600">Earn stars as you learn!</p>
             </div>
           </div>
@@ -158,99 +150,44 @@ export function LessonsTab({ userProfile, updateProfile }: LessonsTabProps) {
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveSection("videos")}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-              activeSection === "videos" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
-            }`}
-          >
-            <Video className="w-3 h-3" />
-            Videos
-          </button>
-          <button
-            onClick={() => setActiveSection("podcasts")}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-              activeSection === "podcasts" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
-            }`}
-          >
-            <Headphones className="w-3 h-3" />
-            Podcasts
-          </button>
-          <button
-            onClick={() => setActiveSection("lessons")}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-              activeSection === "lessons" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
-            }`}
-          >
-            <BookOpen className="w-3 h-3" />
-            Lessons
-          </button>
-        </div>
+        {userProfile.stars < 50 && (
+          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-lg p-2 mb-2">
+            <p className="text-xs text-center font-bold text-orange-600">
+              🎯 Complete lessons to earn more stars! Goal: 50 ⭐
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex-grow px-4 py-3 overflow-y-auto">
-        {activeSection === "videos" && (
-          <div className="grid grid-cols-1 gap-2">
-            {VIDEO_LESSONS.map((lesson, index) => (
-              <button
-                key={lesson.id}
-                onClick={() => setSelectedLesson(lesson.id)}
-                className="bg-white border-2 border-slate-200 hover:border-blue-500 rounded-xl p-3 transition-colors text-left flex items-center gap-3"
-              >
-                <div className="flex-shrink-0">
-                  {isCompleted(lesson.id) ? (
-                    <CheckCircle className="w-6 h-6 text-green-600" />
-                  ) : (
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Play className="w-3 h-3 text-blue-600" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-grow min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-bold text-slate-500">Video {index + 1}</span>
-                    <span className="text-xs text-slate-500">• {lesson.duration}</span>
-                    {isCompleted(lesson.id) && <span className="text-xs text-green-600">✓ Done</span>}
+        <div className="grid grid-cols-1 gap-2">
+          {VIDEO_LESSONS.map((lesson, index) => (
+            <button
+              key={lesson.id}
+              onClick={() => setSelectedLesson(lesson.id)}
+              className="bg-white border-2 border-slate-200 hover:border-blue-500 rounded-xl p-3 transition-colors text-left flex items-center gap-3"
+            >
+              <div className="flex-shrink-0">
+                {isCompleted(lesson.id) ? (
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                ) : (
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Play className="w-3 h-3 text-blue-600" />
                   </div>
-                  <h3 className="text-sm font-bold text-slate-900 truncate">{lesson.title}</h3>
+                )}
+              </div>
+              <div className="flex-grow min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-xs font-bold text-slate-500">Video {index + 1}</span>
+                  <span className="text-xs text-slate-500">• {lesson.duration}</span>
+                  {isCompleted(lesson.id) && <span className="text-xs text-green-600">✓ Done</span>}
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              </button>
-            ))}
-          </div>
-        )}
-
-        {activeSection === "podcasts" && (
-          <div className="grid grid-cols-1 gap-2">
-            {PODCASTS.map((podcast, index) => (
-              <button
-                key={podcast.id}
-                className="bg-white border-2 border-slate-200 hover:border-purple-500 rounded-xl p-3 transition-colors text-left flex items-center gap-3"
-              >
-                <div className="flex-shrink-0 bg-purple-100 p-2 rounded-lg">
-                  <Headphones className="w-5 h-5 text-purple-600" />
-                </div>
-                <div className="flex-grow min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-bold text-slate-500">Episode {index + 1}</span>
-                    <span className="text-xs text-slate-500">• {podcast.duration}</span>
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900 truncate">{podcast.title}</h3>
-                  <p className="text-xs text-slate-600 truncate">{podcast.description}</p>
-                </div>
-                <Play className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              </button>
-            ))}
-          </div>
-        )}
-
-        {activeSection === "lessons" && (
-          <div className="text-center py-8">
-            <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-600">Text lessons coming soon!</p>
-          </div>
-        )}
+                <h3 className="text-sm font-bold text-slate-900 truncate">{lesson.title}</h3>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )

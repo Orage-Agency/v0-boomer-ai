@@ -73,7 +73,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
     <div className="flex flex-col h-screen bg-white">
       {/* Header with Stars */}
       <header className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
-        <h1 className="text-2xl font-bold text-slate-900">Boomer AI</h1>
+        <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-10 w-auto object-contain" />
         <div className="flex items-center gap-2">
           <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
           <span className="text-lg font-bold text-slate-900">{userProfile.stars}</span>
