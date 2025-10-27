@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport } from "ai"
 import { Sparkles, ArrowLeftRight, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
@@ -65,28 +64,23 @@ export function ChatTab({
   const [showPromptLibrary, setShowPromptLibrary] = useState(false)
   const [compareMode, setCompareMode] = useState(false)
 
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
-    body: { model: MODELS[selectedModel].id },
+  const { messages, append, status } = useChat({
+    api: "/api/chat",
+    body: {
+      model: MODELS[selectedModel].id,
+      capturedImage: capturedImage || undefined,
+    },
   })
 
   useEffect(() => {
     if (pendingMessage) {
       console.log("[v0] Sending message with image:", !!capturedImage)
 
-      const messageContent: any = { text: pendingMessage }
+      append({
+        role: "user",
+        content: pendingMessage,
+      })
 
-      if (capturedImage) {
-        messageContent.experimental_attachments = [
-          {
-            contentType: "image/jpeg",
-            url: capturedImage,
-          },
-        ]
-        console.log("[v0] Image attachment added to message")
-      }
-
-      sendMessage(messageContent)
       onMessageSent()
 
       if (messages.length === 0 && !userProfile.badges.includes("First Chat")) {
@@ -99,7 +93,10 @@ export function ChatTab({
   }, [pendingMessage])
 
   const handlePromptClick = (promptText: string) => {
-    sendMessage({ text: promptText })
+    append({
+      role: "user",
+      content: promptText,
+    })
     setShowPromptLibrary(false)
   }
 
@@ -205,26 +202,30 @@ export function ChatTab({
                       : "bg-slate-100 text-slate-900 border border-slate-200"
                   }`}
                 >
-                  {message.parts.map((part, index) => {
-                    if (part.type === "text") {
-                      return (
-                        <p key={index} className="text-base leading-relaxed whitespace-pre-wrap">
-                          {part.text}
-                        </p>
-                      )
-                    }
-                    if (part.type === "image") {
-                      return (
-                        <img
-                          key={index}
-                          src={part.image || "/placeholder.svg"}
-                          alt="User uploaded"
-                          className="max-w-full rounded-lg mb-2"
-                        />
-                      )
-                    }
-                    return null
-                  })}
+                  {typeof message.content === "string" ? (
+                    <p className="text-base leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                  ) : (
+                    message.content.map((part, index) => {
+                      if (part.type === "text") {
+                        return (
+                          <p key={index} className="text-base leading-relaxed whitespace-pre-wrap">
+                            {part.text}
+                          </p>
+                        )
+                      }
+                      if (part.type === "image") {
+                        return (
+                          <img
+                            key={index}
+                            src={part.image || "/placeholder.svg"}
+                            alt="User uploaded"
+                            className="max-w-full rounded-lg mb-2"
+                          />
+                        )
+                      }
+                      return null
+                    })
+                  )}
                 </div>
               </div>
             ))}
