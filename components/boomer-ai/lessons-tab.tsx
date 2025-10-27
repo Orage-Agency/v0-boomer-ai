@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Play, CheckCircle, ArrowRight, Brain, Headphones } from "lucide-react"
+import { Play, CheckCircle, ArrowRight, Brain, X, Headphones, Video, BookOpen, Flame } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -62,149 +62,195 @@ const VIDEO_LESSONS = [
   },
 ]
 
+const PODCASTS = Array.from({ length: 15 }, (_, i) => ({
+  id: `podcast-${i + 1}`,
+  title: `AI Basics ${i + 1}`,
+  duration: `${5 + Math.floor(Math.random() * 10)} min`,
+  description: "Learn AI concepts through audio",
+}))
+
 export function LessonsTab({ userProfile, updateProfile }: LessonsTabProps) {
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null)
-  const [showAudioLessons, setShowAudioLessons] = useState(false)
+  const [activeSection, setActiveSection] = useState<"videos" | "podcasts" | "lessons">("videos")
 
   const lesson = VIDEO_LESSONS.find((l) => l.id === selectedLesson)
   const isCompleted = (lessonId: string) => userProfile.lessonsCompleted?.includes(lessonId) ?? false
 
   const handleMarkComplete = (lessonId: string) => {
     if (!isCompleted(lessonId)) {
+      const newStars = userProfile.stars + 10
+      const newStreak = userProfile.streak + 1
+
       updateProfile({
         lessonsCompleted: [...(userProfile.lessonsCompleted || []), lessonId],
-        stars: userProfile.stars + 5,
+        stars: newStars,
+        streak: newStreak,
       })
+
+      alert(`🎉 Great job! +10 stars! You now have ${newStars} stars and a ${newStreak}-day streak!`)
     }
     setSelectedLesson(null)
   }
 
-  if (showAudioLessons) {
-    return (
-      <div className="flex flex-col h-full bg-white">
-        <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200">
-          <button
-            onClick={() => setShowAudioLessons(false)}
-            className="text-blue-600 hover:text-blue-700 font-semibold mb-2"
-          >
-            ← Back to Lessons
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <Headphones className="w-6 h-6 text-blue-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900">Audio Lessons</h2>
-          </div>
-        </div>
-        <div className="flex-grow overflow-y-auto px-6 py-4">
-          <p className="text-slate-600 mb-6">Listen and learn at your own pace.</p>
-          {/* Audio lessons would go here */}
-        </div>
-      </div>
-    )
-  }
-
   if (lesson) {
     return (
-      <div className="flex flex-col h-full bg-white">
-        <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200">
+      <div className="flex flex-col h-full bg-white overflow-hidden">
+        <div className="flex-shrink-0 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+          <h2 className="text-base font-bold text-slate-900">{lesson.title}</h2>
           <button
             onClick={() => setSelectedLesson(null)}
-            className="text-blue-600 hover:text-blue-700 font-semibold mb-2"
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
           >
-            ← Back to Lessons
+            <X className="w-5 h-5 text-slate-600" />
           </button>
-          <h2 className="text-xl font-bold text-slate-900">{lesson.title}</h2>
         </div>
 
-        <div className="flex-grow overflow-y-auto px-6 py-4">
-          <div className="bg-slate-100 rounded-2xl overflow-hidden mb-6">
-            <video controls className="w-full" preload="metadata">
+        <div className="flex-grow flex flex-col px-4 py-3 gap-3 overflow-hidden">
+          <div className="bg-slate-100 rounded-xl overflow-hidden flex-shrink-0">
+            <video controls className="w-full" preload="metadata" style={{ maxHeight: "200px" }}>
               <source src={lesson.url} type="video/mp4" />
               Your browser does not support the video tag.
             </video>
           </div>
 
-          <div className="space-y-4">
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-              <h3 className="font-bold text-slate-900 mb-2">Try it in Chat</h3>
-              <p className="text-slate-700 mb-3 italic">"{lesson.prompt}"</p>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl">
-                Open in Chat <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </div>
-
-            <Button
-              onClick={() => handleMarkComplete(lesson.id)}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl"
-            >
-              <CheckCircle className="w-5 h-5 mr-2" />
-              Mark as Complete
+          <div className="flex-shrink-0 bg-blue-50 border-2 border-blue-200 rounded-xl p-3">
+            <h3 className="text-sm font-bold text-slate-900 mb-1">Try it in Chat</h3>
+            <p className="text-xs text-slate-700 mb-2 italic">"{lesson.prompt}"</p>
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-sm">
+              Open in Chat <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
+
+          <Button
+            onClick={() => handleMarkComplete(lesson.id)}
+            className="flex-shrink-0 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl"
+          >
+            <CheckCircle className="w-5 h-5 mr-2" />
+            {isCompleted(lesson.id) ? "Completed! ✓" : "Mark as Complete (+10 ⭐)"}
+          </Button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="bg-blue-100 p-3 rounded-full">
-            <Brain className="w-6 h-6 text-blue-600" />
+    <div className="flex flex-col h-full bg-white overflow-hidden">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-slate-200">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="bg-blue-100 p-2 rounded-lg">
+              <Brain className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Learning Hub</h2>
+              <p className="text-xs text-slate-600">Earn stars as you learn!</p>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">Lessons</h2>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-orange-100 px-2 py-1 rounded-lg">
+              <Flame className="w-4 h-4 text-orange-600" />
+              <span className="text-sm font-bold text-orange-600">{userProfile.streak}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-lg">
+              <span className="text-sm">⭐</span>
+              <span className="text-sm font-bold text-yellow-600">{userProfile.stars}</span>
+            </div>
+          </div>
         </div>
-        <p className="text-slate-600">Learn AI step by step</p>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveSection("videos")}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+              activeSection === "videos" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+            }`}
+          >
+            <Video className="w-3 h-3" />
+            Videos
+          </button>
+          <button
+            onClick={() => setActiveSection("podcasts")}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+              activeSection === "podcasts" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+            }`}
+          >
+            <Headphones className="w-3 h-3" />
+            Podcasts
+          </button>
+          <button
+            onClick={() => setActiveSection("lessons")}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+              activeSection === "lessons" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+            }`}
+          >
+            <BookOpen className="w-3 h-3" />
+            Lessons
+          </button>
+        </div>
       </div>
 
-      <div className="flex-grow overflow-y-auto px-6 py-4">
-        <div className="space-y-3 mb-6">
-          {VIDEO_LESSONS.map((lesson, index) => (
-            <button
-              key={lesson.id}
-              onClick={() => setSelectedLesson(lesson.id)}
-              className="w-full bg-white border-2 border-slate-200 hover:border-blue-500 rounded-xl p-4 transition-colors text-left"
-            >
-              <div className="flex items-center gap-4">
+      <div className="flex-grow px-4 py-3 overflow-y-auto">
+        {activeSection === "videos" && (
+          <div className="grid grid-cols-1 gap-2">
+            {VIDEO_LESSONS.map((lesson, index) => (
+              <button
+                key={lesson.id}
+                onClick={() => setSelectedLesson(lesson.id)}
+                className="bg-white border-2 border-slate-200 hover:border-blue-500 rounded-xl p-3 transition-colors text-left flex items-center gap-3"
+              >
                 <div className="flex-shrink-0">
                   {isCompleted(lesson.id) ? (
-                    <CheckCircle className="w-8 h-8 text-green-600" />
+                    <CheckCircle className="w-6 h-6 text-green-600" />
                   ) : (
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Play className="w-4 h-4 text-blue-600" />
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Play className="w-3 h-3 text-blue-600" />
                     </div>
                   )}
                 </div>
-                <div className="flex-grow">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-bold text-slate-500">Lesson {index + 1}</span>
+                <div className="flex-grow min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-xs font-bold text-slate-500">Video {index + 1}</span>
                     <span className="text-xs text-slate-500">• {lesson.duration}</span>
+                    {isCompleted(lesson.id) && <span className="text-xs text-green-600">✓ Done</span>}
                   </div>
-                  <h3 className="font-bold text-slate-900">{lesson.title}</h3>
+                  <h3 className="text-sm font-bold text-slate-900 truncate">{lesson.title}</h3>
                 </div>
-                <ArrowRight className="w-5 h-5 text-slate-400" />
-              </div>
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={() => setShowAudioLessons(true)}
-          className="w-full bg-slate-100 border-2 border-slate-200 hover:border-blue-500 rounded-xl p-4 transition-colors"
-        >
-          <div className="flex items-center gap-4">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <Headphones className="w-6 h-6 text-blue-600" />
-            </div>
-            <div className="flex-grow text-left">
-              <h3 className="font-bold text-slate-900">Audio Lessons</h3>
-              <p className="text-sm text-slate-600">Listen on the go</p>
-            </div>
-            <ArrowRight className="w-5 h-5 text-slate-400" />
+                <ArrowRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              </button>
+            ))}
           </div>
-        </button>
+        )}
+
+        {activeSection === "podcasts" && (
+          <div className="grid grid-cols-1 gap-2">
+            {PODCASTS.map((podcast, index) => (
+              <button
+                key={podcast.id}
+                className="bg-white border-2 border-slate-200 hover:border-purple-500 rounded-xl p-3 transition-colors text-left flex items-center gap-3"
+              >
+                <div className="flex-shrink-0 bg-purple-100 p-2 rounded-lg">
+                  <Headphones className="w-5 h-5 text-purple-600" />
+                </div>
+                <div className="flex-grow min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-xs font-bold text-slate-500">Episode {index + 1}</span>
+                    <span className="text-xs text-slate-500">• {podcast.duration}</span>
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900 truncate">{podcast.title}</h3>
+                  <p className="text-xs text-slate-600 truncate">{podcast.description}</p>
+                </div>
+                <Play className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {activeSection === "lessons" && (
+          <div className="text-center py-8">
+            <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <p className="text-slate-600">Text lessons coming soon!</p>
+          </div>
+        )}
       </div>
     </div>
   )

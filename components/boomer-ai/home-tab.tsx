@@ -49,73 +49,45 @@ export function HomeTab({ userProfile, onNavigate }: HomeTabProps) {
   ]
 
   return (
-    <div className="h-full flex flex-col bg-white">
-      <div className="flex-shrink-0 px-6 pt-4 pb-3 border-b border-slate-200">
+    <div className="h-full flex flex-col bg-white overflow-hidden">
+      <div className="flex-shrink-0 px-6 pt-3 pb-2 border-b border-slate-200">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Welcome back, {userProfile.userTitle || "Friend"}!</h2>
-            <p className="text-sm text-slate-600">Level: {userProfile.learningLevel}</p>
+            <h2 className="text-base font-bold text-slate-900">Welcome back, {userProfile.userTitle || "Friend"}!</h2>
+            <p className="text-xs text-slate-600">Level: {userProfile.learningLevel}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => onNavigate("profile")}
-              className="flex items-center gap-1.5 bg-orange-50 hover:bg-orange-100 px-3 py-2 rounded-xl transition-colors"
+              className="flex items-center gap-1 bg-orange-50 hover:bg-orange-100 px-2.5 py-1.5 rounded-lg transition-colors"
             >
-              <span className="text-xl animate-pulse">🔥</span>
-              <span className="text-sm font-bold text-orange-600">{userProfile.streak}</span>
+              <span className="text-base animate-pulse">🔥</span>
+              <span className="text-xs font-bold text-orange-600">{userProfile.streak}</span>
             </button>
             <button
               onClick={() => onNavigate("profile")}
-              className="flex items-center gap-1.5 bg-yellow-50 hover:bg-yellow-100 px-3 py-2 rounded-xl transition-colors"
+              className="flex items-center gap-1 bg-yellow-50 hover:bg-yellow-100 px-2.5 py-1.5 rounded-lg transition-colors"
             >
-              <span className="text-xl animate-bounce">⭐</span>
-              <span className="text-sm font-bold text-yellow-600">{userProfile.stars}</span>
+              <span className="text-base animate-bounce">⭐</span>
+              <span className="text-xs font-bold text-yellow-600">{userProfile.stars}</span>
             </button>
           </div>
         </div>
       </div>
 
-      <div className="flex-grow px-6 py-6 overflow-y-auto">
-        <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="flex-grow flex items-center justify-center px-6 py-4">
+        <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
           {mainActions.map((action) => (
             <button
               key={action.id}
               onClick={action.action}
-              className={`${action.color} ${action.hoverColor} text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center justify-center text-center min-h-[160px]`}
+              className={`${action.color} ${action.hoverColor} text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center justify-center text-center aspect-square`}
             >
-              <action.icon className="w-12 h-12 mb-3" strokeWidth={2.5} />
-              <h3 className="text-lg font-bold mb-1">{action.title}</h3>
-              <p className="text-sm text-white/90">{action.description}</p>
+              <action.icon className="w-10 h-10 mb-2" strokeWidth={2.5} />
+              <h3 className="text-base font-bold mb-1">{action.title}</h3>
+              <p className="text-xs text-white/90">{action.description}</p>
             </button>
           ))}
-        </div>
-
-        <div className="space-y-4">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-5 border border-blue-200">
-            <h3 className="text-base font-bold text-slate-900 mb-2">💡 Today's Tip</h3>
-            <p className="text-sm text-slate-700 mb-3">
-              Try asking AI to "Explain this like I'm 5" for simple answers to complex topics.
-            </p>
-            <button
-              onClick={() => onNavigate("chat")}
-              className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-            >
-              Try it now →
-            </button>
-          </div>
-
-          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
-            <h3 className="text-base font-bold text-slate-900 mb-2">📚 Continue Learning</h3>
-            <p className="text-sm text-slate-700 mb-3">
-              You've completed {userProfile.lessonsCompleted?.length || 0} lessons. Keep going!
-            </p>
-            <button
-              onClick={() => onNavigate("lessons")}
-              className="text-sm font-semibold text-purple-600 hover:text-purple-700"
-            >
-              View lessons →
-            </button>
-          </div>
         </div>
       </div>
     </div>

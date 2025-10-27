@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Home, MessageSquare, BookOpen, User, Star, Mic, MicOff, Send } from "lucide-react"
+import { Home, MessageSquare, BookOpen, User, Star, Mic, MicOff, Send, Lightbulb } from "lucide-react"
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
 import { LessonsTab } from "./lessons-tab"
 import { ProfileView } from "./profile-view"
+import { TipsTab } from "./tips-tab"
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
@@ -15,7 +16,7 @@ interface MainAppProps {
 }
 
 export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
-  const [activeTab, setActiveTab] = useState<"home" | "chat" | "lessons" | "profile">("home")
+  const [activeTab, setActiveTab] = useState<"home" | "chat" | "lessons" | "tips" | "profile">("home")
   const [inputValue, setInputValue] = useState("")
   const [isListening, setIsListening] = useState(false)
   const recognitionRef = useRef<any>(null)
@@ -91,6 +92,15 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           />
         )}
         {activeTab === "lessons" && <LessonsTab userProfile={userProfile} updateProfile={updateProfile} />}
+        {activeTab === "tips" && (
+          <TipsTab
+            userProfile={userProfile}
+            onTryPrompt={(prompt) => {
+              setInputValue(prompt)
+              setActiveTab("chat")
+            }}
+          />
+        )}
         {activeTab === "profile" && (
           <ProfileView userProfile={userProfile} onReset={onReset} onBack={() => setActiveTab("home")} />
         )}
@@ -113,7 +123,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-            placeholder={isListening ? "Listening..." : "Ask me anything..."}
+            placeholder={isListening ? "Listening..." : "Ask BOOMER AI anything..."}
             className="flex-grow bg-transparent text-lg text-slate-900 placeholder-slate-500 focus:outline-none"
             disabled={isListening}
           />
@@ -162,6 +172,16 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
         >
           <BookOpen className="w-6 h-6" />
           <span className="text-xs font-semibold">Lessons</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("tips")}
+          className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors ${
+            activeTab === "tips" ? "bg-blue-100 text-blue-600" : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <Lightbulb className="w-6 h-6" />
+          <span className="text-xs font-semibold">Tips</span>
         </button>
 
         <button
