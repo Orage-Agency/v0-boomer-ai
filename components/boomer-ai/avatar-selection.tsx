@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import { Input } from "@/components/ui/input"
 
 interface AvatarSelectionProps {
-  onSelect: (persona: string, userTitle: string, avatarSrc: string) => void
+  onSelect: (persona: string, userTitle: string, avatarSrc: string, userName: string) => void
 }
 
 const AVATARS = [
@@ -21,24 +22,38 @@ const AVATARS = [
 
 export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
   const [selected, setSelected] = useState<string | null>(null)
+  const [userName, setUserName] = useState("")
 
-  const handleSelect = (avatar: (typeof AVATARS)[0]) => {
-    setSelected(avatar.name)
-    onSelect(avatar.name, avatar.userTitle, avatar.image)
+  const handleContinue = () => {
+    if (!selected || !userName.trim()) return
+    const avatar = AVATARS.find((a) => a.name === selected)
+    if (avatar) {
+      onSelect(avatar.name, avatar.userTitle, avatar.image, userName.trim())
+    }
   }
 
   return (
-    <section className="flex flex-col items-center justify-center text-center p-8 min-h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <section className="flex flex-col items-center justify-center text-center p-6 h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div className="w-full max-w-sm">
-        <h2 className="text-4xl font-bold text-slate-900 mb-3">Choose your companion</h2>
-        <p className="text-lg text-slate-600 mb-10">Pick a friendly guide for your journey.</p>
+        <h2 className="text-3xl font-bold text-slate-900 mb-2">Choose your companion</h2>
+        <p className="text-base text-slate-600 mb-6">Pick a friendly guide for your journey.</p>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="mb-6">
+          <Input
+            type="text"
+            placeholder="Enter your name"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            className="text-lg py-6 text-center"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           {AVATARS.map((avatar) => (
             <button
               key={avatar.name}
-              onClick={() => handleSelect(avatar)}
-              className={`group p-4 text-center rounded-2xl bg-white border-2 transition-all duration-200 ${
+              onClick={() => setSelected(avatar.name)}
+              className={`group p-3 text-center rounded-2xl bg-white border-2 transition-all duration-200 ${
                 selected === avatar.name
                   ? avatar.name === "Angela"
                     ? "border-pink-500 shadow-lg"
@@ -49,14 +64,22 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
               <img
                 src={avatar.image || "/placeholder.svg"}
                 alt={`${avatar.name} avatar`}
-                className="w-32 h-32 object-cover rounded-full mx-auto shadow-md group-hover:shadow-xl transition-shadow"
+                className="w-24 h-24 object-cover rounded-full mx-auto shadow-md group-hover:shadow-xl transition-shadow"
               />
-              <p className="mt-4 font-bold text-lg text-slate-900">{avatar.name}</p>
+              <p className="mt-3 font-bold text-base text-slate-900">{avatar.name}</p>
             </button>
           ))}
         </div>
 
-        <p className="mt-10 text-sm text-slate-500">You can change this later.</p>
+        <button
+          onClick={handleContinue}
+          disabled={!selected || !userName.trim()}
+          className="mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-lg py-3 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg"
+        >
+          Continue
+        </button>
+
+        <p className="mt-6 text-sm text-slate-500">You can change this later.</p>
       </div>
     </section>
   )

@@ -19,6 +19,8 @@ export type UserProfile = {
   streak: number
   badges: string[]
   lessonsCompleted: string[]
+  userName: string | null
+  deviceId: string | null
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -32,6 +34,8 @@ const DEFAULT_PROFILE: UserProfile = {
   streak: 0,
   badges: [],
   lessonsCompleted: [],
+  userName: null,
+  deviceId: null,
 }
 
 export default function BoomerAIPage() {
@@ -42,30 +46,88 @@ export default function BoomerAIPage() {
 
   useEffect(() => {
     setMounted(true)
+    let deviceId = localStorage.getItem("boomer_device_id")
+    if (!deviceId) {
+      deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      localStorage.setItem("boomer_device_id", deviceId)
+    }
+
+    loadFromDatabase(deviceId)
+  }, [])
+
+  const loadFromDatabase = async (deviceId: string) => {
     try {
-      const saved = localStorage.getItem("boomer_profile")
-      if (saved) {
-        const profile = JSON.parse(saved)
-        setUserProfile(profile)
-        if (profile.persona && profile.level) {
+      const response = await fetch(`/api/profile?deviceId=${deviceId}`)
+      const data = await response.json()
+
+      if (data.success && data.profile) {
+        setUserProfile(data.profile)
+        if (data.profile.persona && data.profile.level) {
           setCurrentView("app")
+        }
+      } else {
+        try {
+          const saved = localStorage.getItem("boomer_profile")
+          if (saved) {
+            const profile = JSON.parse(saved)
+            setUserProfile({ ...profile, deviceId })
+            if (profile.persona && profile.level) {
+              setCurrentView("app")
+            }
+          } else {
+            setUserProfile({ ...DEFAULT_PROFILE, deviceId })
+          }
+        } catch (error) {
+          console.log("[v0] Error restoring profile:", error)
+          setUserProfile({ ...DEFAULT_PROFILE, deviceId })
         }
       }
     } catch (error) {
-      console.log("[v0] Error restoring profile:", error)
+      console.log("[v0] Error loading from database:", error)
+      try {
+        const saved = localStorage.getItem("boomer_profile")
+        if (saved) {
+          const profile = JSON.parse(saved)
+          setUserProfile({ ...profile, deviceId })
+          if (profile.persona && profile.level) {
+            setCurrentView("app")
+          }
+        } else {
+          setUserProfile({ ...DEFAULT_PROFILE, deviceId })
+        }
+      } catch (error) {
+        console.log("[v0] Error restoring profile:", error)
+        setUserProfile({ ...DEFAULT_PROFILE, deviceId })
+      }
     }
-  }, [])
+  }
+
+  const saveToDatabase = async (profile: UserProfile) => {
+    try {
+      await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      })
+    } catch (error) {
+      console.log("[v0] Error saving to database:", error)
+    }
+  }
 
   const updateProfile = (updates: Partial<UserProfile>) => {
     const newProfile = { ...userProfile, ...updates }
     setUserProfile(newProfile)
     if (mounted) {
       localStorage.setItem("boomer_profile", JSON.stringify(newProfile))
+      if (newProfile.userName && newProfile.level) {
+        saveToDatabase(newProfile)
+      }
     }
   }
 
   const resetProfile = () => {
-    setUserProfile(DEFAULT_PROFILE)
+    const deviceId = localStorage.getItem("boomer_device_id")
+    setUserProfile({ ...DEFAULT_PROFILE, deviceId })
     if (mounted) {
       localStorage.removeItem("boomer_profile")
     }
@@ -91,8 +153,8 @@ export default function BoomerAIPage() {
             <main className="flex-grow overflow-y-auto">
               {onboardingStep === "avatar" && (
                 <AvatarSelection
-                  onSelect={(persona, userTitle, avatarSrc) => {
-                    updateProfile({ persona, userTitle, avatarSrc })
+                  onSelect={(persona, userTitle, avatarSrc, userName) => {
+                    updateProfile({ persona, userTitle, avatarSrc, userName })
                     setOnboardingStep("age")
                   }}
                 />
