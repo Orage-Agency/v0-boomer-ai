@@ -21,7 +21,8 @@ export type UserProfile = {
   lessonsCompleted: string[]
   userName: string | null
   deviceId: string | null
-  aiProvider: "ai-sdk" | "openrouter"
+  dailyArtCount: number
+  lastArtDate: string | null
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -37,7 +38,8 @@ const DEFAULT_PROFILE: UserProfile = {
   lessonsCompleted: [],
   userName: null,
   deviceId: null,
-  aiProvider: "openrouter", // Set OpenRouter as default to avoid Vercel AI Gateway rate limits
+  dailyArtCount: 0,
+  lastArtDate: null,
 }
 
 export default function BoomerAIPage() {

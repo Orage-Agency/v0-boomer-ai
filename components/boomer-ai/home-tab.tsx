@@ -1,15 +1,15 @@
 "use client"
 
-import { MessageSquare, Camera, Lightbulb, User } from "lucide-react"
+import { MessageSquare, Sparkles, Lightbulb, User } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 
 interface HomeTabProps {
   userProfile: UserProfile
   onNavigate: (tab: "home" | "chat" | "lessons" | "tips" | "profile") => void
-  onOpenCamera: () => void
+  onOpenArtGenerator: () => void
 }
 
-export function HomeTab({ userProfile, onNavigate, onOpenCamera }: HomeTabProps) {
+export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator }: HomeTabProps) {
   const mainActions = [
     {
       id: "chat",
@@ -21,13 +21,13 @@ export function HomeTab({ userProfile, onNavigate, onOpenCamera }: HomeTabProps)
       action: () => onNavigate("chat"),
     },
     {
-      id: "camera",
-      title: "Take a Picture",
-      description: "Scan & learn",
-      icon: Camera,
+      id: "art",
+      title: "AI Art",
+      description: "Create sketches",
+      icon: Sparkles,
       color: "bg-purple-500",
       hoverColor: "hover:bg-purple-600",
-      action: () => onOpenCamera(),
+      action: () => onOpenArtGenerator(),
     },
     {
       id: "tips",
@@ -49,17 +49,31 @@ export function HomeTab({ userProfile, onNavigate, onOpenCamera }: HomeTabProps)
     },
   ]
 
-  const showRewardPrompt = userProfile.streak === 0 || userProfile.stars < 20
+  const getRewardMessage = () => {
+    if (userProfile.streak === 0) {
+      return "🔥 Start your streak! Chat with AI or complete a lesson to earn your first star."
+    }
+    if (userProfile.stars < 10) {
+      return "⭐ Keep going! Try a new tip or lesson to earn more stars."
+    }
+    if (userProfile.stars < 50) {
+      return "🌟 Great progress! Complete daily lessons to maintain your streak and earn bonus stars."
+    }
+    return "✨ Amazing! You're a star collector! Keep your streak alive for bonus rewards."
+  }
+
+  const showRewardPrompt = userProfile.stars < 100
 
   return (
     <div className="h-full flex flex-col bg-white overflow-hidden">
       {showRewardPrompt && (
-        <div className="flex-shrink-0 mx-6 mt-3 bg-gradient-to-r from-yellow-100 to-orange-100 border-2 border-yellow-300 rounded-xl p-3">
-          <p className="text-sm font-bold text-orange-700 text-center">
-            {userProfile.streak === 0
-              ? "🔥 Start your learning streak today! Complete a lesson to begin."
-              : "⭐ Keep learning to earn more stars! Try a new lesson."}
-          </p>
+        <div className="flex-shrink-0 mx-6 mt-3 bg-gradient-to-r from-yellow-100 to-orange-100 border-2 border-yellow-300 rounded-xl p-3 shadow-md">
+          <p className="text-sm font-bold text-orange-700 text-center">{getRewardMessage()}</p>
+          <div className="mt-2 flex items-center justify-center gap-4 text-xs text-orange-600">
+            <span>💬 Chat: +1 ⭐</span>
+            <span>📚 Lesson: +2 ⭐</span>
+            <span>🔥 Daily Streak: +5 ⭐</span>
+          </div>
         </div>
       )}
 

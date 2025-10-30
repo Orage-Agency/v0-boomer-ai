@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, ArrowLeftRight, X, Plus, Zap, AlertCircle } from "lucide-react"
+import { Sparkles, Plus, X, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -18,50 +18,140 @@ interface ChatTabProps {
   onNewConversation: () => void
 }
 
-const MODELS = {
-  quick: { id: "openai/gpt-4o-mini", name: "Quick Chat", description: "Fast & Simple", icon: "⚡" },
-  deep: { id: "openai/gpt-4o", name: "Deep Reasoning", description: "Best for planning", icon: "🧠" },
-  creative: { id: "anthropic/claude-3-5-sonnet", name: "Creative", description: "Writing & ideas", icon: "✨" },
-}
-
-const OPENROUTER_MODELS = {
-  claude: {
-    id: "anthropic/claude-3.5-sonnet",
-    name: "Claude Sonnet",
-    description: "Best reasoning",
-    icon: "🧠",
-  },
-  gemini: { id: "google/gemini-2.0-flash-exp:free", name: "Gemini Flash", description: "Fast & Free", icon: "⚡" },
-  llama: { id: "meta-llama/llama-3.3-70b-instruct", name: "Llama 3.3", description: "Open source", icon: "🦙" },
-}
-
 const PROMPT_LIBRARY = [
   {
-    category: "Getting Things Done",
+    category: "🧑‍🍳 COOKING & FOOD",
     prompts: [
-      { title: "Plan my week", text: "Help me plan my week from this calendar text..." },
-      { title: "Organize tasks", text: "Help me organize my to-do list by priority..." },
+      "Give me an easy dinner for one.",
+      "How long do I cook chicken in the oven?",
+      "Show me a soft meal I can eat with dentures.",
+      "What can I make with eggs and cheese?",
+      "What's the best way to store leftovers?",
+      "Remind me how to boil pasta.",
+      "Find a sugar-free dessert recipe.",
+      "What can I make that's low salt?",
+      "Can I freeze soup?",
+      "Make me a grocery list for the week.",
     ],
   },
   {
-    category: "Customer Responses",
+    category: "💊 HEALTH & MEDICATION",
     prompts: [
-      { title: "Friendly reply", text: "Write a friendly reply to this unhappy customer..." },
-      { title: "Thank you note", text: "Help me write a thank you note for..." },
+      "Remind me to take my pill at 8 a.m.",
+      "What's this medicine called Lisinopril for?",
+      "Can I take Tylenol with my heart medicine?",
+      "How much water should I drink each day?",
+      "Show me simple exercises for my back.",
+      "What can I eat for better sleep?",
+      "Is a short walk after dinner good for me?",
+      "Why do I feel dizzy in the morning?",
+      "Give me some stretches I can do in a chair.",
+      "Tell me a few tips to stay healthy after 65.",
     ],
   },
   {
-    category: "Writing Help",
+    category: "🧠 MEMORY & MIND",
     prompts: [
-      { title: "Shorten email", text: "Make this email shorter and polite..." },
-      { title: "Fix grammar", text: "Fix the grammar in this message..." },
+      "Ask me how I'm feeling today.",
+      "Remind me what day it is.",
+      "Let's play a trivia game.",
+      "Tell me a fun fact about the 1960s.",
+      "Give me a riddle to solve.",
+      "Teach me one new word today.",
+      "Help me remember my appointments.",
+      "What's a good brain exercise?",
+      "Remind me to call my son tomorrow.",
+      "Read me some good news.",
     ],
   },
   {
-    category: "How-To",
+    category: "🐾 PETS & ANIMALS",
     prompts: [
-      { title: "Facebook post", text: "Step-by-step to post on Facebook Page..." },
-      { title: "Send photos", text: "How do I send photos from my phone..." },
+      "How often should I walk my dog?",
+      "Can cats eat tuna every day?",
+      "What's the best flea treatment for dogs?",
+      "How can I train my puppy not to bark?",
+      "Why is my dog scratching a lot?",
+      "Tell me what foods dogs can't eat.",
+      "How do I make homemade dog treats?",
+      "Find me a vet near me.",
+      "Remind me to feed my cat at 7 p.m.",
+      "Is it normal if my dog sleeps all day?",
+    ],
+  },
+  {
+    category: "🌷 GARDEN & HOME",
+    prompts: [
+      "When should I water my plants?",
+      "How do I keep bugs off my tomatoes?",
+      "What's the best indoor plant for low light?",
+      "Why are my leaves turning yellow?",
+      "Give me tips for growing herbs inside.",
+      "How do I get rid of ants safely?",
+      "Tell me what flowers bloom in spring.",
+      "Can I use coffee grounds in the garden?",
+      "Find a natural cleaner for my kitchen.",
+      "How do I unclog a drain?",
+    ],
+  },
+  {
+    category: "💬 FAMILY & SOCIAL",
+    prompts: [
+      "Write a sweet message to my granddaughter.",
+      "Remind me to call my sister on Sunday.",
+      "What can I talk about with my grandkids?",
+      "Send a thank-you message for the gift.",
+      "Tell me something nice to say to a friend.",
+      "Help me make a birthday card message.",
+      "How can I start a group chat with my family?",
+      "What's a fun story I can tell the kids?",
+      "Find a Bible verse about gratitude.",
+      "Write a note to say I miss you.",
+    ],
+  },
+  {
+    category: "🏠 DAILY LIFE & ERRANDS",
+    prompts: [
+      "Make me a list for the store.",
+      "What's the weather like today?",
+      "Remind me to pay my bills on the 15th.",
+      "Find an easy recipe for lunch.",
+      "How do I get a stain out of my shirt?",
+      "Remind me to water the plants.",
+      "Find a good movie to watch tonight.",
+      "What's the best way to clean my microwave?",
+      "How do I reset my Wi-Fi?",
+      "Tell me a joke.",
+    ],
+  },
+  {
+    category: "💻 TECH HELP (MADE EASY)",
+    prompts: [
+      "Show me how to copy and paste.",
+      "How do I make my phone louder?",
+      "Teach me how to use FaceTime.",
+      "Why is my iPad battery dying so fast?",
+      "Explain what a password manager is.",
+      "How do I delete old photos?",
+      "Can you help me find my lost phone?",
+      "Set a reminder for tomorrow morning.",
+      "Show me how to join a Zoom call.",
+      "What's the safest way to shop online?",
+    ],
+  },
+  {
+    category: "🌞 FUN & PERSONAL",
+    prompts: [
+      "Tell me a joke about aging.",
+      "Play some old country music.",
+      "What's a fun hobby I can start?",
+      "Teach me how to paint.",
+      "Show me easy yoga for seniors.",
+      "What's the weather for my next trip?",
+      "Tell me a bedtime story.",
+      "What's a good volunteer idea near me?",
+      "Give me something inspiring to read.",
+      "Ask me about my favorite childhood memory.",
     ],
   },
 ]
@@ -76,39 +166,17 @@ export function ChatTab({
   conversationId,
   onNewConversation,
 }: ChatTabProps) {
-  const [selectedModel, setSelectedModel] = useState<keyof typeof MODELS>("quick")
-  const [selectedOpenRouterModel, setSelectedOpenRouterModel] = useState<keyof typeof OPENROUTER_MODELS>("claude")
   const [showPromptLibrary, setShowPromptLibrary] = useState(false)
-  const [compareMode, setCompareMode] = useState(false)
-  const [provider, setProvider] = useState<"ai-sdk" | "openrouter">(userProfile.aiProvider || "openrouter")
-  const [openRouterError, setOpenRouterError] = useState<string | null>(null)
+  const [expandedSections, setExpandedSections] = useState<string[]>([])
 
-  const currentModels = provider === "openrouter" ? OPENROUTER_MODELS : MODELS
-  const currentModelKey = provider === "openrouter" ? selectedOpenRouterModel : selectedModel
-  const currentModelId =
-    provider === "openrouter" ? OPENROUTER_MODELS[selectedOpenRouterModel].id : MODELS[selectedModel].id
-
-  const { messages, sendMessage, status, setMessages, error } = useChat({
+  const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
-      api: provider === "openrouter" ? "/api/chat-openrouter" : "/api/chat",
+      api: "/api/chat",
     }),
     body: {
-      model: currentModelId,
+      model: "openai/gpt-4o-mini",
       capturedImage: capturedImage || undefined,
       conversationId: conversationId || undefined,
-    },
-    onError: (error) => {
-      console.error("[v0] Chat error:", error)
-      if (provider === "openrouter" && (error.message.includes("401") || error.message.includes("User not found"))) {
-        setOpenRouterError(
-          "OpenRouter authentication failed. Please add a valid OPENROUTER_API_KEY to your environment variables. Switching to AI SDK...",
-        )
-        setTimeout(() => {
-          setProvider("ai-sdk")
-          updateProfile({ aiProvider: "ai-sdk" })
-          setOpenRouterError(null)
-        }, 3000)
-      }
     },
   })
 
@@ -123,12 +191,6 @@ export function ChatTab({
       saveConversation()
     }
   }, [messages])
-
-  useEffect(() => {
-    if (provider !== userProfile.aiProvider) {
-      updateProfile({ aiProvider: provider })
-    }
-  }, [provider])
 
   const loadConversation = async (id: string) => {
     try {
@@ -198,90 +260,12 @@ export function ChatTab({
     onNewConversation()
   }
 
-  const handleModelChange = (key: string) => {
-    if (provider === "openrouter") {
-      setSelectedOpenRouterModel(key as keyof typeof OPENROUTER_MODELS)
-    } else {
-      setSelectedModel(key as keyof typeof MODELS)
-    }
-  }
-
-  const toggleProvider = () => {
-    const newProvider = provider === "ai-sdk" ? "openrouter" : "ai-sdk"
-    setProvider(newProvider)
-    updateProfile({ aiProvider: newProvider })
+  const toggleSection = (category: string) => {
+    setExpandedSections((prev) => (prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]))
   }
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Model Picker with Provider Toggle */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-slate-200 bg-slate-50">
-        {openRouterError && (
-          <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-grow">
-              <p className="text-sm font-bold text-red-900 mb-1">OpenRouter Error</p>
-              <p className="text-xs text-red-700">{openRouterError}</p>
-            </div>
-            <button onClick={() => setOpenRouterError(null)} className="text-red-600 hover:text-red-800">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-bold text-slate-700">AI Provider:</span>
-          <button
-            onClick={toggleProvider}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
-          >
-            <Zap className="w-4 h-4" />
-            <span className="text-sm font-bold">{provider === "ai-sdk" ? "AI SDK" : "OpenRouter"}</span>
-          </button>
-        </div>
-
-        {provider === "openrouter" && !openRouterError && (
-          <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-700">
-              💡 <strong>Tip:</strong> OpenRouter requires a valid API key. If you see errors, add{" "}
-              <code className="bg-blue-100 px-1 rounded">OPENROUTER_API_KEY</code> to your environment variables or
-              switch to AI SDK.
-            </p>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2 overflow-x-auto flex-grow">
-            {Object.entries(currentModels).map(([key, model]) => (
-              <button
-                key={key}
-                onClick={() => handleModelChange(key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all ${
-                  currentModelKey === key
-                    ? "bg-blue-600 text-white shadow-lg"
-                    : "bg-white text-slate-700 border border-slate-200 hover:border-blue-300"
-                }`}
-              >
-                <span className="text-lg">{model.icon}</span>
-                <div className="text-left">
-                  <div className="text-sm font-bold">{model.name}</div>
-                  <div className="text-xs opacity-90">{model.description}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-          {messages.length > 0 && (
-            <button
-              onClick={handleNewConversation}
-              className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="text-sm font-bold">New</span>
-            </button>
-          )}
-        </div>
-      </div>
-
       {capturedImage && (
         <div className="flex-shrink-0 px-4 py-3 bg-purple-50 border-b border-purple-200">
           <div className="flex items-center gap-3">
@@ -304,7 +288,6 @@ export function ChatTab({
         </div>
       )}
 
-      {/* Chat Messages */}
       <div className="flex-grow overflow-y-auto px-4 py-4">
         {messages.length === 0 && !showPromptLibrary && (
           <div className="flex flex-col items-center justify-center h-full text-center px-6">
@@ -323,25 +306,44 @@ export function ChatTab({
         )}
 
         {showPromptLibrary && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            <h3 className="text-xl font-bold text-slate-900">Prompt Library</h3>
-            {PROMPT_LIBRARY.map((category) => (
-              <div key={category.category}>
-                <h4 className="text-sm font-bold text-slate-600 mb-3">{category.category}</h4>
-                <div className="space-y-2">
-                  {category.prompts.map((prompt) => (
-                    <button
-                      key={prompt.title}
-                      onClick={() => handlePromptClick(prompt.text)}
-                      className="w-full text-left bg-white border-2 border-slate-200 hover:border-blue-500 rounded-xl p-4 transition-colors"
-                    >
-                      <div className="font-bold text-slate-900 mb-1">{prompt.title}</div>
-                      <div className="text-sm text-slate-600 italic">"{prompt.text}"</div>
-                    </button>
-                  ))}
+          <div className="space-y-4 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-slate-900">Prompt Library</h3>
+              <button onClick={() => setShowPromptLibrary(false)} className="text-slate-600 hover:text-slate-900">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            {PROMPT_LIBRARY.map((section) => {
+              const isExpanded = expandedSections.includes(section.category)
+              return (
+                <div key={section.category} className="border-2 border-slate-200 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => toggleSection(section.category)}
+                    className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+                  >
+                    <h4 className="text-lg font-bold text-slate-900">{section.category}</h4>
+                    {isExpanded ? (
+                      <ChevronUp className="w-5 h-5 text-slate-600" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-slate-600" />
+                    )}
+                  </button>
+                  {isExpanded && (
+                    <div className="p-4 space-y-2 bg-white">
+                      {section.prompts.map((prompt, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handlePromptClick(prompt)}
+                          className="w-full text-left bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg p-3 transition-all"
+                        >
+                          <div className="text-base text-slate-900">"{prompt}"</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
 
@@ -403,14 +405,13 @@ export function ChatTab({
             >
               Browse Prompts
             </Button>
-            <Button
-              onClick={() => setCompareMode(!compareMode)}
-              variant="outline"
-              className="flex items-center gap-2 border-2 border-slate-200 hover:border-blue-500 text-base py-3"
+            <button
+              onClick={handleNewConversation}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors whitespace-nowrap"
             >
-              <ArrowLeftRight className="w-5 h-5" />
-              Compare
-            </Button>
+              <Plus className="w-4 h-4" />
+              <span className="text-sm font-bold">New Chat</span>
+            </button>
           </div>
         </div>
       )}

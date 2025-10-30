@@ -7,7 +7,7 @@ import { ChatTab } from "./chat-tab"
 import { LessonsTab } from "./lessons-tab"
 import { ProfileView } from "./profile-view"
 import { TipsTab } from "./tips-tab"
-import { CameraModal } from "./camera-modal"
+import { AiArtModal } from "./ai-art-modal"
 import { ChatHistoryView } from "./chat-history-view"
 import type { UserProfile } from "@/app/page"
 
@@ -24,7 +24,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
   const [interimTranscript, setInterimTranscript] = useState("")
   const recognitionRef = useRef<any>(null)
   const [pendingMessage, setPendingMessage] = useState<string | null>(null)
-  const [isCameraOpen, setIsCameraOpen] = useState(false)
+  const [isArtGeneratorOpen, setIsArtGeneratorOpen] = useState(false)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
 
@@ -119,9 +119,15 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             <History className="w-5 h-5 text-slate-600" />
             <span className="text-sm font-semibold text-slate-700">History</span>
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 group relative">
             <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
             <span className="text-lg font-bold text-slate-900">{userProfile.stars}</span>
+            <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-slate-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+              <div className="font-semibold mb-1">Earn Stars:</div>
+              <div>💬 Chat: +1 star</div>
+              <div>📚 Lesson: +2 stars</div>
+              <div>🔥 Daily: +5 stars</div>
+            </div>
           </div>
         </div>
       </header>
@@ -129,7 +135,11 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
       {/* Main Content - adjusted height to account for input */}
       <main className="flex-grow overflow-hidden" style={{ height: "calc(100vh - 64px - 100px - 80px)" }}>
         {activeTab === "home" && (
-          <HomeTab userProfile={userProfile} onNavigate={setActiveTab} onOpenCamera={() => setIsCameraOpen(true)} />
+          <HomeTab
+            userProfile={userProfile}
+            onNavigate={setActiveTab}
+            onOpenArtGenerator={() => setIsArtGeneratorOpen(true)}
+          />
         )}
         {activeTab === "chat" && (
           <ChatTab
@@ -263,8 +273,12 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
         </button>
       </nav>
 
-      {/* Camera Modal */}
-      <CameraModal isOpen={isCameraOpen} onClose={() => setIsCameraOpen(false)} onCapture={handleCameraCapture} />
+      <AiArtModal
+        isOpen={isArtGeneratorOpen}
+        onClose={() => setIsArtGeneratorOpen(false)}
+        userProfile={userProfile}
+        updateProfile={updateProfile}
+      />
     </div>
   )
 }
