@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, ArrowLeftRight, X, Plus } from "lucide-react"
+import { Sparkles, ArrowLeftRight, X, Plus, Zap, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -22,6 +22,17 @@ const MODELS = {
   quick: { id: "openai/gpt-4o-mini", name: "Quick Chat", description: "Fast & Simple", icon: "⚡" },
   deep: { id: "openai/gpt-4o", name: "Deep Reasoning", description: "Best for planning", icon: "🧠" },
   creative: { id: "anthropic/claude-3-5-sonnet", name: "Creative", description: "Writing & ideas", icon: "✨" },
+}
+
+const OPENROUTER_MODELS = {
+  claude: {
+    id: "anthropic/claude-3.5-sonnet",
+    name: "Claude Sonnet",
+    description: "Best reasoning",
+    icon: "🧠",
+  },
+  gemini: { id: "google/gemini-2.0-flash-exp:free", name: "Gemini Flash", description: "Fast & Free", icon: "⚡" },
+  llama: { id: "meta-llama/llama-3.3-70b-instruct", name: "Llama 3.3", description: "Open source", icon: "🦙" },
 }
 
 const PROMPT_LIBRARY = [
@@ -66,17 +77,38 @@ export function ChatTab({
   onNewConversation,
 }: ChatTabProps) {
   const [selectedModel, setSelectedModel] = useState<keyof typeof MODELS>("quick")
+  const [selectedOpenRouterModel, setSelectedOpenRouterModel] = useState<keyof typeof OPENROUTER_MODELS>("claude")
   const [showPromptLibrary, setShowPromptLibrary] = useState(false)
   const [compareMode, setCompareMode] = useState(false)
+  const [provider, setProvider] = useState<"ai-sdk" | "openrouter">(userProfile.aiProvider || "openrouter")
+  const [openRouterError, setOpenRouterError] = useState<string | null>(null)
 
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const currentModels = provider === "openrouter" ? OPENROUTER_MODELS : MODELS
+  const currentModelKey = provider === "openrouter" ? selectedOpenRouterModel : selectedModel
+  const currentModelId =
+    provider === "openrouter" ? OPENROUTER_MODELS[selectedOpenRouterModel].id : MODELS[selectedModel].id
+
+  const { messages, sendMessage, status, setMessages, error } = useChat({
     transport: new DefaultChatTransport({
-      api: "/api/chat",
+      api: provider === "openrouter" ? "/api/chat-openrouter" : "/api/chat",
     }),
     body: {
-      model: MODELS[selectedModel].id,
+      model: currentModelId,
       capturedImage: capturedImage || undefined,
       conversationId: conversationId || undefined,
+    },
+    onError: (error) => {
+      console.error("[v0] Chat error:", error)
+      if (provider === "openrouter" && (error.message.includes("401") || error.message.includes("User not found"))) {
+        setOpenRouterError(
+          "OpenRouter authentication failed. Please add a valid OPENROUTER_API_KEY to your environment variables. Switching to AI SDK...",
+        )
+        setTimeout(() => {
+          setProvider("ai-sdk")
+          updateProfile({ aiProvider: "ai-sdk" })
+          setOpenRouterError(null)
+        }, 3000)
+      }
     },
   })
 
@@ -91,6 +123,12 @@ export function ChatTab({
       saveConversation()
     }
   }, [messages])
+
+  useEffect(() => {
+    if (provider !== userProfile.aiProvider) {
+      updateProfile({ aiProvider: provider })
+    }
+  }, [provider])
 
   const loadConversation = async (id: string) => {
     try {
@@ -160,18 +198,66 @@ export function ChatTab({
     onNewConversation()
   }
 
+  const handleModelChange = (key: string) => {
+    if (provider === "openrouter") {
+      setSelectedOpenRouterModel(key as keyof typeof OPENROUTER_MODELS)
+    } else {
+      setSelectedModel(key as keyof typeof MODELS)
+    }
+  }
+
+  const toggleProvider = () => {
+    const newProvider = provider === "ai-sdk" ? "openrouter" : "ai-sdk"
+    setProvider(newProvider)
+    updateProfile({ aiProvider: newProvider })
+  }
+
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Model Picker */}
+      {/* Model Picker with Provider Toggle */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-slate-200 bg-slate-50">
+        {openRouterError && (
+          <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-grow">
+              <p className="text-sm font-bold text-red-900 mb-1">OpenRouter Error</p>
+              <p className="text-xs text-red-700">{openRouterError}</p>
+            </div>
+            <button onClick={() => setOpenRouterError(null)} className="text-red-600 hover:text-red-800">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-bold text-slate-700">AI Provider:</span>
+          <button
+            onClick={toggleProvider}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
+          >
+            <Zap className="w-4 h-4" />
+            <span className="text-sm font-bold">{provider === "ai-sdk" ? "AI SDK" : "OpenRouter"}</span>
+          </button>
+        </div>
+
+        {provider === "openrouter" && !openRouterError && (
+          <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-700">
+              💡 <strong>Tip:</strong> OpenRouter requires a valid API key. If you see errors, add{" "}
+              <code className="bg-blue-100 px-1 rounded">OPENROUTER_API_KEY</code> to your environment variables or
+              switch to AI SDK.
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 overflow-x-auto flex-grow">
-            {Object.entries(MODELS).map(([key, model]) => (
+            {Object.entries(currentModels).map(([key, model]) => (
               <button
                 key={key}
-                onClick={() => setSelectedModel(key as keyof typeof MODELS)}
+                onClick={() => handleModelChange(key)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all ${
-                  selectedModel === key
+                  currentModelKey === key
                     ? "bg-blue-600 text-white shadow-lg"
                     : "bg-white text-slate-700 border border-slate-200 hover:border-blue-300"
                 }`}
