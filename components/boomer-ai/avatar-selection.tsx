@@ -33,29 +33,29 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
   }
 
   return (
-    <section className="flex flex-col items-center justify-center text-center p-6 h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <section className="flex flex-col items-center justify-center text-center p-4 h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div className="w-full max-w-sm">
-        <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-16 w-auto object-contain mx-auto mb-6" />
+        <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-48 w-auto object-contain mx-auto mb-4" />
 
-        <h2 className="text-3xl font-bold text-slate-900 mb-2">Choose your companion</h2>
-        <p className="text-base text-slate-600 mb-6">Pick a friendly guide for your journey.</p>
+        <h2 className="text-2xl font-bold text-slate-900 mb-1">Choose your companion</h2>
+        <p className="text-sm text-slate-600 mb-4">Pick a friendly guide for your journey.</p>
 
-        <div className="mb-6">
+        <div className="mb-4">
           <Input
             type="text"
             placeholder="Enter your name"
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
-            className="text-lg py-6 text-center"
+            className="text-base py-5 text-center"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           {AVATARS.map((avatar) => (
             <button
               key={avatar.name}
               onClick={() => setSelected(avatar.name)}
-              className={`group p-3 text-center rounded-2xl bg-white border-2 transition-all duration-200 ${
+              className={`group p-2 text-center rounded-2xl bg-white border-2 transition-all duration-200 ${
                 selected === avatar.name
                   ? avatar.name === "Angela"
                     ? "border-pink-500 shadow-lg"
@@ -66,9 +66,9 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
               <img
                 src={avatar.image || "/placeholder.svg"}
                 alt={`${avatar.name} avatar`}
-                className="w-24 h-24 object-cover rounded-full mx-auto shadow-md group-hover:shadow-xl transition-shadow"
+                className="w-20 h-20 object-cover rounded-full mx-auto shadow-md group-hover:shadow-xl transition-shadow"
               />
-              <p className="mt-3 font-bold text-base text-slate-900">{avatar.name}</p>
+              <p className="mt-2 font-bold text-sm text-slate-900">{avatar.name}</p>
             </button>
           ))}
         </div>
@@ -76,12 +76,12 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
         <button
           onClick={handleContinue}
           disabled={!selected || !userName.trim()}
-          className="mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-lg py-3 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg"
+          className="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-base py-2.5 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg"
         >
           Continue
         </button>
 
-        <p className="mt-6 text-sm text-slate-500">You can change this later.</p>
+        <p className="mt-3 text-xs text-slate-500">You can change this later.</p>
       </div>
     </section>
   )
