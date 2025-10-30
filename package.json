@@ -11,6 +11,7 @@
   "dependencies": {
     "@ai-sdk/openai": "latest",
     "@ai-sdk/react": "latest",
+    "@ai-sdk/xai": "latest",
     "@fal-ai/serverless-client": "latest",
     "@hookform/resolvers": "^3.10.0",
     "@neondatabase/serverless": "latest",

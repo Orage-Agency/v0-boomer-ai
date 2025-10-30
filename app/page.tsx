@@ -23,6 +23,7 @@ export type UserProfile = {
   deviceId: string | null
   dailyArtCount: number
   lastArtDate: string | null
+  selectedModel: "ai-sdk" | "grok"
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -40,6 +41,7 @@ const DEFAULT_PROFILE: UserProfile = {
   deviceId: null,
   dailyArtCount: 0,
   lastArtDate: null,
+  selectedModel: "ai-sdk",
 }
 
 export default function BoomerAIPage() {

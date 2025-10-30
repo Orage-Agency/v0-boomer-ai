@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, Plus, X, ChevronDown, ChevronUp } from "lucide-react"
+import { Sparkles, Plus, X, ChevronDown, ChevronUp, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -169,12 +169,14 @@ export function ChatTab({
   const [showPromptLibrary, setShowPromptLibrary] = useState(false)
   const [expandedSections, setExpandedSections] = useState<string[]>([])
 
+  const selectedModel = userProfile.selectedModel || "ai-sdk"
+
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
-      api: "/api/chat",
+      api: selectedModel === "grok" ? "/api/chat-grok" : "/api/chat",
     }),
     body: {
-      model: "openai/gpt-4o-mini",
+      model: selectedModel === "grok" ? "grok-beta" : "openai/gpt-4o-mini",
       capturedImage: capturedImage || undefined,
       conversationId: conversationId || undefined,
     },
@@ -266,6 +268,35 @@ export function ChatTab({
 
   return (
     <div className="flex flex-col h-full bg-white">
+      <div className="flex-shrink-0 px-4 py-3 bg-slate-50 border-b border-slate-200">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-slate-700">AI Model:</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => updateProfile({ selectedModel: "ai-sdk" })}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                selectedModel === "ai-sdk"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-white text-slate-600 border-2 border-slate-200 hover:border-blue-400"
+              }`}
+            >
+              AI SDK
+            </button>
+            <button
+              onClick={() => updateProfile({ selectedModel: "grok" })}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                selectedModel === "grok"
+                  ? "bg-purple-600 text-white shadow-md"
+                  : "bg-white text-slate-600 border-2 border-slate-200 hover:border-purple-400"
+              }`}
+            >
+              <Zap className="w-4 h-4" />
+              Grok
+            </button>
+          </div>
+        </div>
+      </div>
+
       {capturedImage && (
         <div className="flex-shrink-0 px-4 py-3 bg-purple-50 border-b border-purple-200">
           <div className="flex items-center gap-3">
