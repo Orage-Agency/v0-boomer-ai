@@ -21,6 +21,7 @@ import { ProfileView } from "./profile-view"
 import { TipsTab } from "./tips-tab"
 import { AiArtModal } from "./ai-art-modal"
 import { ChatHistoryView } from "./chat-history-view"
+import { QuestionsTab } from "./questions-tab"
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
@@ -142,7 +143,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
     <div className="flex flex-col h-screen bg-white">
       <header className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
         <button onClick={() => setActiveTab("home")} className="hover:opacity-80 transition-opacity">
-          <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-10 w-auto object-contain" />
+          <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-[90px] w-auto object-contain" />
         </button>
 
         <div className="flex items-center gap-4">
@@ -242,7 +243,15 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             onBack={() => setActiveTab("home")}
           />
         )}
-        {(activeTab === "profile" || activeTab === "questions") && (
+        {activeTab === "questions" && (
+          <QuestionsTab
+            onAskQuestion={(question) => {
+              setInputValue(question)
+              setActiveTab("chat")
+            }}
+          />
+        )}
+        {activeTab === "profile" && (
           <ProfileView userProfile={userProfile} onReset={onReset} onBack={() => setActiveTab("home")} />
         )}
       </main>
