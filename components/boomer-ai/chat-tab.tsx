@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, Plus, X, ChevronDown, ChevronUp, Zap } from "lucide-react"
+import { Sparkles, Plus, X, ChevronDown, ChevronUp, Zap, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -176,7 +176,7 @@ export function ChatTab({
       api: selectedModel === "grok" ? "/api/chat-grok" : "/api/chat",
     }),
     body: {
-      model: selectedModel === "grok" ? "grok-beta" : "openai/gpt-4o-mini",
+      model: selectedModel === "grok" ? "grok-4" : "openai/gpt-4o-mini",
       capturedImage: capturedImage || undefined,
       conversationId: conversationId || undefined,
     },
@@ -274,13 +274,13 @@ export function ChatTab({
           <div className="flex gap-2">
             <button
               onClick={() => updateProfile({ selectedModel: "ai-sdk" })}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
                 selectedModel === "ai-sdk"
                   ? "bg-blue-600 text-white shadow-md"
                   : "bg-white text-slate-600 border-2 border-slate-200 hover:border-blue-400"
               }`}
             >
-              AI SDK
+              <Bot className="w-5 h-5" />
             </button>
             <button
               onClick={() => updateProfile({ selectedModel: "grok" })}
@@ -290,8 +290,7 @@ export function ChatTab({
                   : "bg-white text-slate-600 border-2 border-slate-200 hover:border-purple-400"
               }`}
             >
-              <Zap className="w-4 h-4" />
-              Grok
+              <Zap className="w-5 h-5" />
             </button>
           </div>
         </div>

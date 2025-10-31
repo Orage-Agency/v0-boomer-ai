@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   const prompt = convertToModelMessages(processedMessages)
 
   const result = streamText({
-    model: xai("grok-beta", {
+    model: xai("grok-4", {
       apiKey: process.env.XAI_API_KEY,
     }),
     system:
