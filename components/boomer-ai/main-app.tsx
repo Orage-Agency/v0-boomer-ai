@@ -54,6 +54,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
       recognitionRef.current.lang = "en-US"
 
       recognitionRef.current.onresult = (event: any) => {
+        console.log("[v0] Speech recognition result received")
         let interim = ""
         let final = ""
 
@@ -61,8 +62,10 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           const transcript = event.results[i][0].transcript
           if (event.results[i].isFinal) {
             final += transcript
+            console.log("[v0] Final transcript:", final)
           } else {
             interim += transcript
+            console.log("[v0] Interim transcript:", interim)
           }
         }
 
@@ -76,14 +79,21 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
         }
       }
 
-      recognitionRef.current.onerror = () => {
+      recognitionRef.current.onerror = (event: any) => {
+        console.error("[v0] Speech recognition error:", event.error)
+        setIsListening(false)
+        setInterimTranscript("")
+        alert(`Voice recognition error: ${event.error}. Please try again.`)
+      }
+
+      recognitionRef.current.onend = () => {
+        console.log("[v0] Speech recognition ended")
         setIsListening(false)
         setInterimTranscript("")
       }
 
-      recognitionRef.current.onend = () => {
-        setIsListening(false)
-        setInterimTranscript("")
+      recognitionRef.current.onstart = () => {
+        console.log("[v0] Speech recognition started")
       }
     }
   }, [])
@@ -111,12 +121,19 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
     }
 
     if (isListening) {
+      console.log("[v0] Stopping voice recognition")
       recognitionRef.current.stop()
       setIsListening(false)
       setInterimTranscript("")
     } else {
-      recognitionRef.current.start()
-      setIsListening(true)
+      console.log("[v0] Starting voice recognition")
+      try {
+        recognitionRef.current.start()
+        setIsListening(true)
+      } catch (error) {
+        console.error("[v0] Failed to start voice recognition:", error)
+        alert("Failed to start voice recognition. Please try again.")
+      }
     }
   }
 
@@ -257,25 +274,38 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
       </main>
 
       <div className="flex-shrink-0 px-4 py-3 border-t-2 border-slate-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-        {isListening && interimTranscript && (
-          <div className="mb-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl">
-            <p className="text-sm text-blue-900">
-              <span className="font-semibold">You're saying: </span>
-              <span className="italic">{interimTranscript}</span>
-            </p>
+        {isListening && (
+          <div className="mb-3 px-5 py-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-2xl shadow-lg animate-pulse">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+              <p className="text-base font-bold text-blue-900">🎤 LISTENING NOW</p>
+            </div>
+            {interimTranscript && (
+              <div className="mt-2 p-3 bg-white rounded-xl border border-blue-200">
+                <p className="text-lg font-semibold text-slate-900">{interimTranscript}</p>
+              </div>
+            )}
+            {!interimTranscript && <p className="text-sm text-blue-700 italic">Start speaking... I'm listening</p>}
+          </div>
+        )}
+
+        {inputValue && !isListening && (
+          <div className="mb-3 px-5 py-3 bg-green-50 border-2 border-green-300 rounded-2xl">
+            <p className="text-sm font-semibold text-green-900 mb-1">Your message:</p>
+            <p className="text-base text-slate-900">{inputValue}</p>
           </div>
         )}
 
         <div className="flex items-center gap-3 border-2 border-slate-300 rounded-2xl p-3 bg-white focus-within:border-blue-500 focus-within:shadow-lg transition-all">
           <button
             onClick={toggleVoiceRecognition}
-            className={`p-2 rounded-xl transition-all flex-shrink-0 ${
+            className={`p-3 rounded-xl transition-all flex-shrink-0 ${
               isListening
-                ? "text-red-600 bg-red-50 animate-pulse"
+                ? "text-white bg-red-600 animate-pulse shadow-lg"
                 : "text-slate-600 hover:text-blue-600 hover:bg-blue-50"
             }`}
           >
-            {isListening ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+            {isListening ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
           </button>
           <input
             type="text"
@@ -289,16 +319,11 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           <button
             onClick={handleSendMessage}
             disabled={!inputValue.trim()}
-            className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg flex-shrink-0"
+            className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg flex-shrink-0"
           >
-            <Send className="w-6 h-6" />
+            <Send className="w-7 h-7" />
           </button>
         </div>
-        {isListening && (
-          <p className="text-center text-sm font-semibold text-blue-600 mt-2 animate-pulse">
-            🎤 Listening... Speak now
-          </p>
-        )}
       </div>
 
       <nav className="flex-shrink-0 flex items-center justify-around border-t border-slate-200 bg-white py-3 px-4">
