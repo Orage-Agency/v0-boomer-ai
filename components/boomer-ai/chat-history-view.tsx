@@ -71,10 +71,20 @@ export function ChatHistoryView({ userProfile, onLoadConversation, onBack }: Cha
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
 
-    if (diffMins < 60) return `${diffMins} minutes ago`
+    // Show relative time for recent conversations
+    if (diffMins < 60) return `${diffMins} min ago`
     if (diffHours < 24) return `${diffHours} hours ago`
     if (diffDays < 7) return `${diffDays} days ago`
-    return date.toLocaleDateString()
+
+    // Show full date and time for older conversations
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
   }
 
   return (

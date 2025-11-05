@@ -40,6 +40,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const recognitionRef = useRef<any>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [pendingMessage, setPendingMessage] = useState<string | null>(null)
   const [isArtGeneratorOpen, setIsArtGeneratorOpen] = useState(false)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
@@ -114,6 +115,35 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
     }
   }, [isMenuOpen])
 
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`
+    }
+  }, [inputValue])
+
+  useEffect(() => {
+    const loadLastConversation = async () => {
+      const deviceId = localStorage.getItem("boomer-device-id")
+      if (!deviceId) return
+
+      try {
+        const response = await fetch(`/api/conversations?deviceId=${deviceId}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.conversations && data.conversations.length > 0) {
+            // Load the most recent conversation
+            setCurrentConversationId(data.conversations[0].id)
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load last conversation:", error)
+      }
+    }
+
+    loadLastConversation()
+  }, [])
+
   const toggleVoiceRecognition = () => {
     if (!recognitionRef.current) {
       alert("Voice recognition is not supported in your browser. Please try Chrome or Safari.")
@@ -143,6 +173,10 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
     setPendingMessage(inputValue)
     setInputValue("")
     setActiveTab("chat")
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"
+    }
   }
 
   const handleCameraCapture = (imageData: string) => {
@@ -289,14 +323,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           </div>
         )}
 
-        {inputValue && !isListening && (
-          <div className="mb-3 px-5 py-3 bg-green-50 border-2 border-green-300 rounded-2xl">
-            <p className="text-sm font-semibold text-green-900 mb-1">Your message:</p>
-            <p className="text-base text-slate-900">{inputValue}</p>
-          </div>
-        )}
-
-        <div className="flex items-center gap-3 border-2 border-slate-300 rounded-2xl p-3 bg-white focus-within:border-blue-500 focus-within:shadow-lg transition-all">
+        <div className="flex items-start gap-3 border-2 border-slate-300 rounded-2xl p-3 bg-white focus-within:border-blue-500 focus-within:shadow-lg transition-all">
           <button
             onClick={toggleVoiceRecognition}
             className={`p-3 rounded-xl transition-all flex-shrink-0 ${
@@ -307,14 +334,20 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           >
             {isListening ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
           </button>
-          <input
-            type="text"
+          <textarea
+            ref={textareaRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault()
+                handleSendMessage()
+              }
+            }}
             placeholder={isListening ? "Listening..." : "Ask BOOMER AI anything..."}
-            className="flex-grow bg-transparent text-lg text-slate-900 placeholder-slate-500 focus:outline-none"
+            className="flex-grow bg-transparent text-lg text-slate-900 placeholder-slate-500 focus:outline-none resize-none min-h-[28px] max-h-[150px] overflow-y-auto"
             disabled={isListening}
+            rows={1}
           />
           <button
             onClick={handleSendMessage}

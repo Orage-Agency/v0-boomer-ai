@@ -2,6 +2,25 @@ import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
+function getClientIp(request: Request): string {
+  // Try various headers that might contain the IP
+  const forwarded = request.headers.get("x-forwarded-for")
+  const realIp = request.headers.get("x-real-ip")
+  const cfConnectingIp = request.headers.get("cf-connecting-ip")
+
+  if (forwarded) {
+    return forwarded.split(",")[0].trim()
+  }
+  if (realIp) {
+    return realIp
+  }
+  if (cfConnectingIp) {
+    return cfConnectingIp
+  }
+
+  return "unknown"
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -22,12 +41,11 @@ export async function GET(request: Request) {
     }
 
     if (deviceId) {
-      // Get all conversations for device
       const conversations = await sql`
-        SELECT id, title, preview, created_at as timestamp, message_count
+        SELECT id, title, preview, created_at as timestamp, message_count, ip_address
         FROM boomer_conversations 
         WHERE device_id = ${deviceId}
-        ORDER BY updated_at DESC
+        ORDER BY created_at DESC
         LIMIT 50
       `
       return Response.json({ conversations })
@@ -48,10 +66,14 @@ export async function POST(request: Request) {
       return Response.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    const ipAddress = getClientIp(request)
+    console.log("[v0] Saving conversation from IP:", ipAddress)
+
     const result = await sql`
-      INSERT INTO boomer_conversations (device_id, title, preview, messages, message_count, created_at, updated_at)
+      INSERT INTO boomer_conversations (device_id, ip_address, title, preview, messages, message_count, created_at, updated_at)
       VALUES (
         ${deviceId},
+        ${ipAddress},
         ${title},
         ${preview},
         ${JSON.stringify(messages)},
@@ -64,6 +86,7 @@ export async function POST(request: Request) {
         messages = ${JSON.stringify(messages)},
         message_count = ${messages.length},
         preview = ${preview},
+        ip_address = ${ipAddress},
         updated_at = NOW()
       RETURNING id
     `

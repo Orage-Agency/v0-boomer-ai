@@ -23,7 +23,13 @@ export type UserProfile = {
   deviceId: string | null
   dailyArtCount: number
   lastArtDate: string | null
-  selectedModel: "ai-sdk" | "grok"
+}
+
+function calculateLevelFromStars(stars: number): string {
+  if (stars < 200) return "Basic"
+  if (stars < 600) return "Intermediate" // 200 + 400
+  if (stars < 1400) return "Advanced" // 600 + 800
+  return "Expert"
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -41,7 +47,6 @@ const DEFAULT_PROFILE: UserProfile = {
   deviceId: null,
   dailyArtCount: 0,
   lastArtDate: null,
-  selectedModel: "ai-sdk",
 }
 
 export default function BoomerAIPage() {
@@ -52,10 +57,10 @@ export default function BoomerAIPage() {
 
   useEffect(() => {
     setMounted(true)
-    let deviceId = localStorage.getItem("boomer_device_id")
+    let deviceId = localStorage.getItem("boomer-device-id")
     if (!deviceId) {
       deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      localStorage.setItem("boomer_device_id", deviceId)
+      localStorage.setItem("boomer-device-id", deviceId)
     }
 
     loadFromDatabase(deviceId)
@@ -121,6 +126,12 @@ export default function BoomerAIPage() {
   }
 
   const updateProfile = (updates: Partial<UserProfile>) => {
+    if (updates.stars !== undefined) {
+      const correctLevel = calculateLevelFromStars(updates.stars)
+      updates.level = correctLevel
+      console.log("[v0] Stars updated to:", updates.stars, "Level set to:", correctLevel)
+    }
+
     const newProfile = { ...userProfile, ...updates }
     setUserProfile(newProfile)
     if (mounted) {
@@ -132,7 +143,7 @@ export default function BoomerAIPage() {
   }
 
   const resetProfile = () => {
-    const deviceId = localStorage.getItem("boomer_device_id")
+    const deviceId = localStorage.getItem("boomer-device-id")
     setUserProfile({ ...DEFAULT_PROFILE, deviceId })
     if (mounted) {
       localStorage.removeItem("boomer_profile")

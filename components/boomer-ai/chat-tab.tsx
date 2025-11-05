@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, Plus, X, ChevronDown, ChevronUp, Zap, Bot } from "lucide-react"
+import { Sparkles, Plus, X, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -168,19 +168,39 @@ export function ChatTab({
 }: ChatTabProps) {
   const [showPromptLibrary, setShowPromptLibrary] = useState(false)
   const [expandedSections, setExpandedSections] = useState<string[]>([])
-
-  const selectedModel = userProfile.selectedModel || "ai-sdk"
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
 
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
-      api: selectedModel === "grok" ? "/api/chat-grok" : "/api/chat",
+      api: "/api/chat",
     }),
     body: {
-      model: selectedModel === "grok" ? "grok-4" : "openai/gpt-4o-mini",
+      model: "openai/gpt-4o-mini",
       capturedImage: capturedImage || undefined,
       conversationId: conversationId || undefined,
     },
   })
+
+  useEffect(() => {
+    const scrollToBottom = () => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" })
+      }
+      // Fallback: also scroll the container
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+      }
+    }
+
+    // Scroll immediately
+    scrollToBottom()
+
+    // Also scroll after a short delay to ensure content is rendered
+    const timeoutId = setTimeout(scrollToBottom, 100)
+
+    return () => clearTimeout(timeoutId)
+  }, [messages, status])
 
   useEffect(() => {
     if (conversationId) {
@@ -242,19 +262,37 @@ export function ChatTab({
       onMessageSent()
 
       if (messages.length === 0 && !userProfile.badges.includes("First Chat")) {
+        const newStars = userProfile.stars + 10
         updateProfile({
-          stars: userProfile.stars + 10,
+          stars: newStars,
           badges: [...userProfile.badges, "First Chat"],
         })
+        console.log("[v0] Awarded 10 stars for first chat. Total stars:", newStars)
+      } else {
+        const newStars = userProfile.stars + 1
+        updateProfile({
+          stars: newStars,
+        })
+        console.log("[v0] Awarded 1 star for message. Total stars:", newStars)
       }
     }
   }, [pendingMessage])
 
   const handlePromptClick = (promptText: string) => {
+    console.log("[v0] Prompt clicked:", promptText)
     sendMessage({
       text: promptText,
     })
     setShowPromptLibrary(false)
+
+    if (!userProfile.badges.includes("Prompt Explorer")) {
+      const newStars = userProfile.stars + 1
+      updateProfile({
+        stars: newStars,
+        badges: [...userProfile.badges, "Prompt Explorer"],
+      })
+      console.log("[v0] Awarded 1 star for prompt explorer. Total stars:", newStars)
+    }
   }
 
   const handleNewConversation = () => {
@@ -268,34 +306,6 @@ export function ChatTab({
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <div className="flex-shrink-0 px-4 py-3 bg-slate-50 border-b border-slate-200">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-slate-700">AI Model:</span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => updateProfile({ selectedModel: "ai-sdk" })}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                selectedModel === "ai-sdk"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-white text-slate-600 border-2 border-slate-200 hover:border-blue-400"
-              }`}
-            >
-              <Bot className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => updateProfile({ selectedModel: "grok" })}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                selectedModel === "grok"
-                  ? "bg-purple-600 text-white shadow-md"
-                  : "bg-white text-slate-600 border-2 border-slate-200 hover:border-purple-400"
-              }`}
-            >
-              <Zap className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
       {capturedImage && (
         <div className="flex-shrink-0 px-4 py-3 bg-purple-50 border-b border-purple-200">
           <div className="flex items-center gap-3">
@@ -318,7 +328,7 @@ export function ChatTab({
         </div>
       )}
 
-      <div className="flex-grow overflow-y-auto px-4 py-4">
+      <div ref={messagesContainerRef} className="flex-grow overflow-y-auto px-4 py-4">
         {messages.length === 0 && !showPromptLibrary && (
           <div className="flex flex-col items-center justify-center h-full text-center px-6">
             <div className="bg-blue-100 p-6 rounded-full mb-4">
@@ -421,6 +431,7 @@ export function ChatTab({
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
         )}
       </div>
