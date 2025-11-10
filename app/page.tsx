@@ -23,6 +23,7 @@ export type UserProfile = {
   deviceId: string | null
   dailyArtCount: number
   lastArtDate: string | null
+  pinnedFeatures: string[]
 }
 
 function calculateLevelFromStars(stars: number): string {
@@ -47,6 +48,7 @@ const DEFAULT_PROFILE: UserProfile = {
   deviceId: null,
   dailyArtCount: 0,
   lastArtDate: null,
+  pinnedFeatures: [],
 }
 
 export default function BoomerAIPage() {

@@ -290,6 +290,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             userProfile={userProfile}
             onNavigate={setActiveTab}
             onOpenArtGenerator={() => setIsArtGeneratorOpen(true)}
+            updateProfile={updateProfile} // Pass updateProfile to HomeTab for pinning functionality
           />
         )}
         {activeTab === "chat" && (
