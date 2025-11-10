@@ -123,14 +123,55 @@
     @apply bg-background text-foreground;
   }
 
-  /* Increased base font size for better accessibility */
+  /* Increased base font size for better readability */
   html {
-    font-size: 112.5%; /* 18px base instead of 16px */
-    scroll-behavior: smooth; /* Smooth scrolling for better UX */
+    font-size: 118%; /* Increased from 112.5% to 118% for even better readability */
+    scroll-behavior: smooth;
   }
 
   /* Better focus visibility for accessibility */
   *:focus-visible {
     @apply outline-2 outline-offset-2 outline-blue-600;
+  }
+
+  /* Smooth animations for celebrations */
+  @keyframes confetti {
+    0% {
+      transform: translateY(0) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-100vh) rotate(360deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes scale-up {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* Unified font sizes throughout */
+  .text-base {
+    font-size: 1rem; /* 18px with 118% base */
+  }
+
+  .text-lg {
+    font-size: 1.15rem; /* Slightly larger */
+  }
+
+  .text-xl {
+    font-size: 1.3rem;
+  }
+
+  .text-2xl {
+    font-size: 1.6rem;
   }
 }

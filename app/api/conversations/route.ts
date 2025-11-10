@@ -67,7 +67,9 @@ export async function POST(request: Request) {
     }
 
     const ipAddress = getClientIp(request)
-    console.log("[v0] Saving conversation from IP:", ipAddress)
+    console.log("[v0] Saving conversation from IP:", ipAddress, "Message count:", messages.length)
+
+    const uniqueKey = `${deviceId}_${title}_${messages[0]?.id || Date.now()}`
 
     const result = await sql`
       INSERT INTO boomer_conversations (device_id, ip_address, title, preview, messages, message_count, created_at, updated_at)
@@ -91,9 +93,10 @@ export async function POST(request: Request) {
       RETURNING id
     `
 
+    console.log("[v0] Conversation saved with ID:", result[0].id)
     return Response.json({ success: true, id: result[0].id })
   } catch (error) {
-    console.error("Conversations POST error:", error)
+    console.error("[v0] Conversations POST error:", error)
     return Response.json({ error: "Failed to save conversation" }, { status: 500 })
   }
 }

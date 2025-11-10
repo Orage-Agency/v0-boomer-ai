@@ -22,6 +22,7 @@ import { TipsTab } from "./tips-tab"
 import { AiArtModal } from "./ai-art-modal"
 import { ChatHistoryView } from "./chat-history-view"
 import { QuestionsTab } from "./questions-tab"
+import { VoiceAssistant } from "./voice-assistant"
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
@@ -45,6 +46,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
   const [isArtGeneratorOpen, setIsArtGeneratorOpen] = useState(false)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const [pendingChatPrompt, setPendingChatPrompt] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
@@ -125,19 +127,34 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
   useEffect(() => {
     const loadLastConversation = async () => {
       const deviceId = localStorage.getItem("boomer-device-id")
-      if (!deviceId) return
+      if (!deviceId) {
+        console.log("[v0] No device ID found, skipping conversation load")
+        return
+      }
 
       try {
+        console.log("[v0] Loading last conversation for device:", deviceId)
         const response = await fetch(`/api/conversations?deviceId=${deviceId}`)
         if (response.ok) {
           const data = await response.json()
           if (data.conversations && data.conversations.length > 0) {
-            // Load the most recent conversation
-            setCurrentConversationId(data.conversations[0].id)
+            const lastConversation = data.conversations[0]
+            console.log(
+              "[v0] Found last conversation:",
+              lastConversation.id,
+              "with",
+              lastConversation.message_count,
+              "messages",
+            )
+            setCurrentConversationId(lastConversation.id)
+          } else {
+            console.log("[v0] No previous conversations found")
           }
+        } else {
+          console.error("[v0] Failed to load conversations:", response.status)
         }
       } catch (error) {
-        console.error("Failed to load last conversation:", error)
+        console.error("[v0] Failed to load last conversation:", error)
       }
     }
 
@@ -190,12 +207,22 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
     setActiveTab("chat")
   }
 
+  const handleNavigateWithPrompt = (prompt: string) => {
+    setPendingChatPrompt(prompt)
+    setActiveTab("chat")
+  }
+
   return (
     <div className="flex flex-col h-screen bg-white">
       <header className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
-        <button onClick={() => setActiveTab("home")} className="hover:opacity-80 transition-opacity">
-          <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-[90px] w-auto object-contain" />
-        </button>
+        <div className="flex items-center gap-4">
+          <button onClick={() => setActiveTab("home")} className="hover:opacity-80 transition-opacity">
+            <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-[90px] w-auto object-contain" />
+          </button>
+
+          {/* Added voice assistant next to logo */}
+          <VoiceAssistant />
+        </div>
 
         <div className="flex items-center gap-4">
           <button
@@ -269,15 +296,24 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           <ChatTab
             userProfile={userProfile}
             updateProfile={updateProfile}
-            pendingMessage={pendingMessage}
-            onMessageSent={() => setPendingMessage(null)}
+            pendingMessage={pendingMessage || pendingChatPrompt}
+            onMessageSent={() => {
+              setPendingMessage(null)
+              setPendingChatPrompt(null)
+            }}
             capturedImage={capturedImage}
             onImageCleared={() => setCapturedImage(null)}
             conversationId={currentConversationId}
             onNewConversation={() => setCurrentConversationId(null)}
           />
         )}
-        {activeTab === "lessons" && <LessonsTab userProfile={userProfile} updateProfile={updateProfile} />}
+        {activeTab === "lessons" && (
+          <LessonsTab
+            userProfile={userProfile}
+            updateProfile={updateProfile}
+            onNavigateToChat={handleNavigateWithPrompt}
+          />
+        )}
         {activeTab === "tips" && (
           <TipsTab
             userProfile={userProfile}
@@ -312,14 +348,16 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           <div className="mb-3 px-5 py-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-2xl shadow-lg animate-pulse">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-              <p className="text-base font-bold text-blue-900">🎤 LISTENING NOW</p>
+              <p className="text-lg font-bold text-blue-900">🎤 LISTENING NOW</p>
             </div>
             {interimTranscript && (
               <div className="mt-2 p-3 bg-white rounded-xl border border-blue-200">
-                <p className="text-lg font-semibold text-slate-900">{interimTranscript}</p>
+                <p className="text-xl font-semibold text-slate-900">{interimTranscript}</p>
               </div>
             )}
-            {!interimTranscript && <p className="text-sm text-blue-700 italic">Start speaking... I'm listening</p>}
+            {!interimTranscript && (
+              <p className="text-base text-blue-700 italic font-medium">Start speaking... I'm listening</p>
+            )}
           </div>
         )}
 
@@ -345,7 +383,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
               }
             }}
             placeholder={isListening ? "Listening..." : "Ask BOOMER AI anything..."}
-            className="flex-grow bg-transparent text-lg text-slate-900 placeholder-slate-500 focus:outline-none resize-none min-h-[28px] max-h-[150px] overflow-y-auto"
+            className="flex-grow bg-transparent text-lg text-slate-900 placeholder-slate-500 focus:outline-none resize-none min-h-[28px] max-h-[150px] overflow-y-auto font-medium"
             disabled={isListening}
             rows={1}
           />

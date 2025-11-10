@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, Plus, X, ChevronDown, ChevronUp } from "lucide-react"
+import { Sparkles, Plus, X, ChevronDown, ChevronUp, Lightbulb, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -170,6 +170,8 @@ export function ChatTab({
   const [expandedSections, setExpandedSections] = useState<string[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const conversationLoadedRef = useRef(false)
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
@@ -204,39 +206,69 @@ export function ChatTab({
 
   useEffect(() => {
     if (conversationId) {
+      console.log("[v0] Loading conversation:", conversationId)
+      conversationLoadedRef.current = false
       loadConversation(conversationId)
+    } else {
+      conversationLoadedRef.current = true
     }
   }, [conversationId])
 
   useEffect(() => {
-    if (messages.length > 0 && !conversationId) {
-      saveConversation()
+    if (messages.length > 0 && conversationLoadedRef.current) {
+      console.log("[v0] Messages changed, scheduling auto-save. Message count:", messages.length)
+
+      // Clear any existing timeout
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+
+      // Debounce save by 1 second to avoid excessive saves during streaming
+      saveTimeoutRef.current = setTimeout(() => {
+        saveConversation()
+      }, 1000)
+    }
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
     }
   }, [messages])
 
   const loadConversation = async (id: string) => {
     try {
+      console.log("[v0] Fetching conversation:", id)
       const response = await fetch(`/api/conversations?id=${id}`)
       if (response.ok) {
         const data = await response.json()
         if (data.messages) {
+          console.log("[v0] Loaded messages:", data.messages.length)
           setMessages(data.messages)
+          conversationLoadedRef.current = true
         }
+      } else {
+        console.error("[v0] Failed to load conversation:", response.status)
       }
     } catch (error) {
-      console.error("Failed to load conversation:", error)
+      console.error("[v0] Failed to load conversation:", error)
     }
   }
 
   const saveConversation = async () => {
     try {
       const deviceId = localStorage.getItem("boomer-device-id")
-      if (!deviceId || messages.length === 0) return
+      if (!deviceId || messages.length === 0) {
+        console.log("[v0] Skipping save - no deviceId or no messages")
+        return
+      }
 
       const title = messages[0]?.parts?.[0]?.text?.substring(0, 50) || "New conversation"
       const preview = messages[messages.length - 1]?.parts?.[0]?.text?.substring(0, 100) || ""
 
-      await fetch("/api/conversations", {
+      console.log("[v0] Saving conversation:", { deviceId, messageCount: messages.length, title })
+
+      const response = await fetch("/api/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -246,8 +278,15 @@ export function ChatTab({
           messages,
         }),
       })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log("[v0] Conversation saved successfully:", data.id)
+      } else {
+        console.error("[v0] Failed to save conversation:", response.status)
+      }
     } catch (error) {
-      console.error("Failed to save conversation:", error)
+      console.error("[v0] Failed to save conversation:", error)
     }
   }
 
@@ -304,8 +343,49 @@ export function ChatTab({
     setExpandedSections((prev) => (prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]))
   }
 
+  const handleFinishChat = async () => {
+    if (messages.length === 0) {
+      alert("No conversation to finish!")
+      return
+    }
+
+    // Save the conversation one final time
+    await saveConversation()
+
+    // Show confirmation
+    const confirmFinish = confirm(
+      "Finish this conversation?\n\nYour chat will be saved to History and you can start fresh!",
+    )
+
+    if (confirmFinish) {
+      console.log("[v0] Finishing conversation and starting new one")
+      setMessages([])
+      onNewConversation()
+      alert("✅ Conversation saved to History! Starting fresh.")
+    }
+  }
+
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-white relative">
+      {!showPromptLibrary && messages.length > 0 && (
+        <div className="absolute top-4 right-4 z-10 flex gap-2">
+          <button
+            onClick={handleFinishChat}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all font-bold"
+          >
+            <CheckCircle className="w-5 h-5" />
+            <span>Finish Chat</span>
+          </button>
+          <button
+            onClick={() => setShowPromptLibrary(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all font-bold"
+          >
+            <Lightbulb className="w-5 h-5" />
+            <span>Browse Prompts</span>
+          </button>
+        </div>
+      )}
+
       {capturedImage && (
         <div className="flex-shrink-0 px-4 py-3 bg-purple-50 border-b border-purple-200">
           <div className="flex items-center gap-3">
@@ -334,12 +414,13 @@ export function ChatTab({
             <div className="bg-blue-100 p-6 rounded-full mb-4">
               <Sparkles className="w-12 h-12 text-blue-600" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Let's chat!</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Let's Chat!</h2>
             <p className="text-lg text-slate-600 mb-6">What can I help you with today?</p>
             <Button
               onClick={() => setShowPromptLibrary(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
             >
+              <Lightbulb className="w-5 h-5 mr-2" />
               Browse Prompts
             </Button>
           </div>
@@ -348,18 +429,21 @@ export function ChatTab({
         {showPromptLibrary && (
           <div className="space-y-4 animate-in fade-in duration-300">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-slate-900">Prompt Library</h3>
+              <h3 className="text-2xl font-bold text-slate-900">Find Your Perfect Prompt!</h3>
               <button onClick={() => setShowPromptLibrary(false)} className="text-slate-600 hover:text-slate-900">
                 <X className="w-6 h-6" />
               </button>
             </div>
+            <p className="text-base text-slate-600 mb-4">
+              Click any prompt below to start a conversation. These are here anytime you need inspiration!
+            </p>
             {PROMPT_LIBRARY.map((section) => {
               const isExpanded = expandedSections.includes(section.category)
               return (
-                <div key={section.category} className="border-2 border-slate-200 rounded-xl overflow-hidden">
+                <div key={section.category} className="border-2 border-slate-200 rounded-xl overflow-hidden shadow-sm">
                   <button
                     onClick={() => toggleSection(section.category)}
-                    className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 transition-all"
                   >
                     <h4 className="text-lg font-bold text-slate-900">{section.category}</h4>
                     {isExpanded ? (
@@ -374,9 +458,9 @@ export function ChatTab({
                         <button
                           key={index}
                           onClick={() => handlePromptClick(prompt)}
-                          className="w-full text-left bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg p-3 transition-all"
+                          className="w-full text-left bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg p-3 transition-all transform hover:scale-[1.02]"
                         >
-                          <div className="text-base text-slate-900">"{prompt}"</div>
+                          <div className="text-base text-slate-900 font-medium">"{prompt}"</div>
                         </button>
                       ))}
                     </div>
@@ -397,7 +481,7 @@ export function ChatTab({
                 <div
                   className={`max-w-[80%] p-4 rounded-2xl ${
                     message.role === "user"
-                      ? "bg-blue-600 text-white"
+                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
                       : "bg-slate-100 text-slate-900 border border-slate-200"
                   }`}
                 >
@@ -436,24 +520,15 @@ export function ChatTab({
         )}
       </div>
 
-      {messages.length > 0 && (
-        <div className="flex-shrink-0 px-4 py-3 border-t border-slate-200">
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setShowPromptLibrary(!showPromptLibrary)}
-              variant="outline"
-              className="flex-1 border-2 border-slate-200 hover:border-blue-500 text-base py-3"
-            >
-              Browse Prompts
-            </Button>
-            <button
-              onClick={handleNewConversation}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="text-sm font-bold">New Chat</span>
-            </button>
-          </div>
+      {messages.length > 0 && !showPromptLibrary && (
+        <div className="flex-shrink-0 px-4 py-3 border-t border-slate-200 bg-white">
+          <button
+            onClick={handleNewConversation}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg transform hover:scale-[1.02] font-bold"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Start New Conversation</span>
+          </button>
         </div>
       )}
     </div>

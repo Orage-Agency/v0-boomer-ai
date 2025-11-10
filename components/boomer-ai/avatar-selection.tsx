@@ -37,8 +37,12 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
       <div className="w-full max-w-sm">
         <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-48 w-auto object-contain mx-auto mb-4" />
 
-        <h2 className="text-2xl font-bold text-slate-900 mb-1">Choose your companion</h2>
-        <p className="text-sm text-slate-600 mb-4">Pick a friendly guide for your journey.</p>
+        <div className="mb-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-4 shadow-lg">
+          <p className="text-xl font-bold text-blue-900 leading-tight">Come On In, the AI Waters Are Just Fine! 🌊</p>
+        </div>
+
+        <h2 className="text-2xl font-bold text-slate-900 mb-1">Choose Your Friendly Guide</h2>
+        <p className="text-base text-slate-600 mb-4">Pick a companion for your AI adventure!</p>
 
         <div className="mb-4">
           <Input
@@ -46,7 +50,7 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
             placeholder="Enter your name"
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
-            className="text-base py-5 text-center"
+            className="text-lg py-6 text-center font-medium"
           />
         </div>
 
@@ -58,9 +62,9 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
               className={`group p-2 text-center rounded-2xl bg-white border-2 transition-all duration-200 ${
                 selected === avatar.name
                   ? avatar.name === "Angela"
-                    ? "border-pink-500 shadow-lg"
-                    : "border-blue-500 shadow-lg"
-                  : "border-slate-200 hover:border-blue-500 hover:shadow-lg"
+                    ? "border-pink-500 shadow-lg scale-105"
+                    : "border-blue-500 shadow-lg scale-105"
+                  : "border-slate-200 hover:border-blue-500 hover:shadow-lg hover:scale-105"
               }`}
             >
               <img
@@ -68,7 +72,7 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
                 alt={`${avatar.name} avatar`}
                 className="w-20 h-20 object-cover rounded-full mx-auto shadow-md group-hover:shadow-xl transition-shadow"
               />
-              <p className="mt-2 font-bold text-sm text-slate-900">{avatar.name}</p>
+              <p className="mt-2 font-bold text-base text-slate-900">{avatar.name}</p>
             </button>
           ))}
         </div>
@@ -76,12 +80,12 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
         <button
           onClick={handleContinue}
           disabled={!selected || !userName.trim()}
-          className="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-base py-2.5 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg"
+          className="mt-4 w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed text-white font-bold text-lg py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
         >
-          Continue
+          Let's Get Started! 🚀
         </button>
 
-        <p className="mt-3 text-xs text-slate-500">You can change this later.</p>
+        <p className="mt-3 text-sm text-slate-500">You can change this anytime.</p>
       </div>
     </section>
   )

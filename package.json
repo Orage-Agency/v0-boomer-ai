@@ -12,6 +12,7 @@
     "@ai-sdk/openai": "latest",
     "@ai-sdk/react": "latest",
     "@ai-sdk/xai": "latest",
+    "@elevenlabs/react": "latest",
     "@fal-ai/serverless-client": "latest",
     "@hookform/resolvers": "^3.10.0",
     "@neondatabase/serverless": "latest",
