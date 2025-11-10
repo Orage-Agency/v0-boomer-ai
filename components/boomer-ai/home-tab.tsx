@@ -1,6 +1,6 @@
 "use client"
 
-import { MessageSquare, Sparkles, Lightbulb, TrendingUp, Heart, ChevronLeft, ChevronRight, X } from "lucide-react"
+import { MessageSquare, Sparkles, Lightbulb, Heart, ChevronLeft, ChevronRight, X } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useState, useEffect } from "react"
 
@@ -139,6 +139,14 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
       action: () => onNavigate("lessons"),
     },
     {
+      id: "ai-art",
+      title: "AI Art",
+      description: "Create images!",
+      icon: Sparkles,
+      gradient: "from-pink-500 to-rose-600",
+      action: onOpenArtGenerator,
+    },
+    {
       id: "tips",
       title: "Quick Tips",
       description: "Smart shortcuts!",
@@ -147,11 +155,19 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
       action: () => onNavigate("tips"),
     },
     {
-      id: "progress",
-      title: "My Progress",
-      description: "See your growth!",
-      icon: TrendingUp,
-      gradient: "from-orange-500 to-red-600",
+      id: "history",
+      title: "Chat History",
+      description: "View past chats!",
+      icon: MessageSquare,
+      gradient: "from-orange-500 to-amber-600",
+      action: () => onNavigate("profile"),
+    },
+    {
+      id: "questions",
+      title: "Common Q&A",
+      description: "Quick answers!",
+      icon: Lightbulb,
+      gradient: "from-cyan-500 to-teal-600",
       action: () => onNavigate("profile"),
     },
   ]
@@ -194,9 +210,9 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
       )}
 
       <div className="flex-shrink-0 px-3 pt-3 pb-2">
-        <div className="relative">
+        <div className="relative" style={{ minHeight: "120px" }}>
           <div
-            className={`bg-gradient-to-r ${currentFeature.gradient} rounded-xl p-3 shadow-lg border border-white/30 transition-all duration-500`}
+            className={`bg-gradient-to-r ${currentFeature.gradient} rounded-xl p-3 shadow-lg border border-white/30 transition-all duration-500 h-full flex flex-col`}
           >
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center gap-1.5">
@@ -218,16 +234,18 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
                 />
               </button>
             </div>
-            <p className="text-xs font-bold text-white leading-snug">{currentContent}</p>
+            <div className="flex-1 flex flex-col justify-center">
+              <p className="text-xs font-bold text-white leading-snug">{currentContent}</p>
 
-            {currentFeature.id === "daily-discovery" && (
-              <button
-                onClick={() => onNavigate("chat")}
-                className="mt-2 text-[10px] text-white/90 font-semibold bg-white/20 px-2 py-1 rounded-full hover:bg-white/30 transition-colors"
-              >
-                Try it! (+2 ⭐)
-              </button>
-            )}
+              {currentFeature.id === "daily-discovery" && (
+                <button
+                  onClick={() => onNavigate("chat")}
+                  className="mt-2 text-[10px] text-white/90 font-semibold bg-white/20 px-2 py-1 rounded-full hover:bg-white/30 transition-colors inline-block self-start"
+                >
+                  Try it! (+2 ⭐)
+                </button>
+              )}
+            </div>
           </div>
 
           <button
@@ -261,34 +279,40 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
         </div>
       </div>
 
-      <div className="flex-1 px-3 pb-3 overflow-hidden">
-        <div className="grid grid-cols-2 gap-2.5 h-full">
-          {coreFeatures.map((feature) => {
-            const isPinned = (userProfile.pinnedFeatures || []).includes(feature.id)
-            return (
-              <div key={feature.id} className="relative">
-                <button
-                  onClick={feature.action}
-                  className={`w-full h-full bg-gradient-to-br ${feature.gradient} text-white rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center justify-center text-center border-2 border-white/30`}
-                >
-                  <feature.icon className="w-10 h-10 mb-2" strokeWidth={2.5} />
-                  <h3 className="text-sm font-black mb-0.5">{feature.title}</h3>
-                  <p className="text-[10px] text-white/90 font-semibold">{feature.description}</p>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    togglePin(feature.id)
-                  }}
-                  className={`absolute top-2 right-2 p-1 rounded-full transition-all z-10 ${
-                    isPinned ? "bg-white text-pink-500" : "bg-white/20 text-white hover:bg-white hover:text-pink-500"
-                  }`}
-                >
-                  <Heart className={`w-3.5 h-3.5 ${isPinned ? "fill-current" : ""}`} />
-                </button>
-              </div>
-            )
-          })}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full flex flex-col justify-end pb-2">
+          <div className="flex-shrink-0 px-3">
+            <div className="grid grid-cols-2 gap-2">
+              {coreFeatures.map((feature) => {
+                const isPinned = (userProfile.pinnedFeatures || []).includes(feature.id)
+                return (
+                  <div key={feature.id} className="relative">
+                    <button
+                      onClick={feature.action}
+                      className={`w-full h-20 bg-gradient-to-br ${feature.gradient} text-white rounded-xl p-2.5 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center justify-center text-center border-2 border-white/30`}
+                    >
+                      <feature.icon className="w-7 h-7 mb-1" strokeWidth={2.5} />
+                      <h3 className="text-xs font-black leading-tight mb-0.5">{feature.title}</h3>
+                      <p className="text-[9px] text-white/90 font-semibold leading-tight">{feature.description}</p>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        togglePin(feature.id)
+                      }}
+                      className={`absolute top-1 right-1 p-1 rounded-full transition-all z-10 ${
+                        isPinned
+                          ? "bg-white text-pink-500"
+                          : "bg-white/20 text-white hover:bg-white hover:text-pink-500"
+                      }`}
+                    >
+                      <Heart className={`w-3.5 h-3.5 ${isPinned ? "fill-current" : ""}`} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </div>
 

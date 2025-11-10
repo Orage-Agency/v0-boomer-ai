@@ -52,9 +52,10 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
     if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
       recognitionRef.current = new SpeechRecognition()
-      recognitionRef.current.continuous = false
+      recognitionRef.current.continuous = true // Keep listening
       recognitionRef.current.interimResults = true
       recognitionRef.current.lang = "en-US"
+      recognitionRef.current.maxAlternatives = 1 // Faster processing
 
       recognitionRef.current.onresult = (event: any) => {
         console.log("[v0] Speech recognition result received")
@@ -68,7 +69,6 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             console.log("[v0] Final transcript:", final)
           } else {
             interim += transcript
-            console.log("[v0] Interim transcript:", interim)
           }
         }
 
@@ -79,6 +79,9 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
         if (final) {
           setInputValue((prev) => (prev + " " + final).trim())
           setInterimTranscript("")
+          if (recognitionRef.current) {
+            recognitionRef.current.stop()
+          }
         }
       }
 
@@ -86,13 +89,31 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
         console.error("[v0] Speech recognition error:", event.error)
         setIsListening(false)
         setInterimTranscript("")
-        alert(`Voice recognition error: ${event.error}. Please try again.`)
+
+        if (event.error === "no-speech") {
+          console.log("[v0] No speech detected, keeping mic open")
+          return
+        }
+
+        if (event.error !== "aborted") {
+          alert(`Voice error: ${event.error}. Tap mic to try again.`)
+        }
       }
 
       recognitionRef.current.onend = () => {
         console.log("[v0] Speech recognition ended")
-        setIsListening(false)
-        setInterimTranscript("")
+        if (isListening && recognitionRef.current) {
+          try {
+            recognitionRef.current.start()
+          } catch (e) {
+            console.log("[v0] Could not restart recognition")
+            setIsListening(false)
+            setInterimTranscript("")
+          }
+        } else {
+          setIsListening(false)
+          setInterimTranscript("")
+        }
       }
 
       recognitionRef.current.onstart = () => {
@@ -362,16 +383,16 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           </div>
         )}
 
-        <div className="flex items-start gap-3 border-2 border-slate-300 rounded-2xl p-3 bg-white focus-within:border-blue-500 focus-within:shadow-lg transition-all">
+        <div className="flex items-start gap-2 border-2 border-slate-300 rounded-xl p-2 bg-white focus-within:border-blue-500 focus-within:shadow-lg transition-all">
           <button
             onClick={toggleVoiceRecognition}
-            className={`p-3 rounded-xl transition-all flex-shrink-0 ${
+            className={`p-2 rounded-lg transition-all flex-shrink-0 ${
               isListening
                 ? "text-white bg-red-600 animate-pulse shadow-lg"
                 : "text-slate-600 hover:text-blue-600 hover:bg-blue-50"
             }`}
           >
-            {isListening ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
+            {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </button>
           <textarea
             ref={textareaRef}
@@ -384,16 +405,16 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
               }
             }}
             placeholder={isListening ? "Listening..." : "Ask BOOMER AI anything..."}
-            className="flex-grow bg-transparent text-lg text-slate-900 placeholder-slate-500 focus:outline-none resize-none min-h-[28px] max-h-[150px] overflow-y-auto font-medium"
+            className="flex-grow bg-transparent text-base text-slate-900 placeholder-slate-500 focus:outline-none resize-none min-h-[24px] max-h-[150px] overflow-y-auto font-medium"
             disabled={isListening}
             rows={1}
           />
           <button
             onClick={handleSendMessage}
             disabled={!inputValue.trim()}
-            className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg flex-shrink-0"
+            className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg flex-shrink-0"
           >
-            <Send className="w-7 h-7" />
+            <Send className="w-5 h-5" />
           </button>
         </div>
       </div>
