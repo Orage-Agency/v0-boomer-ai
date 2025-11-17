@@ -1,12 +1,12 @@
 "use client"
 
-import { MessageSquare, Sparkles, Lightbulb, Heart, ChevronLeft, ChevronRight, X } from "lucide-react"
+import { MessageSquare, Sparkles, Lightbulb, Heart, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import type { UserProfile } from "@/app/page"
 import { useState, useEffect } from "react"
 
 interface HomeTabProps {
   userProfile: UserProfile
-  onNavigate: (tab: "home" | "chat" | "lessons" | "tips" | "profile") => void
+  onNavigate: (tab: "home" | "chat" | "lessons" | "tips" | "profile" | "voice") => void // Updated type to include "voice"
   onOpenArtGenerator: () => void
   updateProfile: (updates: Partial<UserProfile>) => void
 }
@@ -169,6 +169,14 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
       icon: Lightbulb,
       gradient: "from-cyan-500 to-teal-600",
       action: () => onNavigate("profile"),
+    },
+    {
+      id: "voice-assistant", // Added voice assistant as a core feature
+      title: "Voice Chat",
+      description: "Talk to AI!",
+      icon: Sparkles,
+      gradient: "from-purple-500 to-indigo-600",
+      action: () => onNavigate("voice" as any), // Navigate to voice tab
     },
   ]
 

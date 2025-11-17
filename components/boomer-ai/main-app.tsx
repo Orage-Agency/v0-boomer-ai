@@ -1,19 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import {
-  Home,
-  MessageSquare,
-  BookOpen,
-  Star,
-  Mic,
-  MicOff,
-  Send,
-  Lightbulb,
-  History,
-  Menu,
-  HelpCircle,
-} from "lucide-react"
+import { Home, MessageSquare, BookOpen, Star, Mic, MicOff, Send, Lightbulb, History, Menu, HelpCircle } from 'lucide-react'
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
 import { LessonsTab } from "./lessons-tab"
@@ -23,6 +11,7 @@ import { AiArtModal } from "./ai-art-modal"
 import { ChatHistoryView } from "./chat-history-view"
 import { QuestionsTab } from "./questions-tab"
 import { VoiceAssistant } from "./voice-assistant"
+import { VoiceChatTab } from "./voice-chat-tab"
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
@@ -33,7 +22,7 @@ interface MainAppProps {
 
 export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
   const [activeTab, setActiveTab] = useState<
-    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions"
+    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice"
   >("home")
   const [inputValue, setInputValue] = useState("")
   const [isListening, setIsListening] = useState(false)
@@ -241,8 +230,25 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-[90px] w-auto object-contain" />
           </button>
 
-          {/* Added voice assistant next to logo */}
-          <VoiceAssistant />
+          <button
+            onClick={() => setActiveTab("voice")}
+            className="relative group"
+            aria-label="Talk to AI Assistant"
+          >
+            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 p-0.5 shadow-md hover:shadow-lg transition-all hover:scale-110">
+              <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                <img
+                  src="/voice-assistant-avatar.jpg"
+                  alt="Voice Assistant"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg z-50">
+              Talk to AI Assistant
+            </div>
+          </button>
         </div>
 
         <div className="flex items-center gap-4">
@@ -363,6 +369,13 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
         {activeTab === "profile" && (
           <ProfileView userProfile={userProfile} onReset={onReset} onBack={() => setActiveTab("home")} />
         )}
+        {activeTab === "voice" && (
+          <VoiceChatTab
+            userProfile={userProfile}
+            updateProfile={updateProfile}
+            onBack={() => setActiveTab("home")}
+          />
+        )}
       </main>
 
       <div className="flex-shrink-0 px-4 py-3 border-t-2 border-slate-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
@@ -468,6 +481,16 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
         >
           <HelpCircle className="w-6 h-6" />
           <span className="text-xs font-semibold">Questions</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("voice")}
+          className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors ${
+            activeTab === "voice" ? "bg-blue-100 text-blue-600" : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <img src="/voice-assistant-avatar.jpg" alt="Voice Assistant" className="w-6 h-6 object-cover rounded-full" />
+          <span className="text-xs font-semibold">Voice</span>
         </button>
       </nav>
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, Plus, X, ChevronDown, ChevronUp, Lightbulb, CheckCircle } from "lucide-react"
+import { Sparkles, Plus, X, ChevronDown, ChevronUp, Lightbulb, CheckCircle } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -172,6 +172,7 @@ export function ChatTab({
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const conversationLoadedRef = useRef(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [lastUserQuestion, setLastUserQuestion] = useState<string>("")
 
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
@@ -189,17 +190,22 @@ export function ChatTab({
       if (messagesEndRef.current) {
         messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" })
       }
-      // Fallback: also scroll the container
       if (messagesContainerRef.current) {
         messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
       }
     }
 
-    // Scroll immediately
     scrollToBottom()
 
-    // Also scroll after a short delay to ensure content is rendered
     const timeoutId = setTimeout(scrollToBottom, 100)
+
+    if (messages.length > 0) {
+      const userMessages = messages.filter((m) => m.role === "user")
+      if (userMessages.length > 0) {
+        const lastQuestion = userMessages[userMessages.length - 1]?.parts?.[0]?.text || ""
+        setLastUserQuestion(lastQuestion)
+      }
+    }
 
     return () => clearTimeout(timeoutId)
   }, [messages, status])
@@ -218,12 +224,10 @@ export function ChatTab({
     if (messages.length > 0 && conversationLoadedRef.current) {
       console.log("[v0] Messages changed, scheduling auto-save. Message count:", messages.length)
 
-      // Clear any existing timeout
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current)
       }
 
-      // Debounce save by 1 second to avoid excessive saves during streaming
       saveTimeoutRef.current = setTimeout(() => {
         saveConversation()
       }, 1000)
@@ -349,10 +353,8 @@ export function ChatTab({
       return
     }
 
-    // Save the conversation one final time
     await saveConversation()
 
-    // Show confirmation
     const confirmFinish = confirm(
       "Finish this conversation?\n\nYour chat will be saved to History and you can start fresh!",
     )
@@ -367,8 +369,22 @@ export function ChatTab({
 
   return (
     <div className="flex flex-col h-full bg-white relative">
+      {!showPromptLibrary && lastUserQuestion && messages.length > 0 && (
+        <div className="absolute top-4 right-4 z-20 max-w-[280px]">
+          <div className="backdrop-blur-xl bg-white/30 border-2 border-white/50 rounded-2xl shadow-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-700">Your Question</div>
+            </div>
+            <div className="text-sm font-semibold text-slate-900 leading-snug line-clamp-3">
+              {lastUserQuestion}
+            </div>
+          </div>
+        </div>
+      )}
+
       {!showPromptLibrary && messages.length > 0 && (
-        <div className="absolute top-4 right-4 z-10 flex gap-2">
+        <div className="absolute top-4 left-4 z-10 flex gap-2">
           <button
             onClick={handleFinishChat}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all font-bold"
@@ -479,10 +495,10 @@ export function ChatTab({
                 className={`flex w-full ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[80%] p-4 rounded-2xl ${
+                  className={`max-w-[85%] p-4 rounded-2xl shadow-md ${
                     message.role === "user"
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
-                      : "bg-slate-100 text-slate-900 border border-slate-200"
+                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white"
+                      : "bg-slate-50 text-slate-900 border-2 border-slate-200"
                   }`}
                 >
                   {message.parts?.map((part, index) => {
@@ -500,15 +516,15 @@ export function ChatTab({
             ))}
             {status === "in_progress" && (
               <div className="flex justify-start">
-                <div className="bg-slate-100 border border-slate-200 p-4 rounded-2xl">
+                <div className="bg-slate-50 border-2 border-slate-200 p-4 rounded-2xl shadow-md">
                   <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
+                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
                     <span
-                      className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
                       style={{ animationDelay: "150ms" }}
                     />
                     <span
-                      className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
                       style={{ animationDelay: "300ms" }}
                     />
                   </div>
