@@ -370,13 +370,13 @@ export function ChatTab({
   return (
     <div className="flex flex-col h-full bg-white relative">
       {!showPromptLibrary && lastUserQuestion && messages.length > 0 && (
-        <div className="absolute top-4 right-4 z-20 max-w-[280px]">
-          <div className="backdrop-blur-xl bg-white/30 border-2 border-white/50 rounded-2xl shadow-2xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-700">Your Question</div>
+        <div className="absolute top-16 right-2 z-10 max-w-[200px] sm:max-w-[280px]">
+          <div className="backdrop-blur-xl bg-white/30 border-2 border-white/50 rounded-xl shadow-2xl p-2 sm:p-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full animate-pulse" />
+              <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-700">Your Question</div>
             </div>
-            <div className="text-sm font-semibold text-slate-900 leading-snug line-clamp-3">
+            <div className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug line-clamp-3">
               {lastUserQuestion}
             </div>
           </div>
@@ -384,73 +384,75 @@ export function ChatTab({
       )}
 
       {!showPromptLibrary && messages.length > 0 && (
-        <div className="absolute top-4 left-4 z-10 flex gap-2">
+        <div className="absolute top-2 left-2 z-20 flex gap-1.5 sm:gap-2">
           <button
             onClick={handleFinishChat}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all font-bold"
+            className="flex items-center gap-1 sm:gap-2 px-2 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all font-bold text-xs sm:text-base"
           >
-            <CheckCircle className="w-5 h-5" />
-            <span>Finish Chat</span>
+            <CheckCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Finish Chat</span>
+            <span className="sm:hidden">Finish</span>
           </button>
           <button
             onClick={() => setShowPromptLibrary(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all font-bold"
+            className="flex items-center gap-1 sm:gap-2 px-2 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all font-bold text-xs sm:text-base"
           >
-            <Lightbulb className="w-5 h-5" />
-            <span>Browse Prompts</span>
+            <Lightbulb className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Browse Prompts</span>
+            <span className="sm:hidden">Prompts</span>
           </button>
         </div>
       )}
 
       {capturedImage && (
-        <div className="flex-shrink-0 px-4 py-3 bg-purple-50 border-b border-purple-200">
-          <div className="flex items-center gap-3">
+        <div className="flex-shrink-0 px-2 py-2 sm:px-4 sm:py-3 bg-purple-50 border-b border-purple-200">
+          <div className="flex items-center gap-2 sm:gap-3">
             <img
               src={capturedImage || "/placeholder.svg"}
               alt="Captured"
-              className="w-16 h-16 rounded-lg object-cover border-2 border-purple-300"
+              className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover border-2 border-purple-300"
             />
             <div className="flex-grow">
-              <p className="text-sm font-bold text-purple-900">Image attached</p>
-              <p className="text-xs text-purple-700">Ask me anything about this image!</p>
+              <p className="text-xs sm:text-sm font-bold text-purple-900">Image attached</p>
+              <p className="text-[10px] sm:text-xs text-purple-700">Ask me anything about this image!</p>
             </div>
             <button
               onClick={onImageCleared}
-              className="p-2 text-purple-600 hover:bg-purple-100 rounded-full transition-colors"
+              className="p-1.5 sm:p-2 text-purple-600 hover:bg-purple-100 rounded-full transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
       )}
 
-      <div ref={messagesContainerRef} className="flex-grow overflow-y-auto px-4 py-4">
+      <div ref={messagesContainerRef} className="flex-grow overflow-y-auto px-2 sm:px-4 pt-14 sm:pt-16 pb-4">
         {messages.length === 0 && !showPromptLibrary && (
-          <div className="flex flex-col items-center justify-center h-full text-center px-6">
-            <div className="bg-blue-100 p-6 rounded-full mb-4">
-              <Sparkles className="w-12 h-12 text-blue-600" />
+          <div className="flex flex-col items-center justify-center h-full text-center px-4 sm:px-6">
+            <div className="bg-blue-100 p-4 sm:p-6 rounded-full mb-3 sm:mb-4">
+              <Sparkles className="w-8 h-8 sm:w-12 sm:h-12 text-blue-600" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Let's Chat!</h2>
-            <p className="text-lg text-slate-600 mb-6">What can I help you with today?</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">Let's Chat!</h2>
+            <p className="text-base sm:text-lg text-slate-600 mb-4 sm:mb-6">What can I help you with today?</p>
             <Button
               onClick={() => setShowPromptLibrary(true)}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold px-4 py-2 sm:px-6 sm:py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all text-sm sm:text-base"
             >
-              <Lightbulb className="w-5 h-5 mr-2" />
+              <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
               Browse Prompts
             </Button>
           </div>
         )}
 
         {showPromptLibrary && (
-          <div className="space-y-4 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-bold text-slate-900">Find Your Perfect Prompt!</h3>
+          <div className="space-y-3 sm:space-y-4 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-lg sm:text-2xl font-bold text-slate-900">Find Your Perfect Prompt!</h3>
               <button onClick={() => setShowPromptLibrary(false)} className="text-slate-600 hover:text-slate-900">
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
-            <p className="text-base text-slate-600 mb-4">
+            <p className="text-sm sm:text-base text-slate-600 mb-3 sm:mb-4">
               Click any prompt below to start a conversation. These are here anytime you need inspiration!
             </p>
             {PROMPT_LIBRARY.map((section) => {
@@ -459,24 +461,24 @@ export function ChatTab({
                 <div key={section.category} className="border-2 border-slate-200 rounded-xl overflow-hidden shadow-sm">
                   <button
                     onClick={() => toggleSection(section.category)}
-                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 transition-all"
+                    className="w-full flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 transition-all"
                   >
-                    <h4 className="text-lg font-bold text-slate-900">{section.category}</h4>
+                    <h4 className="text-base sm:text-lg font-bold text-slate-900">{section.category}</h4>
                     {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-slate-600" />
+                      <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-slate-600" />
+                      <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600" />
                     )}
                   </button>
                   {isExpanded && (
-                    <div className="p-4 space-y-2 bg-white">
+                    <div className="p-2 sm:p-4 space-y-2 bg-white">
                       {section.prompts.map((prompt, index) => (
                         <button
                           key={index}
                           onClick={() => handlePromptClick(prompt)}
-                          className="w-full text-left bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg p-3 transition-all transform hover:scale-[1.02]"
+                          className="w-full text-left bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg p-2 sm:p-3 transition-all transform hover:scale-[1.02]"
                         >
-                          <div className="text-base text-slate-900 font-medium">"{prompt}"</div>
+                          <div className="text-sm sm:text-base text-slate-900 font-medium">"{prompt}"</div>
                         </button>
                       ))}
                     </div>
@@ -488,14 +490,14 @@ export function ChatTab({
         )}
 
         {messages.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex w-full ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] p-4 rounded-2xl shadow-md ${
+                  className={`max-w-[85%] sm:max-w-[80%] p-3 sm:p-4 rounded-2xl shadow-md ${
                     message.role === "user"
                       ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white"
                       : "bg-slate-50 text-slate-900 border-2 border-slate-200"
@@ -504,7 +506,7 @@ export function ChatTab({
                   {message.parts?.map((part, index) => {
                     if (part.type === "text") {
                       return (
-                        <p key={index} className="text-base leading-relaxed whitespace-pre-wrap">
+                        <p key={index} className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
                           {part.text}
                         </p>
                       )
@@ -516,7 +518,7 @@ export function ChatTab({
             ))}
             {status === "in_progress" && (
               <div className="flex justify-start">
-                <div className="bg-slate-50 border-2 border-slate-200 p-4 rounded-2xl shadow-md">
+                <div className="bg-slate-50 border-2 border-slate-200 p-3 sm:p-4 rounded-2xl shadow-md">
                   <div className="flex gap-1">
                     <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
                     <span
@@ -537,12 +539,12 @@ export function ChatTab({
       </div>
 
       {messages.length > 0 && !showPromptLibrary && (
-        <div className="flex-shrink-0 px-4 py-3 border-t border-slate-200 bg-white">
+        <div className="flex-shrink-0 px-2 py-2 sm:px-4 sm:py-3 border-t border-slate-200 bg-white">
           <button
             onClick={handleNewConversation}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg transform hover:scale-[1.02] font-bold"
+            className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg transform hover:scale-[1.02] font-bold text-sm sm:text-base"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Start New Conversation</span>
           </button>
         </div>

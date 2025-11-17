@@ -183,12 +183,12 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-blue-50 to-white overflow-hidden">
       {pinnedFeaturesList.length > 0 && (
-        <div className="flex-shrink-0 bg-white border-b border-slate-200 px-3 py-2">
-          <div className="flex items-center gap-2 mb-1">
-            <Heart className="w-3 h-3 text-pink-500 fill-pink-500" />
-            <span className="text-[10px] font-bold text-slate-700 uppercase">Favorites</span>
+        <div className="flex-shrink-0 bg-white border-b border-slate-200 px-2 py-1.5 sm:px-3 sm:py-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+            <Heart className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-pink-500 fill-pink-500" />
+            <span className="text-[9px] sm:text-[10px] font-bold text-slate-700 uppercase">Favorites</span>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1">
             {pinnedFeaturesList.map((feature) => (
               <button
                 key={feature.id}
@@ -198,9 +198,9 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
                   setIsPaused(true)
                   setTimeout(() => setIsPaused(false), 5000)
                 }}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r ${feature.gradient} text-white text-[10px] font-bold shadow-md relative group`}
+                className={`flex-shrink-0 flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-gradient-to-r ${feature.gradient} text-white text-[9px] sm:text-[10px] font-bold shadow-md relative group`}
               >
-                <span className="text-sm">{feature.icon}</span>
+                <span className="text-xs sm:text-sm">{feature.icon}</span>
                 <span>{feature.type}</span>
                 <button
                   onClick={(e) => {
@@ -209,7 +209,7 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
                   }}
                   className="ml-0.5 hover:bg-white/20 rounded-full p-0.5"
                 >
-                  <X className="w-2.5 h-2.5" />
+                  <X className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
                 </button>
               </button>
             ))}
@@ -217,38 +217,38 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
         </div>
       )}
 
-      <div className="flex-shrink-0 px-3 pt-3 pb-2">
-        <div className="relative" style={{ minHeight: "120px" }}>
+      <div className="flex-shrink-0 px-2 pt-2 pb-1.5 sm:px-3 sm:pt-3 sm:pb-2">
+        <div className="relative" style={{ height: "110px" }}>
           <div
-            className={`bg-gradient-to-r ${currentFeature.gradient} rounded-xl p-3 shadow-lg border border-white/30 transition-all duration-500 h-full flex flex-col`}
+            className={`bg-gradient-to-r ${currentFeature.gradient} rounded-xl p-2.5 sm:p-3 shadow-lg border border-white/30 transition-all duration-500 h-full flex flex-col`}
           >
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xl">{currentFeature.icon}</span>
-                <h3 className="text-xs font-black text-white uppercase">{currentFeature.type}</h3>
+            <div className="flex items-start justify-between mb-1.5 sm:mb-2">
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <span className="text-base sm:text-xl">{currentFeature.icon}</span>
+                <h3 className="text-[10px] sm:text-xs font-black text-white uppercase">{currentFeature.type}</h3>
               </div>
               <button
                 onClick={() => togglePin(currentFeature.id)}
-                className={`p-1 rounded-full transition-all flex-shrink-0 ${
+                className={`p-0.5 sm:p-1 rounded-full transition-all flex-shrink-0 ${
                   (userProfile.pinnedFeatures || []).includes(currentFeature.id)
                     ? "bg-white text-pink-500"
                     : "bg-white/20 text-white hover:bg-white hover:text-pink-500"
                 }`}
               >
                 <Heart
-                  className={`w-3.5 h-3.5 ${
+                  className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
                     (userProfile.pinnedFeatures || []).includes(currentFeature.id) ? "fill-current" : ""
                   }`}
                 />
               </button>
             </div>
             <div className="flex-1 flex flex-col justify-center">
-              <p className="text-xs font-bold text-white leading-snug">{currentContent}</p>
+              <p className="text-[10px] sm:text-xs font-bold text-white leading-snug">{currentContent}</p>
 
               {currentFeature.id === "daily-discovery" && (
                 <button
                   onClick={() => onNavigate("chat")}
-                  className="mt-2 text-[10px] text-white/90 font-semibold bg-white/20 px-2 py-1 rounded-full hover:bg-white/30 transition-colors inline-block self-start"
+                  className="mt-1.5 sm:mt-2 text-[9px] sm:text-[10px] text-white/90 font-semibold bg-white/20 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full hover:bg-white/30 transition-colors inline-block self-start"
                 >
                   Try it! (+2 ⭐)
                 </button>
@@ -258,18 +258,18 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
 
           <button
             onClick={() => navigateFeature("prev")}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 bg-white rounded-full p-1 shadow-md hover:scale-110 transition-transform"
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-0.5 sm:-translate-x-1 bg-white rounded-full p-0.5 sm:p-1 shadow-md hover:scale-110 transition-transform"
           >
-            <ChevronLeft className="w-4 h-4 text-slate-700" />
+            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 text-slate-700" />
           </button>
           <button
             onClick={() => navigateFeature("next")}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 bg-white rounded-full p-1 shadow-md hover:scale-110 transition-transform"
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-0.5 sm:translate-x-1 bg-white rounded-full p-0.5 sm:p-1 shadow-md hover:scale-110 transition-transform"
           >
-            <ChevronRight className="w-4 h-4 text-slate-700" />
+            <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-slate-700" />
           </button>
 
-          <div className="flex justify-center gap-1 mt-2">
+          <div className="flex justify-center gap-0.5 sm:gap-1 mt-1.5 sm:mt-2">
             {ROTATING_FEATURES.map((_, index) => (
               <button
                 key={index}
@@ -278,8 +278,8 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
                   setIsPaused(true)
                   setTimeout(() => setIsPaused(false), 5000)
                 }}
-                className={`h-1.5 rounded-full transition-all ${
-                  index === currentFeatureIndex ? "w-4 bg-slate-600" : "w-1.5 bg-slate-300"
+                className={`h-1 sm:h-1.5 rounded-full transition-all ${
+                  index === currentFeatureIndex ? "w-3 sm:w-4 bg-slate-600" : "w-1 sm:w-1.5 bg-slate-300"
                 }`}
               />
             ))}
@@ -288,33 +288,33 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <div className="h-full flex flex-col justify-end pb-2">
-          <div className="flex-shrink-0 px-3">
-            <div className="grid grid-cols-2 gap-2">
+        <div className="h-full flex flex-col justify-end pb-1.5 sm:pb-2">
+          <div className="flex-shrink-0 px-2 sm:px-3">
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
               {coreFeatures.map((feature) => {
                 const isPinned = (userProfile.pinnedFeatures || []).includes(feature.id)
                 return (
                   <div key={feature.id} className="relative">
                     <button
                       onClick={feature.action}
-                      className={`w-full h-20 bg-gradient-to-br ${feature.gradient} text-white rounded-xl p-2.5 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center justify-center text-center border-2 border-white/30`}
+                      className={`w-full h-[72px] sm:h-20 bg-gradient-to-br ${feature.gradient} text-white rounded-xl p-2 sm:p-2.5 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center justify-center text-center border-2 border-white/30`}
                     >
-                      <feature.icon className="w-7 h-7 mb-1" strokeWidth={2.5} />
-                      <h3 className="text-xs font-black leading-tight mb-0.5">{feature.title}</h3>
-                      <p className="text-[9px] text-white/90 font-semibold leading-tight">{feature.description}</p>
+                      <feature.icon className="w-5 h-5 sm:w-7 sm:h-7 mb-0.5 sm:mb-1" strokeWidth={2.5} />
+                      <h3 className="text-[10px] sm:text-xs font-black leading-tight mb-0.5">{feature.title}</h3>
+                      <p className="text-[8px] sm:text-[9px] text-white/90 font-semibold leading-tight">{feature.description}</p>
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         togglePin(feature.id)
                       }}
-                      className={`absolute top-1 right-1 p-1 rounded-full transition-all z-10 ${
+                      className={`absolute top-0.5 right-0.5 sm:top-1 sm:right-1 p-0.5 sm:p-1 rounded-full transition-all z-10 ${
                         isPinned
                           ? "bg-white text-pink-500"
                           : "bg-white/20 text-white hover:bg-white hover:text-pink-500"
                       }`}
                     >
-                      <Heart className={`w-3.5 h-3.5 ${isPinned ? "fill-current" : ""}`} />
+                      <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${isPinned ? "fill-current" : ""}`} />
                     </button>
                   </div>
                 )
@@ -324,9 +324,9 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
         </div>
       </div>
 
-      <div className="flex-shrink-0 px-3 pb-2">
-        <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-1.5">
-          <p className="text-[9px] text-yellow-900 text-center font-semibold leading-tight">
+      <div className="flex-shrink-0 px-2 pb-1.5 sm:px-3 sm:pb-2">
+        <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-1 sm:p-1.5">
+          <p className="text-[8px] sm:text-[9px] text-yellow-900 text-center font-semibold leading-tight">
             Medical features coming soon. Always consult your healthcare provider.
           </p>
         </div>

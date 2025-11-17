@@ -235,7 +235,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             className="relative group"
             aria-label="Talk to AI Assistant"
           >
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 p-0.5 shadow-md hover:shadow-lg transition-all hover:scale-110">
+            <div className="w-[52px] h-[52px] rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 p-0.5 shadow-lg hover:shadow-xl transition-all hover:scale-110 animate-pulse">
               <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
                 <img
                   src="/voice-assistant-avatar.jpg"
@@ -245,8 +245,8 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
               </div>
             </div>
 
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg z-50">
-              Talk to AI Assistant
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-full bg-white/40 backdrop-blur-md border border-white/60 shadow-lg animate-pulse">
+              <span className="text-xs font-bold text-slate-800 whitespace-nowrap">Talk to Me</span>
             </div>
           </button>
         </div>
