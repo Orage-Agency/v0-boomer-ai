@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Home, MessageSquare, BookOpen, Star, Mic, MicOff, Send, Lightbulb, History, Menu, HelpCircle } from 'lucide-react'
+import { Home, MessageSquare, BookOpen, Star, Mic, MicOff, Send, Lightbulb, History, Menu, HelpCircle, RotateCcw } from 'lucide-react'
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
 import { LessonsTab } from "./lessons-tab"
@@ -299,6 +299,24 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
                   <div className="flex-grow">
                     <div className="font-semibold text-slate-900">{userProfile.name}</div>
                     <div className="text-xs text-slate-500">View Profile</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (confirm('Are you sure you want to start over? This will reset all your progress and data.')) {
+                      onReset()
+                      setIsMenuOpen(false)
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-left border-t border-slate-200"
+                >
+                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <RotateCcw className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div className="flex-grow">
+                    <div className="font-semibold text-red-600">Start Over</div>
+                    <div className="text-xs text-red-400">Reset all progress</div>
                   </div>
                 </button>
 
