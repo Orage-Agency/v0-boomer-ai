@@ -246,7 +246,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             </div>
 
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-full bg-white/40 backdrop-blur-md border border-white/60 shadow-lg animate-pulse">
-              <span className="text-xs font-bold text-slate-800 whitespace-nowrap">Talk to Me</span>
+              <span className="text-xs font-bold text-slate-800 whitespace-nowrap">ASK ME ANYTHING</span>
             </div>
           </button>
         </div>
