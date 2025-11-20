@@ -1,6 +1,6 @@
 "use client"
 
-import { MessageSquare, Sparkles, Lightbulb, Heart, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { MessageSquare, Sparkles, Lightbulb, Heart, ChevronLeft, ChevronRight, X } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useState, useEffect } from "react"
 
@@ -301,7 +301,9 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
                     >
                       <feature.icon className="w-5 h-5 sm:w-7 sm:h-7 mb-0.5 sm:mb-1" strokeWidth={2.5} />
                       <h3 className="text-[10px] sm:text-xs font-black leading-tight mb-0.5">{feature.title}</h3>
-                      <p className="text-[8px] sm:text-[9px] text-white/90 font-semibold leading-tight">{feature.description}</p>
+                      <p className="text-[8px] sm:text-[9px] text-white/90 font-semibold leading-tight">
+                        {feature.description}
+                      </p>
                     </button>
                     <button
                       onClick={(e) => {
@@ -321,14 +323,6 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
               })}
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="flex-shrink-0 px-2 pb-1.5 sm:px-3 sm:pb-2">
-        <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-1 sm:p-1.5">
-          <p className="text-[8px] sm:text-[9px] text-yellow-900 text-center font-semibold leading-tight">
-            Medical features coming soon. Always consult your healthcare provider.
-          </p>
         </div>
       </div>
     </div>
