@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, Plus, X, ChevronDown, ChevronUp, Lightbulb, CheckCircle } from 'lucide-react'
+import { Sparkles, X, ChevronDown, ChevronUp, Lightbulb } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -168,8 +168,7 @@ export function ChatTab({
 }: ChatTabProps) {
   const [showPromptLibrary, setShowPromptLibrary] = useState(false)
   const [expandedSections, setExpandedSections] = useState<string[]>([])
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const chatContainerRef = useRef<HTMLDivElement>(null)
   const conversationLoadedRef = useRef(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [lastUserQuestion, setLastUserQuestion] = useState<string>("")
@@ -187,11 +186,8 @@ export function ChatTab({
 
   useEffect(() => {
     const scrollToBottom = () => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" })
-      }
-      if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollIntoView({ behavior: "smooth", block: "end" })
       }
     }
 
@@ -368,65 +364,41 @@ export function ChatTab({
   }
 
   return (
-    <div className="flex flex-col h-full bg-white relative">
+    <div className="flex flex-col h-full bg-gradient-to-b from-slate-50 to-white">
       {!showPromptLibrary && lastUserQuestion && messages.length > 0 && (
-        <div className="absolute top-16 right-2 z-10 max-w-[200px] sm:max-w-[280px]">
-          <div className="backdrop-blur-xl bg-white/30 border-2 border-white/50 rounded-xl shadow-2xl p-2 sm:p-4">
-            <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full animate-pulse" />
-              <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-700">Your Question</div>
-            </div>
-            <div className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug line-clamp-3">
-              {lastUserQuestion}
+        <div className="flex-shrink-0 px-3 pt-3 pb-2">
+          <div className="flex justify-end">
+            <div className="max-w-[280px] backdrop-blur-xl bg-white/30 border-2 border-white/50 rounded-xl shadow-lg p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-700">Your Question</div>
+              </div>
+              <div className="text-sm font-semibold text-slate-900 leading-snug line-clamp-3">{lastUserQuestion}</div>
             </div>
           </div>
         </div>
       )}
 
       {!showPromptLibrary && messages.length > 0 && (
-        <div className="absolute top-2 left-2 z-20 flex gap-1.5 sm:gap-2">
-          <button
-            onClick={handleFinishChat}
-            className="flex items-center gap-1 sm:gap-2 px-2 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all font-bold text-xs sm:text-base"
-          >
-            <CheckCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">Finish Chat</span>
-            <span className="sm:hidden">Finish</span>
-          </button>
-          <button
-            onClick={() => setShowPromptLibrary(true)}
-            className="flex items-center gap-1 sm:gap-2 px-2 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all font-bold text-xs sm:text-base"
-          >
-            <Lightbulb className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">Browse Prompts</span>
-            <span className="sm:hidden">Prompts</span>
-          </button>
-        </div>
-      )}
-
-      {capturedImage && (
-        <div className="flex-shrink-0 px-2 py-2 sm:px-4 sm:py-3 bg-purple-50 border-b border-purple-200">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <img
-              src={capturedImage || "/placeholder.svg"}
-              alt="Captured"
-              className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover border-2 border-purple-300"
-            />
-            <div className="flex-grow">
-              <p className="text-xs sm:text-sm font-bold text-purple-900">Image attached</p>
-              <p className="text-[10px] sm:text-xs text-purple-700">Ask me anything about this image!</p>
-            </div>
+        <div className="flex-shrink-0 px-3 pb-2">
+          <div className="flex justify-end gap-2">
             <button
-              onClick={onImageCleared}
-              className="p-1.5 sm:p-2 text-purple-600 hover:bg-purple-100 rounded-full transition-colors"
+              onClick={() => setShowPromptLibrary(true)}
+              className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full hover:bg-blue-200 transition-colors touch-manipulation active:scale-95"
             >
-              <X className="w-4 h-4 sm:w-5 sm:h-5" />
+              Browse Prompts
+            </button>
+            <button
+              onClick={handleFinishChat}
+              className="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full hover:bg-green-200 transition-colors touch-manipulation active:scale-95"
+            >
+              Finish Chat
             </button>
           </div>
         </div>
       )}
 
-      <div ref={messagesContainerRef} className="flex-grow overflow-y-auto px-2 sm:px-4 pt-14 sm:pt-16 pb-4">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-3 pb-4">
         {messages.length === 0 && !showPromptLibrary && (
           <div className="flex flex-col items-center justify-center h-full text-center px-4 sm:px-6">
             <div className="bg-blue-100 p-4 sm:p-6 rounded-full mb-3 sm:mb-4">
@@ -533,22 +505,10 @@ export function ChatTab({
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
+            <div ref={chatContainerRef} />
           </div>
         )}
       </div>
-
-      {messages.length > 0 && !showPromptLibrary && (
-        <div className="flex-shrink-0 px-2 py-2 sm:px-4 sm:py-3 border-t border-slate-200 bg-white">
-          <button
-            onClick={handleNewConversation}
-            className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg transform hover:scale-[1.02] font-bold text-sm sm:text-base"
-          >
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>Start New Conversation</span>
-          </button>
-        </div>
-      )}
     </div>
   )
 }

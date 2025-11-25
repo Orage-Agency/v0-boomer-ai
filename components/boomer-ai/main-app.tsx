@@ -14,6 +14,7 @@ import {
   Menu,
   HelpCircle,
   RotateCcw,
+  X,
 } from "lucide-react"
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
@@ -217,6 +218,97 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
 
   return (
     <div className="flex flex-col h-screen bg-white">
+      {isMenuOpen && (
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
+
+          {/* Slide-over panel from right */}
+          <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-2xl transform transition-transform duration-300 ease-out">
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-slate-200">
+                <h2 className="text-xl font-bold text-slate-900">Menu</h2>
+                <button
+                  onClick={() => setIsMenuOpen(false)}
+                  className="p-2 rounded-full hover:bg-slate-100 transition-colors touch-manipulation active:scale-95"
+                  aria-label="Close menu"
+                >
+                  <X className="w-6 h-6 text-slate-600" />
+                </button>
+              </div>
+
+              {/* Menu Items */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <button
+                  onClick={() => {
+                    setActiveTab("profile")
+                    setIsMenuOpen(false)
+                  }}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors text-left touch-manipulation active:scale-[0.98] mb-2"
+                >
+                  <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-slate-200 flex-shrink-0">
+                    <img
+                      src={userProfile.avatarSrc || "https://placehold.co/56x56/E2E8F0/475569?text=AI"}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-grow">
+                    <div className="text-lg font-semibold text-slate-900">{userProfile.name}</div>
+                    <div className="text-sm text-slate-500">View Profile</div>
+                  </div>
+                </button>
+
+                <div className="border-t border-slate-200 my-4" />
+
+                <button
+                  onClick={() => {
+                    setActiveTab("history")
+                    setIsMenuOpen(false)
+                  }}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors text-left touch-manipulation active:scale-[0.98] mb-2"
+                >
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <History className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="flex-grow">
+                    <div className="text-lg font-semibold text-slate-900">Chat History</div>
+                    <div className="text-sm text-slate-500">View past conversations</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (confirm("Are you sure you want to start over? This will reset all your progress and data.")) {
+                      onReset()
+                      setIsMenuOpen(false)
+                    }
+                  }}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-red-50 transition-colors text-left touch-manipulation active:scale-[0.98]"
+                >
+                  <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <RotateCcw className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div className="flex-grow">
+                    <div className="text-lg font-semibold text-red-600">Start Over</div>
+                    <div className="text-sm text-red-400">Reset all progress</div>
+                  </div>
+                </button>
+              </div>
+
+              {/* Footer with stars */}
+              <div className="p-4 border-t border-slate-200 bg-slate-50">
+                <div className="flex items-center justify-center gap-2 py-3 bg-yellow-50 rounded-2xl">
+                  <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                  <span className="text-lg font-bold text-slate-900">{userProfile.stars} Stars Earned</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
         <div className="flex items-center gap-3">
           <button
@@ -230,85 +322,28 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           {/* Voice Assistant Avatar */}
           <button
             onClick={() => setActiveTab("voice")}
-            className="relative group touch-manipulation"
+            className="relative group touch-manipulation flex items-center gap-2"
             aria-label="Talk to AI Assistant"
           >
-            <div className="w-[52px] h-[52px] rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 p-[2px] shadow-lg hover:shadow-xl transition-all hover:scale-105 animate-pulse">
+            <div className="w-[48px] h-[48px] rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 p-[2px] shadow-lg hover:shadow-xl transition-all hover:scale-105">
               <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
                 <img src="/voice-assistant-avatar.jpg" alt="Voice Assistant" className="w-full h-full object-cover" />
               </div>
             </div>
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-full bg-white/60 backdrop-blur-md border border-white/80 shadow-lg animate-pulse">
-              <span className="text-[10px] font-bold text-slate-800 whitespace-nowrap">ASK ME ANYTHING</span>
+            <div className="px-3 py-1.5 rounded-full bg-white/70 backdrop-blur-md border border-white/80 shadow-md">
+              <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">Ask Me Anything</span>
             </div>
           </button>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setActiveTab("history")}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors touch-manipulation active:scale-95"
-            aria-label="Chat history"
+            onClick={() => setIsMenuOpen(true)}
+            className="p-2.5 rounded-xl hover:bg-slate-100 transition-colors touch-manipulation active:scale-95"
+            aria-label="Open menu"
           >
-            <History className="w-5 h-5 text-slate-600" />
+            <Menu className="w-6 h-6 text-slate-700" />
           </button>
-
-          <div className="flex items-center gap-1.5 px-3 py-2 bg-yellow-50 rounded-xl">
-            <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-            <span className="text-base font-bold text-slate-900">{userProfile.stars}</span>
-          </div>
-
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2.5 rounded-xl hover:bg-slate-100 transition-colors touch-manipulation active:scale-95"
-              aria-label="Menu"
-            >
-              <Menu className="w-6 h-6 text-slate-700" />
-            </button>
-
-            {isMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-60 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200/50 py-2 z-50">
-                <button
-                  onClick={() => {
-                    setActiveTab("profile")
-                    setIsMenuOpen(false)
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left touch-manipulation"
-                >
-                  <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-slate-200 flex-shrink-0">
-                    <img
-                      src={userProfile.avatarSrc || "https://placehold.co/44x44/E2E8F0/475569?text=AI"}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-grow">
-                    <div className="font-semibold text-slate-900">{userProfile.name}</div>
-                    <div className="text-xs text-slate-500">View Profile</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (confirm("Are you sure you want to start over? This will reset all your progress and data.")) {
-                      onReset()
-                      setIsMenuOpen(false)
-                    }
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-left border-t border-slate-200 touch-manipulation"
-                >
-                  <div className="w-11 h-11 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                    <RotateCcw className="w-5 h-5 text-red-600" />
-                  </div>
-                  <div className="flex-grow">
-                    <div className="font-semibold text-red-600">Start Over</div>
-                    <div className="text-xs text-red-400">Reset all progress</div>
-                  </div>
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </header>
 

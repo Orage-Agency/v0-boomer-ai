@@ -118,23 +118,50 @@ export async function POST(request: Request) {
       console.error("[v0] Table creation check error:", tableError)
     }
 
-    const result = await sql`
-      INSERT INTO boomer_conversations (device_id, ip_address, title, preview, messages, message_count, created_at, updated_at)
-      VALUES (
-        ${deviceId},
-        ${ipAddress},
-        ${title || "Untitled"},
-        ${preview || ""},
-        ${JSON.stringify(messages)},
-        ${messages.length},
-        NOW(),
-        NOW()
-      )
-      RETURNING id
+    // First try to update existing, if not found then insert new
+    const existingResult = await sql`
+      SELECT id FROM boomer_conversations 
+      WHERE device_id = ${deviceId} AND title = ${title || "Untitled"}
+      LIMIT 1
     `
 
-    console.log("[v0] Conversation saved with ID:", result[0].id)
-    return Response.json({ success: true, id: result[0].id })
+    let resultId: number
+
+    if (existingResult.length > 0) {
+      // Update existing conversation
+      await sql`
+        UPDATE boomer_conversations 
+        SET 
+          ip_address = ${ipAddress},
+          preview = ${preview || ""},
+          messages = ${JSON.stringify(messages)},
+          message_count = ${messages.length},
+          updated_at = NOW()
+        WHERE id = ${existingResult[0].id}
+      `
+      resultId = existingResult[0].id
+      console.log("[v0] Conversation updated with ID:", resultId)
+    } else {
+      // Insert new conversation
+      const result = await sql`
+        INSERT INTO boomer_conversations (device_id, ip_address, title, preview, messages, message_count, created_at, updated_at)
+        VALUES (
+          ${deviceId},
+          ${ipAddress},
+          ${title || "Untitled"},
+          ${preview || ""},
+          ${JSON.stringify(messages)},
+          ${messages.length},
+          NOW(),
+          NOW()
+        )
+        RETURNING id
+      `
+      resultId = result[0].id
+      console.log("[v0] Conversation saved with ID:", resultId)
+    }
+
+    return Response.json({ success: true, id: resultId })
   } catch (error) {
     console.error("[v0] Conversations POST error:", error)
     return Response.json(
