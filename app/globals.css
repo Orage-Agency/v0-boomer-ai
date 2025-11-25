@@ -37,7 +37,6 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  /* Safe area insets for notched devices */
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-left: env(safe-area-inset-left, 0px);
@@ -143,7 +142,7 @@
     }
   }
 
-  /* Better touch targets for mobile */
+  /* Updated touch targets for iOS compliance */
   button,
   a,
   [role="button"] {
@@ -226,5 +225,15 @@
   #root {
     height: 100%;
     width: 100%;
+  }
+
+  /* Hide scrollbar for horizontal scroll containers */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }

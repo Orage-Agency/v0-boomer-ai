@@ -1,12 +1,12 @@
 "use client"
 
-import { MessageSquare, Sparkles, Lightbulb, Heart, ChevronLeft, ChevronRight, X } from "lucide-react"
+import { MessageSquare, Sparkles, Lightbulb, Heart, Video, Mic } from "lucide-react"
 import type { UserProfile } from "@/app/page"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 interface HomeTabProps {
   userProfile: UserProfile
-  onNavigate: (tab: "home" | "chat" | "lessons" | "tips" | "profile" | "voice") => void // Updated type to include "voice"
+  onNavigate: (tab: "home" | "chat" | "lessons" | "tips" | "profile" | "voice") => void
   onOpenArtGenerator: () => void
   updateProfile: (updates: Partial<UserProfile>) => void
 }
@@ -70,27 +70,13 @@ const ROTATING_FEATURES = [
 ]
 
 export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updateProfile }: HomeTabProps) {
-  const [currentFeatureIndex, setCurrentFeatureIndex] = useState(0)
   const [dailyContentIndex, setDailyContentIndex] = useState(0)
-  const [isPaused, setIsPaused] = useState(false)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
     setDailyContentIndex(dayOfYear)
   }, [])
-
-  useEffect(() => {
-    if (isPaused) return
-
-    const timer = setInterval(() => {
-      setCurrentFeatureIndex((prev) => (prev + 1) % ROTATING_FEATURES.length)
-    }, 7000)
-
-    return () => clearInterval(timer)
-  }, [isPaused])
-
-  const currentFeature = ROTATING_FEATURES[currentFeatureIndex]
-  const currentContent = currentFeature.content[dailyContentIndex % currentFeature.content.length]
 
   const togglePin = (featureId: string) => {
     const pinnedFeatures = userProfile.pinnedFeatures || []
@@ -108,221 +94,181 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
     }
   }
 
-  const navigateFeature = (direction: "prev" | "next") => {
-    setIsPaused(true)
-    setCurrentFeatureIndex((prev) => {
-      if (direction === "prev") {
-        return prev === 0 ? ROTATING_FEATURES.length - 1 : prev - 1
-      }
-      return (prev + 1) % ROTATING_FEATURES.length
-    })
-    setTimeout(() => setIsPaused(false), 5000)
-  }
-
-  const pinnedFeaturesList = ROTATING_FEATURES.filter((f) => (userProfile.pinnedFeatures || []).includes(f.id))
-
   const coreFeatures = [
     {
       id: "chat",
-      title: "Chat with AI",
-      description: "Ask me anything!",
+      title: "Chat",
+      description: "Ask anything",
       icon: MessageSquare,
       gradient: "from-blue-500 to-blue-600",
+      shadowColor: "shadow-blue-500/30",
+      size: "large", // Takes 2 columns
       action: () => onNavigate("chat"),
     },
     {
+      id: "voice",
+      title: "Voice",
+      description: "Talk to AI",
+      icon: Mic,
+      gradient: "from-purple-500 to-indigo-600",
+      shadowColor: "shadow-purple-500/30",
+      size: "small",
+      action: () => onNavigate("voice"),
+    },
+    {
       id: "lessons",
-      title: "Video Lessons",
-      description: "Learn step-by-step!",
-      icon: Sparkles,
-      gradient: "from-purple-500 to-purple-600",
+      title: "Videos",
+      description: "Learn AI",
+      icon: Video,
+      gradient: "from-orange-500 to-red-500",
+      shadowColor: "shadow-orange-500/30",
+      size: "small",
       action: () => onNavigate("lessons"),
     },
     {
       id: "ai-art",
-      title: "AI Art",
-      description: "Create images!",
+      title: "Create Art",
+      description: "AI images",
       icon: Sparkles,
       gradient: "from-pink-500 to-rose-600",
+      shadowColor: "shadow-pink-500/30",
+      size: "medium",
       action: onOpenArtGenerator,
     },
     {
       id: "tips",
-      title: "Quick Tips",
-      description: "Smart shortcuts!",
+      title: "Tips",
+      description: "Quick help",
       icon: Lightbulb,
-      gradient: "from-green-500 to-emerald-600",
+      gradient: "from-emerald-500 to-teal-600",
+      shadowColor: "shadow-emerald-500/30",
+      size: "medium",
       action: () => onNavigate("tips"),
-    },
-    {
-      id: "history",
-      title: "Chat History",
-      description: "View past chats!",
-      icon: MessageSquare,
-      gradient: "from-orange-500 to-amber-600",
-      action: () => onNavigate("profile"),
-    },
-    {
-      id: "questions",
-      title: "Common Q&A",
-      description: "Quick answers!",
-      icon: Lightbulb,
-      gradient: "from-cyan-500 to-teal-600",
-      action: () => onNavigate("profile"),
-    },
-    {
-      id: "voice-assistant", // Added voice assistant as a core feature
-      title: "Voice Chat",
-      description: "Talk to AI!",
-      icon: Sparkles,
-      gradient: "from-purple-500 to-indigo-600",
-      action: () => onNavigate("voice" as any), // Navigate to voice tab
     },
   ]
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-blue-50 to-white overflow-hidden">
-      {pinnedFeaturesList.length > 0 && (
-        <div className="flex-shrink-0 bg-white border-b border-slate-200 px-2 py-1.5 sm:px-3 sm:py-2">
-          <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
-            <Heart className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-pink-500 fill-pink-500" />
-            <span className="text-[9px] sm:text-[10px] font-bold text-slate-700 uppercase">Favorites</span>
-          </div>
-          <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1">
-            {pinnedFeaturesList.map((feature) => (
-              <button
-                key={feature.id}
-                onClick={() => {
-                  const index = ROTATING_FEATURES.findIndex((f) => f.id === feature.id)
-                  setCurrentFeatureIndex(index)
-                  setIsPaused(true)
-                  setTimeout(() => setIsPaused(false), 5000)
-                }}
-                className={`flex-shrink-0 flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-gradient-to-r ${feature.gradient} text-white text-[9px] sm:text-[10px] font-bold shadow-md relative group`}
-              >
-                <span className="text-xs sm:text-sm">{feature.icon}</span>
-                <span>{feature.type}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    togglePin(feature.id)
-                  }}
-                  className="ml-0.5 hover:bg-white/20 rounded-full p-0.5"
+    <div className="h-full flex flex-col bg-slate-50 overflow-hidden">
+      <div className="flex-shrink-0 pt-4 pb-2">
+        <div
+          ref={scrollContainerRef}
+          className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-5 pb-2 no-scrollbar"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          {ROTATING_FEATURES.map((feature) => {
+            const currentContent = feature.content[dailyContentIndex % feature.content.length]
+            const isPinned = (userProfile.pinnedFeatures || []).includes(feature.id)
+
+            return (
+              <div key={feature.id} className="flex-shrink-0 snap-center" style={{ width: "calc(100% - 40px)" }}>
+                <div
+                  className={`bg-gradient-to-br ${feature.gradient} rounded-3xl p-5 shadow-xl border border-white/20 h-[130px] flex flex-col relative overflow-hidden`}
                 >
-                  <X className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
-                </button>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+                  {/* Decorative blur circles */}
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+                  <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-black/10 rounded-full blur-2xl" />
 
-      <div className="flex-shrink-0 px-2 pt-2 pb-1.5 sm:px-3 sm:pt-3 sm:pb-2">
-        <div className="relative" style={{ height: "110px" }}>
-          <div
-            className={`bg-gradient-to-r ${currentFeature.gradient} rounded-xl p-2.5 sm:p-3 shadow-lg border border-white/30 transition-all duration-500 h-full flex flex-col`}
-          >
-            <div className="flex items-start justify-between mb-1.5 sm:mb-2">
-              <div className="flex items-center gap-1 sm:gap-1.5">
-                <span className="text-base sm:text-xl">{currentFeature.icon}</span>
-                <h3 className="text-[10px] sm:text-xs font-black text-white uppercase">{currentFeature.type}</h3>
-              </div>
-              <button
-                onClick={() => togglePin(currentFeature.id)}
-                className={`p-0.5 sm:p-1 rounded-full transition-all flex-shrink-0 ${
-                  (userProfile.pinnedFeatures || []).includes(currentFeature.id)
-                    ? "bg-white text-pink-500"
-                    : "bg-white/20 text-white hover:bg-white hover:text-pink-500"
-                }`}
-              >
-                <Heart
-                  className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
-                    (userProfile.pinnedFeatures || []).includes(currentFeature.id) ? "fill-current" : ""
-                  }`}
-                />
-              </button>
-            </div>
-            <div className="flex-1 flex flex-col justify-center">
-              <p className="text-[10px] sm:text-xs font-bold text-white leading-snug">{currentContent}</p>
-
-              {currentFeature.id === "daily-discovery" && (
-                <button
-                  onClick={() => onNavigate("chat")}
-                  className="mt-1.5 sm:mt-2 text-[9px] sm:text-[10px] text-white/90 font-semibold bg-white/20 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full hover:bg-white/30 transition-colors inline-block self-start"
-                >
-                  Try it! (+2 ⭐)
-                </button>
-              )}
-            </div>
-          </div>
-
-          <button
-            onClick={() => navigateFeature("prev")}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-0.5 sm:-translate-x-1 bg-white rounded-full p-0.5 sm:p-1 shadow-md hover:scale-110 transition-transform"
-          >
-            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 text-slate-700" />
-          </button>
-          <button
-            onClick={() => navigateFeature("next")}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-0.5 sm:translate-x-1 bg-white rounded-full p-0.5 sm:p-1 shadow-md hover:scale-110 transition-transform"
-          >
-            <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-slate-700" />
-          </button>
-
-          <div className="flex justify-center gap-0.5 sm:gap-1 mt-1.5 sm:mt-2">
-            {ROTATING_FEATURES.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setCurrentFeatureIndex(index)
-                  setIsPaused(true)
-                  setTimeout(() => setIsPaused(false), 5000)
-                }}
-                className={`h-1 sm:h-1.5 rounded-full transition-all ${
-                  index === currentFeatureIndex ? "w-3 sm:w-4 bg-slate-600" : "w-1 sm:w-1.5 bg-slate-300"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full flex flex-col justify-end pb-1.5 sm:pb-2">
-          <div className="flex-shrink-0 px-2 sm:px-3">
-            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
-              {coreFeatures.map((feature) => {
-                const isPinned = (userProfile.pinnedFeatures || []).includes(feature.id)
-                return (
-                  <div key={feature.id} className="relative">
+                  <div className="flex items-center justify-between mb-2 relative z-10">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{feature.icon}</span>
+                      <h3 className="text-sm font-black text-white uppercase tracking-wide">{feature.type}</h3>
+                    </div>
                     <button
-                      onClick={feature.action}
-                      className={`w-full h-[72px] sm:h-20 bg-gradient-to-br ${feature.gradient} text-white rounded-xl p-2 sm:p-2.5 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center justify-center text-center border-2 border-white/30`}
-                    >
-                      <feature.icon className="w-5 h-5 sm:w-7 sm:h-7 mb-0.5 sm:mb-1" strokeWidth={2.5} />
-                      <h3 className="text-[10px] sm:text-xs font-black leading-tight mb-0.5">{feature.title}</h3>
-                      <p className="text-[8px] sm:text-[9px] text-white/90 font-semibold leading-tight">
-                        {feature.description}
-                      </p>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        togglePin(feature.id)
-                      }}
-                      className={`absolute top-0.5 right-0.5 sm:top-1 sm:right-1 p-0.5 sm:p-1 rounded-full transition-all z-10 ${
+                      onClick={() => togglePin(feature.id)}
+                      className={`p-2 rounded-full transition-all ${
                         isPinned
                           ? "bg-white text-pink-500"
                           : "bg-white/20 text-white hover:bg-white hover:text-pink-500"
                       }`}
                     >
-                      <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${isPinned ? "fill-current" : ""}`} />
+                      <Heart className={`w-4 h-4 ${isPinned ? "fill-current" : ""}`} />
                     </button>
                   </div>
-                )
-              })}
+
+                  <p className="text-sm font-semibold text-white/95 leading-relaxed flex-1 relative z-10">
+                    {currentContent}
+                  </p>
+
+                  {feature.id === "daily-discovery" && (
+                    <button
+                      onClick={() => onNavigate("chat")}
+                      className="mt-2 text-xs text-white font-bold bg-white/25 backdrop-blur-sm px-4 py-2 rounded-full hover:bg-white/35 transition-colors self-start relative z-10"
+                    >
+                      Try it! +2 ⭐
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Subtle scroll indicator */}
+        <div className="flex justify-center gap-1.5 mt-2">
+          {ROTATING_FEATURES.map((_, index) => (
+            <div key={index} className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 px-5 pb-4 overflow-hidden">
+        <div className="grid grid-cols-2 gap-3 h-full auto-rows-fr" style={{ gridTemplateRows: "repeat(3, 1fr)" }}>
+          {/* Chat - Large card spanning 2 columns */}
+          <button
+            onClick={coreFeatures[0].action}
+            className={`col-span-2 bg-gradient-to-br ${coreFeatures[0].gradient} text-white rounded-3xl p-5 shadow-xl ${coreFeatures[0].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-between border border-white/20 relative overflow-hidden`}
+          >
+            <div className="absolute -top-16 -right-16 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+            <div className="relative z-10">
+              <h3 className="text-2xl font-black mb-1">{coreFeatures[0].title}</h3>
+              <p className="text-base text-white/90 font-medium">{coreFeatures[0].description}</p>
             </div>
-          </div>
+            <MessageSquare className="w-14 h-14 text-white/80 relative z-10" strokeWidth={1.5} />
+          </button>
+
+          {/* Voice */}
+          <button
+            onClick={coreFeatures[1].action}
+            className={`bg-gradient-to-br ${coreFeatures[1].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[1].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
+          >
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+            <Mic className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
+            <h3 className="text-lg font-black relative z-10">{coreFeatures[1].title}</h3>
+            <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[1].description}</p>
+          </button>
+
+          {/* Videos */}
+          <button
+            onClick={coreFeatures[2].action}
+            className={`bg-gradient-to-br ${coreFeatures[2].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[2].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
+          >
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+            <Video className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
+            <h3 className="text-lg font-black relative z-10">{coreFeatures[2].title}</h3>
+            <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[2].description}</p>
+          </button>
+
+          {/* AI Art */}
+          <button
+            onClick={coreFeatures[3].action}
+            className={`bg-gradient-to-br ${coreFeatures[3].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[3].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
+          >
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+            <Sparkles className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
+            <h3 className="text-lg font-black relative z-10">{coreFeatures[3].title}</h3>
+            <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[3].description}</p>
+          </button>
+
+          {/* Tips */}
+          <button
+            onClick={coreFeatures[4].action}
+            className={`bg-gradient-to-br ${coreFeatures[4].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[4].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
+          >
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+            <Lightbulb className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
+            <h3 className="text-lg font-black relative z-10">{coreFeatures[4].title}</h3>
+            <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[4].description}</p>
+          </button>
         </div>
       </div>
     </div>
