@@ -12,7 +12,6 @@ import {
   Lightbulb,
   History,
   Menu,
-  HelpCircle,
   RotateCcw,
   X,
   Gamepad2,
@@ -27,6 +26,7 @@ import { ChatHistoryView } from "./chat-history-view"
 import { QuestionsTab } from "./questions-tab"
 import { VoiceChatTab } from "./voice-chat-tab"
 import { PlayTab } from "./play-tab"
+import { CelebrationModal } from "./celebration-modal"
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
@@ -51,15 +51,19 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | null>(null)
+  const [showCelebration, setShowCelebration] = useState(false)
+  const [celebrationStars, setCelebrationStars] = useState(5)
+  const [lastMilestone, setLastMilestone] = useState(() => Math.floor(userProfile.stars / 5) * 5)
+  const [starPop, setStarPop] = useState(false)
 
   useEffect(() => {
     if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
       recognitionRef.current = new SpeechRecognition()
-      recognitionRef.current.continuous = true // Keep listening
+      recognitionRef.current.continuous = true
       recognitionRef.current.interimResults = true
       recognitionRef.current.lang = "en-US"
-      recognitionRef.current.maxAlternatives = 1 // Faster processing
+      recognitionRef.current.maxAlternatives = 1
 
       recognitionRef.current.onresult = (event: any) => {
         let interim = ""
@@ -170,6 +174,21 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
     loadLastConversation()
   }, [])
 
+  useEffect(() => {
+    const currentMilestone = Math.floor(userProfile.stars / 5) * 5
+    if (currentMilestone > lastMilestone && currentMilestone > 0) {
+      setCelebrationStars(5)
+      setShowCelebration(true)
+      setLastMilestone(currentMilestone)
+    }
+  }, [userProfile.stars, lastMilestone])
+
+  useEffect(() => {
+    setStarPop(true)
+    const timer = setTimeout(() => setStarPop(false), 300)
+    return () => clearTimeout(timer)
+  }, [userProfile.stars])
+
   const toggleVoiceRecognition = () => {
     if (!recognitionRef.current) {
       alert("Voice recognition is not supported in your browser. Please try Chrome or Safari.")
@@ -220,6 +239,13 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
 
   return (
     <div className="flex flex-col h-screen bg-white">
+      <CelebrationModal
+        isOpen={showCelebration}
+        onClose={() => setShowCelebration(false)}
+        message="Milestone Reached!"
+        starsEarned={celebrationStars}
+      />
+
       {isMenuOpen && (
         <div className="fixed inset-0 z-50">
           {/* Backdrop */}
@@ -312,33 +338,39 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
       )}
 
       <header className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab("home")}
             className="hover:opacity-80 transition-opacity active:scale-95 touch-manipulation"
             aria-label="Go to home"
           >
-            <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-[60px] w-auto object-contain" />
+            <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-[50px] w-auto object-contain" />
           </button>
+        </div>
 
+        <div
+          className={`flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-yellow-100 to-amber-100 rounded-full shadow-md border border-yellow-200 transition-transform ${
+            starPop ? "scale-125" : "scale-100"
+          }`}
+        >
+          <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+          <span className="text-lg font-black text-amber-700">{userProfile.stars}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
           {/* Voice Assistant Avatar */}
           <button
             onClick={() => setActiveTab("voice")}
             className="relative group touch-manipulation flex items-center gap-2"
             aria-label="Talk to AI Assistant"
           >
-            <div className="w-[48px] h-[48px] rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 p-[2px] shadow-lg hover:shadow-xl transition-all hover:scale-105">
+            <div className="w-[44px] h-[44px] rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 p-[2px] shadow-lg hover:shadow-xl transition-all hover:scale-105">
               <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
                 <img src="/voice-assistant-avatar.jpg" alt="Voice Assistant" className="w-full h-full object-cover" />
               </div>
             </div>
-            <div className="px-3 py-1.5 rounded-full bg-white/70 backdrop-blur-md border border-white/80 shadow-md">
-              <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">Ask Me Anything</span>
-            </div>
           </button>
-        </div>
 
-        <div className="flex items-center gap-3">
           <button
             onClick={() => setIsMenuOpen(true)}
             className="p-2.5 rounded-xl hover:bg-slate-100 transition-colors touch-manipulation active:scale-95"
@@ -522,23 +554,24 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
         </button>
 
         <button
-          onClick={() => setActiveTab("questions")}
+          onClick={() => setActiveTab("voice")}
           className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
-            activeTab === "questions" ? "text-blue-600" : "text-slate-400"
+            activeTab === "voice" ? "text-purple-600" : "text-slate-400"
           }`}
-          aria-label="Q&A"
+          aria-label="Voice"
         >
-          <HelpCircle className="w-6 h-6" strokeWidth={activeTab === "questions" ? 2.5 : 1.5} />
-          <span className={`text-[10px] ${activeTab === "questions" ? "font-bold" : "font-medium"}`}>Q&A</span>
+          <div className="w-6 h-6 rounded-full overflow-hidden border border-slate-300">
+            <img src="/voice-assistant-avatar.jpg" alt="" className="w-full h-full object-cover" />
+          </div>
+          <span className={`text-[10px] ${activeTab === "voice" ? "font-bold" : "font-medium"}`}>Voice</span>
         </button>
       </nav>
 
       {isArtGeneratorOpen && (
         <AiArtModal
-          isOpen={isArtGeneratorOpen}
-          onClose={() => setIsArtGeneratorOpen(false)}
           userProfile={userProfile}
           updateProfile={updateProfile}
+          onClose={() => setIsArtGeneratorOpen(false)}
         />
       )}
     </div>

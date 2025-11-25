@@ -1,6 +1,8 @@
 "use client"
 
-import { MessageSquare, Sparkles, Lightbulb, Heart, Video, Mic } from "lucide-react"
+import type React from "react"
+
+import { MessageSquare, Sparkles, Lightbulb, Heart, Video, Mic, X } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useState, useEffect, useRef } from "react"
 
@@ -17,11 +19,35 @@ const ROTATING_FEATURES = [
     type: "What's New",
     icon: "✨",
     gradient: "from-purple-500 via-pink-500 to-red-500",
+    fullScreenBg: "from-purple-600 via-pink-600 to-red-600",
     content: [
       "New Voice Assistant: Talk to AI hands-free!",
       "Daily Discoveries: Learn something new every day!",
       "Video Lessons: Step-by-step AI tutorials!",
       "Smart Tips: Quick tricks to use AI better!",
+    ],
+    expandedContent: [
+      {
+        title: "Voice Assistant is Here!",
+        description:
+          "Simply tap the avatar and start talking. No typing needed - just have a natural conversation with AI!",
+        cta: "Try Voice Chat",
+      },
+      {
+        title: "Daily Discoveries Await!",
+        description: "Every day brings a new AI exploration. Ask questions you've always wondered about!",
+        cta: "Start Exploring",
+      },
+      {
+        title: "Video Lessons Ready!",
+        description: "Watch step-by-step tutorials designed specifically for you. Learn at your own pace!",
+        cta: "Watch Now",
+      },
+      {
+        title: "Smart Tips Daily!",
+        description: "Quick, actionable tips to make AI work better for you. New tips every day!",
+        cta: "See Tips",
+      },
     ],
   },
   {
@@ -29,6 +55,7 @@ const ROTATING_FEATURES = [
     type: "Today's Discovery",
     icon: "🎯",
     gradient: "from-yellow-400 via-orange-400 to-pink-400",
+    fullScreenBg: "from-yellow-500 via-orange-500 to-pink-500",
     content: [
       "Let's ask AI how to make a cherry cobbler gluten-free!",
       "Tell me about the manufacturing of tires - I'm curious!",
@@ -39,12 +66,57 @@ const ROTATING_FEATURES = [
       "How did people navigate before GPS?",
       "What's the story behind my birthstone?",
     ],
+    expandedContent: [
+      {
+        title: "Gluten-Free Cherry Cobbler",
+        description:
+          "Let's discover how to make a delicious cherry cobbler that everyone can enjoy, with easy substitutions!",
+        cta: "Ask AI Now",
+      },
+      {
+        title: "The World of Tires",
+        description: "Ever wondered how rubber becomes the tires on your car? Let's explore this fascinating process!",
+        cta: "Learn More",
+      },
+      {
+        title: "TV Show History",
+        description: "Take a trip down memory lane and discover the stories behind your favorite classic shows!",
+        cta: "Explore",
+      },
+      {
+        title: "Microwave Magic",
+        description:
+          "The science behind this kitchen wonder is actually quite fascinating. Let's find out how it works!",
+        cta: "Discover",
+      },
+      {
+        title: "Northern Lights Mystery",
+        description: "One of nature's most beautiful displays - learn the science behind the aurora borealis!",
+        cta: "Explore",
+      },
+      {
+        title: "The Science of Bread",
+        description: "Yeast, gluten, and chemistry combine to create the perfect loaf. Let's dive in!",
+        cta: "Learn",
+      },
+      {
+        title: "Navigation Before GPS",
+        description: "From stars to compasses to paper maps - how did people find their way?",
+        cta: "Discover",
+      },
+      {
+        title: "Your Birthstone Story",
+        description: "Each month has a special gem with its own history and meaning. What's yours?",
+        cta: "Find Out",
+      },
+    ],
   },
   {
     id: "use-ai-this-way",
     type: "Use AI This Way",
     icon: "💡",
     gradient: "from-green-400 to-teal-400",
+    fullScreenBg: "from-green-500 to-teal-500",
     content: [
       "Ask AI to plan your weekly meals",
       "Get AI to explain your medications",
@@ -53,12 +125,45 @@ const ROTATING_FEATURES = [
       "Have AI suggest gift ideas for loved ones",
       "Ask AI about local events happening near you",
     ],
+    expandedContent: [
+      {
+        title: "Meal Planning Made Easy",
+        description: "Tell AI your preferences and dietary needs, and get a whole week of delicious meal ideas!",
+        cta: "Plan Meals",
+      },
+      {
+        title: "Understand Your Medications",
+        description: "Ask AI to explain what your medications do in simple terms. Always consult your doctor too!",
+        cta: "Ask Now",
+      },
+      {
+        title: "Perfect Birthday Messages",
+        description: "Let AI help you write heartfelt, personalized birthday cards for your loved ones!",
+        cta: "Write Card",
+      },
+      {
+        title: "Family History Research",
+        description: "AI can help you explore genealogy resources and organize your family tree!",
+        cta: "Start Research",
+      },
+      {
+        title: "Gift Ideas Generator",
+        description: "Describe the person and occasion, and AI will suggest thoughtful gift ideas!",
+        cta: "Get Ideas",
+      },
+      {
+        title: "Local Events Finder",
+        description: "Ask AI about concerts, festivals, and activities happening in your area!",
+        cta: "Find Events",
+      },
+    ],
   },
   {
     id: "weekly-challenge",
     type: "Challenge of the Week",
     icon: "🏆",
     gradient: "from-indigo-400 to-blue-400",
+    fullScreenBg: "from-indigo-500 to-blue-500",
     content: [
       "This week: Ask AI about 3 hobbies you've never tried!",
       "Challenge: Use AI to plan a family gathering!",
@@ -66,19 +171,55 @@ const ROTATING_FEATURES = [
       "Goal: Have 5 conversations with AI this week!",
       "Mission: Discover 3 new ways AI can help your daily life!",
     ],
+    expandedContent: [
+      {
+        title: "Explore New Hobbies!",
+        description: "Ask AI about hobbies you've always been curious about. You might find your new passion!",
+        cta: "Start Exploring",
+      },
+      {
+        title: "Plan a Family Gathering",
+        description: "Let AI help you plan the menu, activities, and logistics for a memorable family event!",
+        cta: "Start Planning",
+      },
+      {
+        title: "Satisfy Your Curiosity",
+        description: "What have you always wondered about? Space? History? Science? Ask AI anything!",
+        cta: "Ask Away",
+      },
+      {
+        title: "5 Conversations Challenge",
+        description: "Try having 5 different conversations with AI this week. Each one teaches you something new!",
+        cta: "Start Chatting",
+      },
+      {
+        title: "AI Life Hacks",
+        description: "Discover 3 new ways AI can make your daily routine easier and more enjoyable!",
+        cta: "Discover",
+      },
+    ],
   },
 ]
 
 export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updateProfile }: HomeTabProps) {
   const [dailyContentIndex, setDailyContentIndex] = useState(0)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [expandedCard, setExpandedCard] = useState<(typeof ROTATING_FEATURES)[0] | null>(null)
+  const [expandedContentIndex, setExpandedContentIndex] = useState(0)
 
   useEffect(() => {
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
     setDailyContentIndex(dayOfYear)
   }, [])
 
-  const togglePin = (featureId: string) => {
+  const handleCardTap = (feature: (typeof ROTATING_FEATURES)[0]) => {
+    const contentIndex = dailyContentIndex % feature.content.length
+    setExpandedContentIndex(contentIndex)
+    setExpandedCard(feature)
+  }
+
+  const togglePin = (featureId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
     const pinnedFeatures = userProfile.pinnedFeatures || []
     const isPinned = pinnedFeatures.includes(featureId)
 
@@ -102,7 +243,7 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
       icon: MessageSquare,
       gradient: "from-blue-500 to-blue-600",
       shadowColor: "shadow-blue-500/30",
-      size: "large", // Takes 2 columns
+      size: "large",
       action: () => onNavigate("chat"),
     },
     {
@@ -149,6 +290,60 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
 
   return (
     <div className="h-full flex flex-col bg-slate-50 overflow-hidden">
+      {expandedCard && (
+        <div className="fixed inset-0 z-50 flex flex-col">
+          <div
+            className={`absolute inset-0 bg-gradient-to-br ${expandedCard.fullScreenBg} transition-all duration-500`}
+          />
+
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-black/10 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+          </div>
+
+          <button
+            onClick={() => setExpandedCard(null)}
+            className="absolute top-4 right-4 z-10 p-3 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all active:scale-95"
+            style={{ paddingTop: "max(env(safe-area-inset-top), 16px)" }}
+          >
+            <X className="w-7 h-7 text-white" />
+          </button>
+
+          <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 text-center">
+            <span className="text-7xl mb-6">{expandedCard.icon}</span>
+
+            <span className="text-sm font-bold text-white/80 uppercase tracking-widest mb-2">{expandedCard.type}</span>
+
+            <h1 className="text-3xl font-black text-white mb-4 leading-tight">
+              {expandedCard.expandedContent[expandedContentIndex % expandedCard.expandedContent.length]?.title ||
+                expandedCard.content[expandedContentIndex]}
+            </h1>
+
+            <p className="text-lg text-white/90 leading-relaxed max-w-md mb-8">
+              {expandedCard.expandedContent[expandedContentIndex % expandedCard.expandedContent.length]?.description ||
+                "Tap below to explore this with AI!"}
+            </p>
+
+            <button
+              onClick={() => {
+                setExpandedCard(null)
+                onNavigate("chat")
+              }}
+              className="px-8 py-4 bg-white text-slate-900 font-bold text-lg rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95 transition-all"
+            >
+              {expandedCard.expandedContent[expandedContentIndex % expandedCard.expandedContent.length]?.cta ||
+                "Try It Now"}{" "}
+              →
+            </button>
+          </div>
+
+          <div className="relative z-10 pb-8 text-center">
+            <p className="text-white/60 text-sm">Tap anywhere or the X to close</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex-shrink-0 pt-4 pb-2">
         <div
           ref={scrollContainerRef}
@@ -161,10 +356,10 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
 
             return (
               <div key={feature.id} className="flex-shrink-0 snap-center" style={{ width: "calc(100% - 40px)" }}>
-                <div
-                  className={`bg-gradient-to-br ${feature.gradient} rounded-3xl p-5 shadow-xl border border-white/20 h-[130px] flex flex-col relative overflow-hidden`}
+                <button
+                  onClick={() => handleCardTap(feature)}
+                  className={`w-full text-left bg-gradient-to-br ${feature.gradient} rounded-3xl p-5 shadow-xl border border-white/20 h-[130px] flex flex-col relative overflow-hidden transform transition-all hover:scale-[1.02] active:scale-[0.98]`}
                 >
-                  {/* Decorative blur circles */}
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                   <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-black/10 rounded-full blur-2xl" />
 
@@ -173,8 +368,8 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
                       <span className="text-2xl">{feature.icon}</span>
                       <h3 className="text-sm font-black text-white uppercase tracking-wide">{feature.type}</h3>
                     </div>
-                    <button
-                      onClick={() => togglePin(feature.id)}
+                    <div
+                      onClick={(e) => togglePin(feature.id, e)}
                       className={`p-2 rounded-full transition-all ${
                         isPinned
                           ? "bg-white text-pink-500"
@@ -182,28 +377,20 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
                       }`}
                     >
                       <Heart className={`w-4 h-4 ${isPinned ? "fill-current" : ""}`} />
-                    </button>
+                    </div>
                   </div>
 
                   <p className="text-sm font-semibold text-white/95 leading-relaxed flex-1 relative z-10">
                     {currentContent}
                   </p>
 
-                  {feature.id === "daily-discovery" && (
-                    <button
-                      onClick={() => onNavigate("chat")}
-                      className="mt-2 text-xs text-white font-bold bg-white/25 backdrop-blur-sm px-4 py-2 rounded-full hover:bg-white/35 transition-colors self-start relative z-10"
-                    >
-                      Try it! +2 ⭐
-                    </button>
-                  )}
-                </div>
+                  <div className="absolute bottom-3 right-3 text-xs text-white/60 font-medium">Tap to explore →</div>
+                </button>
               </div>
             )
           })}
         </div>
 
-        {/* Subtle scroll indicator */}
         <div className="flex justify-center gap-1.5 mt-2">
           {ROTATING_FEATURES.map((_, index) => (
             <div key={index} className="w-1.5 h-1.5 rounded-full bg-slate-300" />
@@ -213,7 +400,6 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
 
       <div className="flex-1 px-5 pb-4 overflow-hidden">
         <div className="grid grid-cols-2 gap-3 h-full auto-rows-fr" style={{ gridTemplateRows: "repeat(3, 1fr)" }}>
-          {/* Chat - Large card spanning 2 columns */}
           <button
             onClick={coreFeatures[0].action}
             className={`col-span-2 bg-gradient-to-br ${coreFeatures[0].gradient} text-white rounded-3xl p-5 shadow-xl ${coreFeatures[0].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-between border border-white/20 relative overflow-hidden`}
@@ -226,7 +412,6 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
             <MessageSquare className="w-14 h-14 text-white/80 relative z-10" strokeWidth={1.5} />
           </button>
 
-          {/* Voice */}
           <button
             onClick={coreFeatures[1].action}
             className={`bg-gradient-to-br ${coreFeatures[1].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[1].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
@@ -237,7 +422,6 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
             <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[1].description}</p>
           </button>
 
-          {/* Videos */}
           <button
             onClick={coreFeatures[2].action}
             className={`bg-gradient-to-br ${coreFeatures[2].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[2].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
@@ -248,7 +432,6 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
             <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[2].description}</p>
           </button>
 
-          {/* AI Art */}
           <button
             onClick={coreFeatures[3].action}
             className={`bg-gradient-to-br ${coreFeatures[3].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[3].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
@@ -259,7 +442,6 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
             <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[3].description}</p>
           </button>
 
-          {/* Tips */}
           <button
             onClick={coreFeatures[4].action}
             className={`bg-gradient-to-br ${coreFeatures[4].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[4].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
