@@ -27,6 +27,31 @@ export async function GET(request: Request) {
     const deviceId = searchParams.get("deviceId")
     const id = searchParams.get("id")
 
+    // Check if table exists, if not create it
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS boomer_conversations (
+          id SERIAL PRIMARY KEY,
+          device_id TEXT NOT NULL,
+          ip_address TEXT,
+          title TEXT,
+          preview TEXT,
+          messages JSONB,
+          message_count INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `
+      await sql`
+        CREATE INDEX IF NOT EXISTS idx_device_id ON boomer_conversations(device_id)
+      `
+      await sql`
+        CREATE INDEX IF NOT EXISTS idx_created_at ON boomer_conversations(created_at DESC)
+      `
+    } catch (tableError) {
+      console.error("[v0] Table creation check error:", tableError)
+    }
+
     if (id) {
       // Get specific conversation
       const result = await sql`
@@ -53,8 +78,14 @@ export async function GET(request: Request) {
 
     return Response.json({ error: "Missing parameters" }, { status: 400 })
   } catch (error) {
-    console.error("Conversations GET error:", error)
-    return Response.json({ error: "Failed to fetch conversations" }, { status: 500 })
+    console.error("[v0] Conversations GET error:", error)
+    return Response.json(
+      {
+        error: "Failed to fetch conversations",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }
 
@@ -69,27 +100,36 @@ export async function POST(request: Request) {
     const ipAddress = getClientIp(request)
     console.log("[v0] Saving conversation from IP:", ipAddress, "Message count:", messages.length)
 
-    const uniqueKey = `${deviceId}_${title}_${messages[0]?.id || Date.now()}`
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS boomer_conversations (
+          id SERIAL PRIMARY KEY,
+          device_id TEXT NOT NULL,
+          ip_address TEXT,
+          title TEXT,
+          preview TEXT,
+          messages JSONB,
+          message_count INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `
+    } catch (tableError) {
+      console.error("[v0] Table creation check error:", tableError)
+    }
 
     const result = await sql`
       INSERT INTO boomer_conversations (device_id, ip_address, title, preview, messages, message_count, created_at, updated_at)
       VALUES (
         ${deviceId},
         ${ipAddress},
-        ${title},
-        ${preview},
+        ${title || "Untitled"},
+        ${preview || ""},
         ${JSON.stringify(messages)},
         ${messages.length},
         NOW(),
         NOW()
       )
-      ON CONFLICT (device_id, title) 
-      DO UPDATE SET 
-        messages = ${JSON.stringify(messages)},
-        message_count = ${messages.length},
-        preview = ${preview},
-        ip_address = ${ipAddress},
-        updated_at = NOW()
       RETURNING id
     `
 
@@ -97,7 +137,13 @@ export async function POST(request: Request) {
     return Response.json({ success: true, id: result[0].id })
   } catch (error) {
     console.error("[v0] Conversations POST error:", error)
-    return Response.json({ error: "Failed to save conversation" }, { status: 500 })
+    return Response.json(
+      {
+        error: "Failed to save conversation",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }
 
@@ -114,7 +160,13 @@ export async function DELETE(request: Request) {
 
     return Response.json({ success: true })
   } catch (error) {
-    console.error("Conversations DELETE error:", error)
-    return Response.json({ error: "Failed to delete conversation" }, { status: 500 })
+    console.error("[v0] Conversations DELETE error:", error)
+    return Response.json(
+      {
+        error: "Failed to delete conversation",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }

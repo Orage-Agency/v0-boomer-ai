@@ -20,6 +20,7 @@ export type UserProfile = {
   badges: string[]
   lessonsCompleted: string[]
   userName: string | null
+  name?: string
   deviceId: string | null
   dailyArtCount: number
   lastArtDate: string | null
@@ -28,8 +29,8 @@ export type UserProfile = {
 
 function calculateLevelFromStars(stars: number): string {
   if (stars < 200) return "Basic"
-  if (stars < 600) return "Intermediate" // 200 + 400
-  if (stars < 1400) return "Advanced" // 600 + 800
+  if (stars < 600) return "Intermediate"
+  if (stars < 1400) return "Advanced"
   return "Expert"
 }
 
@@ -91,12 +92,10 @@ export default function BoomerAIPage() {
             setUserProfile({ ...DEFAULT_PROFILE, deviceId })
           }
         } catch (error) {
-          console.log("[v0] Error restoring profile:", error)
           setUserProfile({ ...DEFAULT_PROFILE, deviceId })
         }
       }
     } catch (error) {
-      console.log("[v0] Error loading from database:", error)
       try {
         const saved = localStorage.getItem("boomer_profile")
         if (saved) {
@@ -109,7 +108,6 @@ export default function BoomerAIPage() {
           setUserProfile({ ...DEFAULT_PROFILE, deviceId })
         }
       } catch (error) {
-        console.log("[v0] Error restoring profile:", error)
         setUserProfile({ ...DEFAULT_PROFILE, deviceId })
       }
     }
@@ -123,7 +121,7 @@ export default function BoomerAIPage() {
         body: JSON.stringify(profile),
       })
     } catch (error) {
-      console.log("[v0] Error saving to database:", error)
+      // Silently fail - data is saved to localStorage as backup
     }
   }
 
@@ -131,7 +129,6 @@ export default function BoomerAIPage() {
     if (updates.stars !== undefined) {
       const correctLevel = calculateLevelFromStars(updates.stars)
       updates.level = correctLevel
-      console.log("[v0] Stars updated to:", updates.stars, "Level set to:", correctLevel)
     }
 
     const newProfile = { ...userProfile, ...updates }
@@ -155,11 +152,26 @@ export default function BoomerAIPage() {
   }
 
   if (!mounted) {
-    return null
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+          <p className="text-slate-600 font-medium">Loading Boomer AI...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-0">
+    <div 
+      className="min-h-screen bg-white flex items-center justify-center"
+      style={{ 
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
+    >
       <div className="relative bg-white w-full max-w-md mx-auto h-screen overflow-hidden flex flex-col">
         {currentView === "onboarding" && (
           <>
@@ -169,11 +181,11 @@ export default function BoomerAIPage() {
               }
             />
 
-            <main className="flex-grow overflow-y-auto">
+            <main className="flex-grow overflow-y-auto hide-scrollbar">
               {onboardingStep === "avatar" && (
                 <AvatarSelection
                   onSelect={(persona, userTitle, avatarSrc, userName) => {
-                    updateProfile({ persona, userTitle, avatarSrc, userName })
+                    updateProfile({ persona, userTitle, avatarSrc, userName, name: userName })
                     setOnboardingStep("age")
                   }}
                 />
