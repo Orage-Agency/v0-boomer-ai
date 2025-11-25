@@ -15,6 +15,7 @@ import {
   HelpCircle,
   RotateCcw,
   X,
+  Gamepad2,
 } from "lucide-react"
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
@@ -25,6 +26,7 @@ import { AiArtModal } from "./ai-art-modal"
 import { ChatHistoryView } from "./chat-history-view"
 import { QuestionsTab } from "./questions-tab"
 import { VoiceChatTab } from "./voice-chat-tab"
+import { PlayTab } from "./play-tab"
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
@@ -35,7 +37,7 @@ interface MainAppProps {
 
 export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
   const [activeTab, setActiveTab] = useState<
-    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice"
+    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play"
   >("home")
   const [inputValue, setInputValue] = useState("")
   const [isListening, setIsListening] = useState(false)
@@ -408,6 +410,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
         {activeTab === "voice" && (
           <VoiceChatTab userProfile={userProfile} updateProfile={updateProfile} onBack={() => setActiveTab("home")} />
         )}
+        {activeTab === "play" && <PlayTab userProfile={userProfile} updateProfile={updateProfile} />}
       </main>
 
       <div className="flex-shrink-0 px-4 py-3 bg-white border-t border-slate-100">
@@ -460,62 +463,73 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
       </div>
 
       <nav
-        className="flex-shrink-0 flex items-center justify-around bg-white border-t border-slate-200 px-2"
+        className="flex-shrink-0 flex items-center justify-around bg-white border-t border-slate-200 px-1"
         style={{ height: "85px", paddingBottom: "max(env(safe-area-inset-bottom), 20px)" }}
       >
         <button
           onClick={() => setActiveTab("home")}
-          className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[70px] ${
+          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
             activeTab === "home" ? "text-blue-600" : "text-slate-400"
           }`}
           aria-label="Home"
         >
-          <Home className="w-7 h-7" strokeWidth={activeTab === "home" ? 2.5 : 1.5} />
-          <span className={`text-xs ${activeTab === "home" ? "font-bold" : "font-medium"}`}>Home</span>
+          <Home className="w-6 h-6" strokeWidth={activeTab === "home" ? 2.5 : 1.5} />
+          <span className={`text-[10px] ${activeTab === "home" ? "font-bold" : "font-medium"}`}>Home</span>
         </button>
 
         <button
           onClick={() => setActiveTab("chat")}
-          className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[70px] ${
+          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
             activeTab === "chat" ? "text-blue-600" : "text-slate-400"
           }`}
           aria-label="Chat"
         >
-          <MessageSquare className="w-7 h-7" strokeWidth={activeTab === "chat" ? 2.5 : 1.5} />
-          <span className={`text-xs ${activeTab === "chat" ? "font-bold" : "font-medium"}`}>Chat</span>
+          <MessageSquare className="w-6 h-6" strokeWidth={activeTab === "chat" ? 2.5 : 1.5} />
+          <span className={`text-[10px] ${activeTab === "chat" ? "font-bold" : "font-medium"}`}>Chat</span>
         </button>
 
         <button
           onClick={() => setActiveTab("lessons")}
-          className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[70px] ${
+          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
             activeTab === "lessons" ? "text-blue-600" : "text-slate-400"
           }`}
           aria-label="Lessons"
         >
-          <BookOpen className="w-7 h-7" strokeWidth={activeTab === "lessons" ? 2.5 : 1.5} />
-          <span className={`text-xs ${activeTab === "lessons" ? "font-bold" : "font-medium"}`}>Learn</span>
+          <BookOpen className="w-6 h-6" strokeWidth={activeTab === "lessons" ? 2.5 : 1.5} />
+          <span className={`text-[10px] ${activeTab === "lessons" ? "font-bold" : "font-medium"}`}>Learn</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("play")}
+          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
+            activeTab === "play" ? "text-purple-600" : "text-slate-400"
+          }`}
+          aria-label="Play"
+        >
+          <Gamepad2 className="w-6 h-6" strokeWidth={activeTab === "play" ? 2.5 : 1.5} />
+          <span className={`text-[10px] ${activeTab === "play" ? "font-bold" : "font-medium"}`}>Play</span>
         </button>
 
         <button
           onClick={() => setActiveTab("tips")}
-          className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[70px] ${
+          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
             activeTab === "tips" ? "text-blue-600" : "text-slate-400"
           }`}
           aria-label="Tips"
         >
-          <Lightbulb className="w-7 h-7" strokeWidth={activeTab === "tips" ? 2.5 : 1.5} />
-          <span className={`text-xs ${activeTab === "tips" ? "font-bold" : "font-medium"}`}>Tips</span>
+          <Lightbulb className="w-6 h-6" strokeWidth={activeTab === "tips" ? 2.5 : 1.5} />
+          <span className={`text-[10px] ${activeTab === "tips" ? "font-bold" : "font-medium"}`}>Tips</span>
         </button>
 
         <button
           onClick={() => setActiveTab("questions")}
-          className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[70px] ${
+          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
             activeTab === "questions" ? "text-blue-600" : "text-slate-400"
           }`}
           aria-label="Q&A"
         >
-          <HelpCircle className="w-7 h-7" strokeWidth={activeTab === "questions" ? 2.5 : 1.5} />
-          <span className={`text-xs ${activeTab === "questions" ? "font-bold" : "font-medium"}`}>Q&A</span>
+          <HelpCircle className="w-6 h-6" strokeWidth={activeTab === "questions" ? 2.5 : 1.5} />
+          <span className={`text-[10px] ${activeTab === "questions" ? "font-bold" : "font-medium"}`}>Q&A</span>
         </button>
       </nav>
 
