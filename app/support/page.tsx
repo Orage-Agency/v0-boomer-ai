@@ -1,10 +1,19 @@
 "use client"
 
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Mail, ArrowLeft } from "lucide-react"
+import { ArrowLeft, Copy, Check } from "lucide-react"
 
 export default function SupportPage() {
+  const [copied, setCopied] = useState(false)
+
+  const copyEmail = async () => {
+    await navigator.clipboard.writeText("team@orage.agency")
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center px-4 py-8">
       {/* Back to App Link */}
@@ -34,14 +43,13 @@ export default function SupportPage() {
           providing you with the best experience.
         </p>
 
-        {/* Primary Contact Button */}
-        <a
-          href="mailto:team@orage.agency"
+        <button
+          onClick={copyEmail}
           className="flex items-center justify-center gap-3 w-full py-4 bg-[#0f172a] text-white text-lg font-semibold rounded-full hover:bg-[#1e293b] transition-colors mb-8"
         >
-          <Mail className="w-5 h-5" />
-          Contact Support
-        </a>
+          {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+          {copied ? "Copied!" : "team@orage.agency"}
+        </button>
 
         {/* Account & Data Section */}
         <div className="border-t border-gray-200 pt-6 mb-8">
