@@ -11,14 +11,9 @@ import {
   MapPin,
   Clock,
   Lightbulb,
-  Heart,
-  Pill,
-  Activity,
-  Utensils,
-  Moon,
-  Smile,
-  Droplet,
-  Users,
+  Shield,
+  Lock,
+  Wifi,
   Mail,
   Mic,
   BookOpen,
@@ -32,11 +27,15 @@ import {
   Plane,
   DollarSign,
   CreditCard,
-  Shield,
   FileCheck,
   Sparkles,
   ChevronDown,
   ChevronRight,
+  Volume2,
+  Eye,
+  AlertTriangle,
+  Key,
+  Smartphone,
 } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useState } from "react"
@@ -48,69 +47,143 @@ interface TipsTabProps {
 
 const TIPS_CATEGORIES = [
   {
-    id: "health",
-    title: "🧠 HEALTH & WELLNESS",
-    icon: Heart,
+    id: "cyber-security",
+    title: "🔒 CYBER SECURITY",
+    icon: Shield,
     tips: [
       {
-        icon: Pill,
-        title: "Medication Reminders",
-        description: "Reminds them to take pills at the right time",
-        prompt: "Remind me to take my blood pressure pill every morning at 8 a.m.",
+        icon: Lock,
+        title: "Strong Passwords",
+        description: "Learn how to create passwords that hackers can't guess",
+        prompt: "Teach me how to create a strong password that I can actually remember.",
+      },
+      {
+        icon: AlertTriangle,
+        title: "Spot Scam Emails",
+        description: "Identify fake emails before they trick you",
+        prompt: "How can I tell if an email is a scam? What are the warning signs?",
+      },
+      {
+        icon: Eye,
+        title: "Protect Your Privacy",
+        description: "Keep your personal information safe online",
+        prompt: "What information should I never share online and why?",
+      },
+      {
+        icon: Wifi,
+        title: "Safe Wi-Fi Use",
+        description: "Stay secure when using public networks",
+        prompt: "Is it safe to use public Wi-Fi? What precautions should I take?",
+      },
+      {
+        icon: Key,
+        title: "Two-Factor Security",
+        description: "Add an extra layer of protection to your accounts",
+        prompt: "Explain two-factor authentication in simple terms. How do I set it up?",
+      },
+      {
+        icon: Shield,
+        title: "Recognize Phone Scams",
+        description: "Don't fall for fake callers pretending to be someone else",
+        prompt: "Someone called claiming to be from my bank. How do I know if it's real?",
+      },
+      {
+        icon: CreditCard,
+        title: "Safe Online Shopping",
+        description: "Shop online without worrying about fraud",
+        prompt: "How can I shop online safely and protect my credit card information?",
+      },
+      {
+        icon: Smartphone,
+        title: "Secure Your Phone",
+        description: "Keep your smartphone protected from hackers",
+        prompt: "What settings should I change on my phone to make it more secure?",
+      },
+    ],
+  },
+  {
+    id: "email-tips",
+    title: "📧 EMAIL TIPS",
+    icon: Mail,
+    tips: [
+      {
+        icon: Mail,
+        title: "Write Clear Emails",
+        description: "Craft messages that get responses",
+        prompt: "Help me write a professional email to request information about [topic].",
       },
       {
         icon: FileText,
-        title: "Understanding Prescriptions",
-        description: "Explains what each medication is for and possible side effects",
-        prompt: "Can you tell me what Metformin is used for and what I should watch out for?",
+        title: "Organize Your Inbox",
+        description: "Keep your email tidy and find things fast",
+        prompt: "What's the best way to organize my emails so I don't lose important ones?",
       },
       {
-        icon: Activity,
-        title: "Daily Health Check-In",
-        description: "Tracks how they feel each day and summarizes their wellness",
-        prompt: "Ask me how I'm feeling every morning and keep a little note of it.",
+        icon: Search,
+        title: "Find Old Emails",
+        description: "Search for messages you need quickly",
+        prompt: "How do I search for old emails in Gmail or my email app?",
+      },
+      {
+        icon: AlertTriangle,
+        title: "Avoid Email Mistakes",
+        description: "Common errors to watch out for",
+        prompt: "What are common email mistakes I should avoid?",
+      },
+      {
+        icon: Calendar,
+        title: "Schedule Emails",
+        description: "Send emails at the perfect time",
+        prompt: "Can I write an email now but send it later? How do I do that?",
       },
       {
         icon: FileCheck,
-        title: "Doctor Visit Preparation",
-        description: "Helps write down questions before appointments",
-        prompt: "Help me make a list of questions to ask my heart doctor.",
+        title: "Handle Attachments",
+        description: "Send and receive files easily",
+        prompt: "How do I attach a photo or document to an email?",
+      },
+    ],
+  },
+  {
+    id: "voice-commands",
+    title: "🎤 VOICE COMMANDS",
+    icon: Mic,
+    tips: [
+      {
+        icon: Mic,
+        title: "Talk to Your Phone",
+        description: "Use voice instead of typing",
+        prompt: "What voice commands can I use on my phone? Give me 5 useful examples.",
       },
       {
-        icon: Utensils,
-        title: "Healthy Recipe Finder",
-        description: "Suggests low-salt, diabetic-friendly, or easy meals",
-        prompt: "Give me a simple dinner that's low in sodium and takes under 20 minutes.",
+        icon: Volume2,
+        title: "Voice Texting",
+        description: "Send messages without typing a word",
+        prompt: "How do I send a text message using just my voice?",
       },
       {
-        icon: Activity,
-        title: "Exercise Coach",
-        description: "Suggests light workouts or chair exercises",
-        prompt: "Show me gentle exercises I can do with my bad knee.",
+        icon: Search,
+        title: "Voice Search",
+        description: "Find anything by asking out loud",
+        prompt: "How do I search the internet using my voice?",
       },
       {
-        icon: Moon,
-        title: "Sleep Helper",
-        description: "Tracks bedtime habits and gives tips for better sleep",
-        prompt: "Why am I waking up at 3 a.m.? Can you help me sleep through the night?",
+        icon: Phone,
+        title: "Make Calls by Voice",
+        description: "Call anyone hands-free",
+        prompt: "How do I call someone using voice commands on my phone?",
       },
       {
-        icon: Smile,
-        title: "Mood Support",
-        description: "Offers positive affirmations and conversation when they feel lonely",
-        prompt: "I'm feeling down today. Can you cheer me up with something encouraging?",
+        icon: Calendar,
+        title: "Set Reminders by Voice",
+        description: "Never forget important things",
+        prompt: "How do I set a reminder using just my voice?",
       },
       {
-        icon: Heart,
-        title: "Symptom Checker",
-        description: "Helps describe symptoms and when to call a doctor",
-        prompt: "I've had a cough for two weeks. Should I call my doctor or wait it out?",
-      },
-      {
-        icon: Droplet,
-        title: "Hydration Tracker",
-        description: "Reminds them to drink water throughout the day",
-        prompt: "Remind me to drink a glass of water every two hours.",
+        icon: Music,
+        title: "Play Music by Voice",
+        description: "Enjoy your favorite songs hands-free",
+        prompt: "How do I play music using voice commands?",
       },
     ],
   },
@@ -144,7 +217,7 @@ const TIPS_CATEGORIES = [
         prompt: "How do I say 'Where's the restroom?' in Spanish?",
       },
       {
-        icon: Users,
+        icon: MessageSquare,
         title: "Virtual Friend Chat",
         description: "Keeps company and chats about hobbies",
         prompt: "Let's talk about gardening today.",
@@ -335,7 +408,7 @@ const TIPS_CATEGORIES = [
 ]
 
 export function TipsTab({ userProfile, onTryPrompt }: TipsTabProps) {
-  const [expandedSections, setExpandedSections] = useState<string[]>(["health"])
+  const [expandedSections, setExpandedSections] = useState<string[]>(["cyber-security"])
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) =>
@@ -358,7 +431,7 @@ export function TipsTab({ userProfile, onTryPrompt }: TipsTabProps) {
         </div>
       </div>
 
-      <div className="flex-grow px-4 py-3 overflow-y-auto">
+      <div className="flex-grow px-4 py-3 overflow-y-auto pb-10">
         <div className="space-y-4">
           {TIPS_CATEGORIES.map((category) => {
             const isExpanded = expandedSections.includes(category.id)
@@ -366,13 +439,13 @@ export function TipsTab({ userProfile, onTryPrompt }: TipsTabProps) {
               <div key={category.id} className="border-2 border-slate-200 rounded-xl overflow-hidden">
                 <button
                   onClick={() => toggleSection(category.id)}
-                  className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 transition-colors"
+                  className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 transition-colors touch-manipulation active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-3">
                     <div className="bg-gradient-to-br from-blue-500 to-purple-500 p-2 rounded-lg">
                       <category.icon className="w-5 h-5 text-white" />
                     </div>
-                    <h3 className="font-bold text-slate-900 text-lg">{category.title}</h3>
+                    <h3 className="font-bold text-slate-900 text-base">{category.title}</h3>
                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
                       {category.tips.length} tips
                     </span>
@@ -392,14 +465,14 @@ export function TipsTab({ userProfile, onTryPrompt }: TipsTabProps) {
                         <button
                           key={tip.title}
                           onClick={() => onTryPrompt(tip.prompt)}
-                          className="w-full flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 hover:shadow-md transition-all text-left group"
+                          className="w-full flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 hover:shadow-md transition-all text-left group touch-manipulation active:scale-[0.98]"
                         >
                           <div className="flex-shrink-0 bg-gradient-to-br from-blue-500 to-purple-500 p-2 rounded-lg group-hover:scale-110 transition-transform">
                             <Icon className="w-5 h-5 text-white" />
                           </div>
                           <div className="flex-grow min-w-0">
                             <h4 className="font-bold text-slate-900 text-sm mb-1">{tip.title}</h4>
-                            <p className="text-xs text-slate-600">{tip.description}</p>
+                            <p className="text-sm text-slate-600">{tip.description}</p>
                           </div>
                         </button>
                       )
@@ -413,10 +486,10 @@ export function TipsTab({ userProfile, onTryPrompt }: TipsTabProps) {
           <button
             onClick={() =>
               onTryPrompt(
-                "Generate 5 more helpful AI tips for seniors in the category of [choose: Health, Communication, Daily Living, Learning, or Finance]. Make them practical and easy to understand.",
+                "Generate 5 more helpful AI tips for seniors in the category of [choose: Cyber Security, Email Tips, Voice Commands, Communication, Daily Living, Learning, or Finance]. Make them practical and easy to understand.",
               )
             }
-            className="w-full flex items-center justify-center gap-2 p-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-xl hover:from-purple-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl"
+            className="w-full flex items-center justify-center gap-2 p-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-xl hover:from-purple-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl touch-manipulation active:scale-[0.98]"
           >
             <Sparkles className="w-5 h-5" />
             <span className="font-bold">Ask AI to Generate More Tips</span>

@@ -133,8 +133,6 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
           setInterimTranscript("")
         }
       }
-
-      recognitionRef.current.onstart = () => {}
     }
   }, [])
 
@@ -271,17 +269,15 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
 
       {isMenuOpen && (
         <div className="fixed inset-0 z-50">
-          {/* Backdrop */}
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
 
-          {/* Slide-over panel from right */}
           <div className="absolute right-0 top-0 bottom-0 w-72 bg-white shadow-2xl animate-in slide-in-from-right duration-300">
             <div className="p-6 border-b border-slate-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-slate-900">Menu</h2>
                 <button
                   onClick={() => setIsMenuOpen(false)}
-                  className="p-2 rounded-full hover:bg-slate-100 transition-colors"
+                  className="p-2 rounded-full hover:bg-slate-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
                 >
                   <X className="w-6 h-6 text-slate-600" />
                 </button>
@@ -295,7 +291,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
                   setIsMenuOpen(false)
                   setActiveTab("profile")
                 }}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-slate-100 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-slate-100 transition-colors text-left min-h-[44px] touch-manipulation"
               >
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                   <User className="w-5 h-5 text-blue-600" />
@@ -311,7 +307,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
                   setIsMenuOpen(false)
                   setActiveTab("history")
                 }}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-slate-100 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-slate-100 transition-colors text-left min-h-[44px] touch-manipulation"
               >
                 <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
                   <History className="w-5 h-5 text-purple-600" />
@@ -329,7 +325,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
                     onReset()
                   }
                 }}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-orange-50 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-orange-50 transition-colors text-left min-h-[44px] touch-manipulation"
               >
                 <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
                   <RotateCcw className="w-5 h-5 text-orange-600" />
@@ -348,7 +344,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
                       onLogout()
                     }
                   }}
-                  className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-slate-100 transition-colors text-left"
+                  className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-slate-100 transition-colors text-left min-h-[44px] touch-manipulation"
                 >
                   <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
                     <LogOut className="w-5 h-5 text-slate-600" />
@@ -361,14 +357,18 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
               )}
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-slate-50">
-              <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
+            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-slate-50 pb-safe">
+              <div className="flex items-center justify-center gap-4 text-sm text-slate-500">
+                <a href="/support" className="hover:text-blue-600 underline">
+                  Support
+                </a>
+                <span>•</span>
                 <a href="#privacy" className="hover:text-blue-600 underline">
-                  Privacy Policy
+                  Privacy
                 </a>
                 <span>•</span>
                 <a href="#terms" className="hover:text-blue-600 underline">
-                  Terms of Service
+                  Terms
                 </a>
               </div>
             </div>
@@ -376,11 +376,11 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
         </div>
       )}
 
-      <header className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
+      <header className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 z-40 sticky top-0">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab("home")}
-            className="hover:opacity-80 transition-opacity active:scale-95 touch-manipulation"
+            className="hover:opacity-80 transition-opacity active:scale-95 touch-manipulation min-h-[44px] flex items-center"
             aria-label="Go to home"
           >
             <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-[50px] w-auto object-contain" />
@@ -393,14 +393,13 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
           }`}
         >
           <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-          <span className="text-lg font-bold text-slate-900">{userProfile.stars} Stars Earned</span>
+          <span className="text-base font-bold text-slate-900">{userProfile.stars} Stars</span>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Voice Assistant Avatar */}
           <button
             onClick={() => setActiveTab("voice")}
-            className="relative group touch-manipulation flex items-center gap-2"
+            className="relative group touch-manipulation flex items-center gap-2 min-h-[44px]"
             aria-label="Talk to AI Assistant"
           >
             <div className="w-[44px] h-[44px] rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 p-[2px] shadow-lg hover:shadow-xl transition-all hover:scale-105">
@@ -412,7 +411,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
 
           <button
             onClick={() => setIsMenuOpen(true)}
-            className="p-2.5 rounded-xl hover:bg-slate-100 transition-colors touch-manipulation active:scale-95"
+            className="p-2.5 rounded-xl hover:bg-slate-100 transition-colors touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Open menu"
           >
             <Menu className="w-6 h-6 text-slate-700" />
@@ -454,9 +453,15 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
           />
         )}
 
-        {activeTab === "lessons" && <LessonsTab userProfile={userProfile} updateProfile={updateProfile} />}
+        {activeTab === "lessons" && (
+          <LessonsTab
+            userProfile={userProfile}
+            updateProfile={updateProfile}
+            onNavigateToChat={handleNavigateWithPrompt}
+          />
+        )}
 
-        {activeTab === "tips" && <TipsTab userProfile={userProfile} updateProfile={updateProfile} />}
+        {activeTab === "tips" && <TipsTab userProfile={userProfile} onTryPrompt={handleNavigateWithPrompt} />}
 
         {activeTab === "profile" && (
           <ProfileView
@@ -490,21 +495,21 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
         {activeTab === "gallery" && <GalleryTab />}
       </main>
 
-      <div className="flex-shrink-0 px-4 py-3 bg-white border-t border-slate-100">
+      <div className="flex-shrink-0 px-4 py-3 bg-white border-t border-slate-100 z-30 pb-safe">
         {isListening && (
           <div className="mb-3 px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-2xl shadow-lg animate-pulse">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
               <p className="text-base font-bold text-blue-900">Listening...</p>
             </div>
-            {interimTranscript && <p className="text-lg font-medium text-slate-800 mt-1">{interimTranscript}</p>}
+            {interimTranscript && <p className="text-base font-medium text-slate-800 mt-1">{interimTranscript}</p>}
           </div>
         )}
 
         <div className="flex items-center gap-2 bg-slate-100 rounded-2xl p-2 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.15)]">
           <button
             onClick={toggleVoiceRecognition}
-            className={`p-3 rounded-xl transition-all flex-shrink-0 touch-manipulation active:scale-95 ${
+            className={`p-3 rounded-xl transition-all flex-shrink-0 touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center ${
               isListening
                 ? "text-white bg-red-500 shadow-lg animate-pulse"
                 : "text-slate-500 hover:text-blue-600 hover:bg-white"
@@ -527,96 +532,54 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
             className="flex-grow bg-transparent text-base text-slate-900 placeholder-slate-400 focus:outline-none resize-none min-h-[28px] max-h-[120px] overflow-y-auto font-medium py-2"
             disabled={isListening}
             rows={1}
+            style={{ fontSize: "16px" }}
           />
           <button
             onClick={handleSendMessage}
             disabled={!inputValue.trim()}
-            className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex-shrink-0 touch-manipulation active:scale-95"
+            className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex-shrink-0 touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Send message"
           >
-            <Send className="w-6 h-6" />
+            <Send className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       <nav
-        className="flex-shrink-0 flex items-center justify-around bg-white border-t border-slate-200 px-1"
-        style={{ height: "85px", paddingBottom: "max(env(safe-area-inset-bottom), 20px)" }}
+        className="flex-shrink-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 px-2 pt-2 pb-safe z-50"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
       >
-        <button
-          onClick={() => setActiveTab("home")}
-          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
-            activeTab === "home" ? "text-blue-600" : "text-slate-400"
-          }`}
-          aria-label="Home"
-        >
-          <Home className="w-6 h-6" strokeWidth={activeTab === "home" ? 2.5 : 1.5} />
-          <span className={`text-[10px] ${activeTab === "home" ? "font-bold" : "font-medium"}`}>Home</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("chat")}
-          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
-            activeTab === "chat" ? "text-blue-600" : "text-slate-400"
-          }`}
-          aria-label="Chat"
-        >
-          <MessageSquare className="w-6 h-6" strokeWidth={activeTab === "chat" ? 2.5 : 1.5} />
-          <span className={`text-[10px] ${activeTab === "chat" ? "font-bold" : "font-medium"}`}>Chat</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("lessons")}
-          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
-            activeTab === "lessons" ? "text-blue-600" : "text-slate-400"
-          }`}
-          aria-label="Lessons"
-        >
-          <BookOpen className="w-6 h-6" strokeWidth={activeTab === "lessons" ? 2.5 : 1.5} />
-          <span className={`text-[10px] ${activeTab === "lessons" ? "font-bold" : "font-medium"}`}>Learn</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("play")}
-          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
-            activeTab === "play" ? "text-purple-600" : "text-slate-400"
-          }`}
-          aria-label="Play"
-        >
-          <Gamepad2 className="w-6 h-6" strokeWidth={activeTab === "play" ? 2.5 : 1.5} />
-          <span className={`text-[10px] ${activeTab === "play" ? "font-bold" : "font-medium"}`}>Play</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("tips")}
-          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
-            activeTab === "tips" ? "text-blue-600" : "text-slate-400"
-          }`}
-          aria-label="Tips"
-        >
-          <Lightbulb className="w-6 h-6" strokeWidth={activeTab === "tips" ? 2.5 : 1.5} />
-          <span className={`text-[10px] ${activeTab === "tips" ? "font-bold" : "font-medium"}`}>Tips</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("voice")}
-          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-2xl transition-all touch-manipulation active:scale-95 min-w-[56px] ${
-            activeTab === "voice" ? "text-purple-600" : "text-slate-400"
-          }`}
-          aria-label="Voice"
-        >
-          <div className="w-6 h-6 rounded-full overflow-hidden border border-slate-300">
-            <img src="/voice-assistant-avatar.jpg" alt="" className="w-full h-full object-cover" />
-          </div>
-          <span className={`text-[10px] ${activeTab === "voice" ? "font-bold" : "font-medium"}`}>Voice</span>
-        </button>
+        <div className="flex items-center justify-around">
+          {[
+            { id: "home", icon: Home, label: "Home" },
+            { id: "chat", icon: MessageSquare, label: "Chat" },
+            { id: "lessons", icon: BookOpen, label: "Learn" },
+            { id: "tips", icon: Lightbulb, label: "Tips" },
+            { id: "play", icon: Gamepad2, label: "Play" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)}
+              className={`flex flex-col items-center justify-center py-2 px-3 rounded-xl transition-all touch-manipulation min-h-[56px] min-w-[56px] ${
+                activeTab === item.id
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <item.icon className={`w-6 h-6 ${activeTab === item.id ? "stroke-[2.5px]" : ""}`} />
+              <span className={`text-xs mt-1 font-medium ${activeTab === item.id ? "font-bold" : ""}`}>
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </div>
       </nav>
 
       <AiArtModal
         isOpen={isArtGeneratorOpen}
+        onClose={() => setIsArtGeneratorOpen(false)}
         userProfile={userProfile}
         updateProfile={updateProfile}
-        onClose={() => setIsArtGeneratorOpen(false)}
       />
     </div>
   )

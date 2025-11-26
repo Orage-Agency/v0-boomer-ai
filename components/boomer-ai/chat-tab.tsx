@@ -11,11 +11,13 @@ interface ChatTabProps {
   userProfile: UserProfile
   updateProfile: (updates: Partial<UserProfile>) => void
   pendingMessage: string | null
-  onMessageSent: () => void
+  setPendingMessage: (message: string | null) => void
   capturedImage: string | null
-  onImageCleared: () => void
+  setCapturedImage: (image: string | null) => void
   conversationId: string | null
-  onNewConversation: () => void
+  setConversationId: (id: string | null) => void
+  pendingChatPrompt: string | null
+  setPendingChatPrompt: (prompt: string | null) => void
 }
 
 const PROMPT_LIBRARY = [
@@ -35,18 +37,18 @@ const PROMPT_LIBRARY = [
     ],
   },
   {
-    category: "💊 HEALTH & MEDICATION",
+    category: "🔒 CYBER SECURITY & SAFETY",
     prompts: [
-      "Remind me to take my pill at 8 a.m.",
-      "What's this medicine called Lisinopril for?",
-      "Can I take Tylenol with my heart medicine?",
-      "How much water should I drink each day?",
-      "Show me simple exercises for my back.",
-      "What can I eat for better sleep?",
-      "Is a short walk after dinner good for me?",
-      "Why do I feel dizzy in the morning?",
-      "Give me some stretches I can do in a chair.",
-      "Tell me a few tips to stay healthy after 65.",
+      "How do I create a strong password I can remember?",
+      "Is this email a scam? How can I tell?",
+      "What should I never share online?",
+      "Is it safe to use public Wi-Fi?",
+      "How do I set up two-factor authentication?",
+      "Someone called claiming to be my bank - is it real?",
+      "How do I shop online safely?",
+      "What security settings should I change on my phone?",
+      "How do I spot a fake website?",
+      "What is phishing and how do I avoid it?",
     ],
   },
   {
@@ -160,15 +162,18 @@ export function ChatTab({
   userProfile,
   updateProfile,
   pendingMessage,
-  onMessageSent,
+  setPendingMessage,
   capturedImage,
-  onImageCleared,
+  setCapturedImage,
   conversationId,
-  onNewConversation,
+  setConversationId,
+  pendingChatPrompt,
+  setPendingChatPrompt,
 }: ChatTabProps) {
   const [showPromptLibrary, setShowPromptLibrary] = useState(false)
   const [expandedSections, setExpandedSections] = useState<string[]>([])
   const chatContainerRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const conversationLoadedRef = useRef(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [lastUserQuestion, setLastUserQuestion] = useState<string>("")
@@ -186,8 +191,8 @@ export function ChatTab({
 
   useEffect(() => {
     const scrollToBottom = () => {
-      if (chatContainerRef.current) {
-        chatContainerRef.current.scrollIntoView({ behavior: "smooth", block: "end" })
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" })
       }
     }
 
@@ -208,7 +213,6 @@ export function ChatTab({
 
   useEffect(() => {
     if (conversationId) {
-      console.log("[v0] Loading conversation:", conversationId)
       conversationLoadedRef.current = false
       loadConversation(conversationId)
     } else {
@@ -218,8 +222,6 @@ export function ChatTab({
 
   useEffect(() => {
     if (messages.length > 0 && conversationLoadedRef.current) {
-      console.log("[v0] Messages changed, scheduling auto-save. Message count:", messages.length)
-
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current)
       }
@@ -236,22 +238,32 @@ export function ChatTab({
     }
   }, [messages])
 
+  useEffect(() => {
+    if (pendingChatPrompt) {
+      sendMessage({
+        text: pendingChatPrompt,
+      })
+      setPendingChatPrompt(null)
+
+      const newStars = userProfile.stars + 1
+      updateProfile({
+        stars: newStars,
+      })
+    }
+  }, [pendingChatPrompt])
+
   const loadConversation = async (id: string) => {
     try {
-      console.log("[v0] Fetching conversation:", id)
       const response = await fetch(`/api/conversations?id=${id}`)
       if (response.ok) {
         const data = await response.json()
         if (data.messages) {
-          console.log("[v0] Loaded messages:", data.messages.length)
           setMessages(data.messages)
           conversationLoadedRef.current = true
         }
-      } else {
-        console.error("[v0] Failed to load conversation:", response.status)
       }
     } catch (error) {
-      console.error("[v0] Failed to load conversation:", error)
+      console.error("Failed to load conversation:", error)
     }
   }
 
@@ -259,14 +271,11 @@ export function ChatTab({
     try {
       const deviceId = localStorage.getItem("boomer-device-id")
       if (!deviceId || messages.length === 0) {
-        console.log("[v0] Skipping save - no deviceId or no messages")
         return
       }
 
       const title = messages[0]?.parts?.[0]?.text?.substring(0, 50) || "New conversation"
       const preview = messages[messages.length - 1]?.parts?.[0]?.text?.substring(0, 100) || ""
-
-      console.log("[v0] Saving conversation:", { deviceId, messageCount: messages.length, title })
 
       const response = await fetch("/api/conversations", {
         method: "POST",
@@ -281,24 +290,22 @@ export function ChatTab({
 
       if (response.ok) {
         const data = await response.json()
-        console.log("[v0] Conversation saved successfully:", data.id)
-      } else {
-        console.error("[v0] Failed to save conversation:", response.status)
+        if (data.id && !conversationId) {
+          setConversationId(data.id)
+        }
       }
     } catch (error) {
-      console.error("[v0] Failed to save conversation:", error)
+      console.error("Failed to save conversation:", error)
     }
   }
 
   useEffect(() => {
     if (pendingMessage) {
-      console.log("[v0] Sending message with image:", !!capturedImage)
-
       sendMessage({
         text: pendingMessage,
       })
 
-      onMessageSent()
+      setPendingMessage(null)
 
       if (messages.length === 0 && !userProfile.badges.includes("First Chat")) {
         const newStars = userProfile.stars + 10
@@ -306,19 +313,16 @@ export function ChatTab({
           stars: newStars,
           badges: [...userProfile.badges, "First Chat"],
         })
-        console.log("[v0] Awarded 10 stars for first chat. Total stars:", newStars)
       } else {
         const newStars = userProfile.stars + 1
         updateProfile({
           stars: newStars,
         })
-        console.log("[v0] Awarded 1 star for message. Total stars:", newStars)
       }
     }
   }, [pendingMessage])
 
   const handlePromptClick = (promptText: string) => {
-    console.log("[v0] Prompt clicked:", promptText)
     sendMessage({
       text: promptText,
     })
@@ -330,13 +334,12 @@ export function ChatTab({
         stars: newStars,
         badges: [...userProfile.badges, "Prompt Explorer"],
       })
-      console.log("[v0] Awarded 1 star for prompt explorer. Total stars:", newStars)
     }
   }
 
   const handleNewConversation = () => {
     setMessages([])
-    onNewConversation()
+    setConversationId(null)
   }
 
   const toggleSection = (category: string) => {
@@ -356,19 +359,18 @@ export function ChatTab({
     )
 
     if (confirmFinish) {
-      console.log("[v0] Finishing conversation and starting new one")
       setMessages([])
-      onNewConversation()
-      alert("✅ Conversation saved to History! Starting fresh.")
+      setConversationId(null)
+      alert("Conversation saved to History! Starting fresh.")
     }
   }
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-slate-50 to-white">
       {!showPromptLibrary && lastUserQuestion && messages.length > 0 && (
-        <div className="flex-shrink-0 px-3 pt-3 pb-2">
+        <div className="flex-shrink-0 px-3 pt-3 pb-2 sticky top-0 z-40 bg-gradient-to-b from-slate-50 to-transparent">
           <div className="flex justify-end">
-            <div className="max-w-[280px] backdrop-blur-xl bg-white/30 border-2 border-white/50 rounded-xl shadow-lg p-3">
+            <div className="max-w-[280px] backdrop-blur-xl bg-white/70 border-2 border-white/50 rounded-xl shadow-lg p-3">
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
                 <div className="text-xs font-bold uppercase tracking-wider text-slate-700">Your Question</div>
@@ -380,17 +382,17 @@ export function ChatTab({
       )}
 
       {!showPromptLibrary && messages.length > 0 && (
-        <div className="flex-shrink-0 px-3 pb-2">
+        <div className="flex-shrink-0 px-3 pb-2 sticky top-16 z-30 bg-gradient-to-b from-transparent to-transparent">
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setShowPromptLibrary(true)}
-              className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full hover:bg-blue-200 transition-colors touch-manipulation active:scale-95"
+              className="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-semibold rounded-full hover:bg-blue-200 transition-colors touch-manipulation active:scale-95 min-h-[44px] flex items-center"
             >
               Browse Prompts
             </button>
             <button
               onClick={handleFinishChat}
-              className="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full hover:bg-green-200 transition-colors touch-manipulation active:scale-95"
+              className="px-3 py-1.5 bg-green-100 text-green-700 text-sm font-semibold rounded-full hover:bg-green-200 transition-colors touch-manipulation active:scale-95 min-h-[44px] flex items-center"
             >
               Finish Chat
             </button>
@@ -398,7 +400,7 @@ export function ChatTab({
         </div>
       )}
 
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-3 pb-4">
+      <div className="flex-1 overflow-y-auto px-3 pb-10">
         {messages.length === 0 && !showPromptLibrary && (
           <div className="flex flex-col items-center justify-center h-full text-center px-4 sm:px-6">
             <div className="bg-blue-100 p-4 sm:p-6 rounded-full mb-3 sm:mb-4">
@@ -408,7 +410,7 @@ export function ChatTab({
             <p className="text-base sm:text-lg text-slate-600 mb-4 sm:mb-6">What can I help you with today?</p>
             <Button
               onClick={() => setShowPromptLibrary(true)}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold px-4 py-2 sm:px-6 sm:py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all text-sm sm:text-base"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold px-4 py-2 sm:px-6 sm:py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all text-base min-h-[44px]"
             >
               <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
               Browse Prompts
@@ -417,10 +419,13 @@ export function ChatTab({
         )}
 
         {showPromptLibrary && (
-          <div className="space-y-3 sm:space-y-4 animate-in fade-in duration-300">
+          <div className="space-y-3 sm:space-y-4 animate-in fade-in duration-300 pb-10">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="text-lg sm:text-2xl font-bold text-slate-900">Find Your Perfect Prompt!</h3>
-              <button onClick={() => setShowPromptLibrary(false)} className="text-slate-600 hover:text-slate-900">
+              <button
+                onClick={() => setShowPromptLibrary(false)}
+                className="text-slate-600 hover:text-slate-900 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
+              >
                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
@@ -433,7 +438,7 @@ export function ChatTab({
                 <div key={section.category} className="border-2 border-slate-200 rounded-xl overflow-hidden shadow-sm">
                   <button
                     onClick={() => toggleSection(section.category)}
-                    className="w-full flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 transition-all"
+                    className="w-full flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 transition-all touch-manipulation min-h-[44px]"
                   >
                     <h4 className="text-base sm:text-lg font-bold text-slate-900">{section.category}</h4>
                     {isExpanded ? (
@@ -448,7 +453,7 @@ export function ChatTab({
                         <button
                           key={index}
                           onClick={() => handlePromptClick(prompt)}
-                          className="w-full text-left bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg p-2 sm:p-3 transition-all transform hover:scale-[1.02]"
+                          className="w-full text-left bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg p-2 sm:p-3 transition-all transform hover:scale-[1.02] touch-manipulation min-h-[44px]"
                         >
                           <div className="text-sm sm:text-base text-slate-900 font-medium">"{prompt}"</div>
                         </button>
@@ -488,7 +493,7 @@ export function ChatTab({
                 </div>
               </div>
             ))}
-            {status === "in_progress" && (
+            {status === "streaming" && (
               <div className="flex justify-start">
                 <div className="bg-slate-50 border-2 border-slate-200 p-3 sm:p-4 rounded-2xl shadow-md">
                   <div className="flex gap-1">
@@ -505,7 +510,7 @@ export function ChatTab({
                 </div>
               </div>
             )}
-            <div ref={chatContainerRef} />
+            <div ref={messagesEndRef} />
           </div>
         )}
       </div>
