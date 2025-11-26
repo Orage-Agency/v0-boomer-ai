@@ -29,6 +29,7 @@ import { QuestionsTab } from "./questions-tab"
 import { VoiceChatTab } from "./voice-chat-tab"
 import { PlayTab } from "./play-tab"
 import { CelebrationModal } from "./celebration-modal"
+import { GalleryTab } from "./gallery-tab"
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
@@ -52,7 +53,7 @@ const REWARD_LEARNING_PROMPTS = [
 
 export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDeleteAccount }: MainAppProps) {
   const [activeTab, setActiveTab] = useState<
-    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play"
+    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play" | "gallery"
   >("home")
   const [inputValue, setInputValue] = useState("")
   const [isListening, setIsListening] = useState(false)
@@ -419,74 +420,74 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
         </div>
       </header>
 
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-grow overflow-hidden flex flex-col">
         {activeTab === "home" && (
           <HomeTab
             userProfile={userProfile}
-            onNavigate={setActiveTab}
-            onOpenArtGenerator={() => setIsArtGeneratorOpen(true)}
             updateProfile={updateProfile}
+            onStartChat={(prompt) => {
+              if (prompt) {
+                setPendingChatPrompt(prompt)
+              }
+              setActiveTab("chat")
+            }}
+            onOpenLessons={() => setActiveTab("lessons")}
+            onOpenTips={() => setActiveTab("tips")}
+            onOpenQuestions={() => setActiveTab("questions")}
+            onOpenArtGenerator={() => setIsArtGeneratorOpen(true)}
+            onOpenGallery={() => setActiveTab("gallery")}
           />
         )}
+
         {activeTab === "chat" && (
           <ChatTab
             userProfile={userProfile}
             updateProfile={updateProfile}
-            pendingMessage={pendingMessage || pendingChatPrompt}
-            onMessageSent={() => {
-              setPendingMessage(null)
-              setPendingChatPrompt(null)
-            }}
+            pendingMessage={pendingMessage}
+            setPendingMessage={setPendingMessage}
             capturedImage={capturedImage}
-            onImageCleared={() => setCapturedImage(null)}
+            setCapturedImage={setCapturedImage}
             conversationId={currentConversationId}
-            onNewConversation={() => setCurrentConversationId(null)}
+            setConversationId={setCurrentConversationId}
+            pendingChatPrompt={pendingChatPrompt}
+            setPendingChatPrompt={setPendingChatPrompt}
           />
         )}
-        {activeTab === "lessons" && (
-          <LessonsTab
-            userProfile={userProfile}
-            updateProfile={updateProfile}
-            onNavigateToChat={handleNavigateWithPrompt}
-          />
-        )}
-        {activeTab === "tips" && (
-          <TipsTab
-            userProfile={userProfile}
-            onTryPrompt={(prompt) => {
-              setInputValue(prompt)
-              setActiveTab("chat")
-            }}
-          />
-        )}
-        {activeTab === "history" && (
-          <ChatHistoryView
-            userProfile={userProfile}
-            onLoadConversation={handleLoadConversation}
-            onBack={() => setActiveTab("home")}
-          />
-        )}
-        {activeTab === "questions" && (
-          <QuestionsTab
-            onAskQuestion={(question) => {
-              setInputValue(question)
-              setActiveTab("chat")
-            }}
-          />
-        )}
+
+        {activeTab === "lessons" && <LessonsTab userProfile={userProfile} updateProfile={updateProfile} />}
+
+        {activeTab === "tips" && <TipsTab userProfile={userProfile} updateProfile={updateProfile} />}
+
         {activeTab === "profile" && (
           <ProfileView
             userProfile={userProfile}
             onReset={onReset}
             onBack={() => setActiveTab("home")}
-            onDeleteAccount={onDeleteAccount}
             onLogout={onLogout}
+            onDeleteAccount={onDeleteAccount}
           />
         )}
+
+        {activeTab === "history" && (
+          <ChatHistoryView
+            userProfile={userProfile}
+            onBack={() => setActiveTab("home")}
+            onLoadConversation={(id, messages) => {
+              setCurrentConversationId(id)
+              setActiveTab("chat")
+            }}
+          />
+        )}
+
+        {activeTab === "questions" && <QuestionsTab userProfile={userProfile} updateProfile={updateProfile} />}
+
         {activeTab === "voice" && (
           <VoiceChatTab userProfile={userProfile} updateProfile={updateProfile} onBack={() => setActiveTab("home")} />
         )}
+
         {activeTab === "play" && <PlayTab userProfile={userProfile} updateProfile={updateProfile} />}
+
+        {activeTab === "gallery" && <GalleryTab />}
       </main>
 
       <div className="flex-shrink-0 px-4 py-3 bg-white border-t border-slate-100">

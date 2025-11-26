@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { X, Sparkles, Download, Loader2, Palette, ImageIcon, Brain, Maximize2 } from "lucide-react"
 import type { UserProfile } from "@/app/page"
+import { useUser } from "@/contexts/user-context"
 
 interface AiArtModalProps {
   isOpen: boolean
@@ -33,6 +34,8 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
   const [remainingGenerations, setRemainingGenerations] = useState(DAILY_LIMIT)
   const [isImprovingPrompt, setIsImprovingPrompt] = useState(false)
   const [showFullImage, setShowFullImage] = useState(false)
+
+  const { saveImage } = useUser()
 
   useEffect(() => {
     const today = new Date().toDateString()
@@ -66,6 +69,8 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
 
       const data = await response.json()
       setGeneratedImage(data.imageUrl)
+
+      await saveImage(data.imageUrl, prompt)
 
       const today = new Date().toDateString()
       updateProfile({
@@ -248,6 +253,7 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
                         </div>
                       </div>
                     </div>
+                    <p className="text-xs text-green-600 text-center mt-2 font-medium">Image saved to your Gallery!</p>
                     <div className="mt-4 flex gap-3">
                       <button
                         onClick={downloadImage}
@@ -277,7 +283,7 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
                       <Sparkles className="w-4 h-4 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-purple-900 mb-1">💡 Pro Tip</h3>
+                      <h3 className="text-sm font-bold text-purple-900 mb-1">Pro Tip</h3>
                       <p className="text-sm text-purple-700">{currentTip}</p>
                     </div>
                   </div>

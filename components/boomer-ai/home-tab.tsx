@@ -2,15 +2,20 @@
 
 import type React from "react"
 
-import { MessageSquare, Sparkles, Lightbulb, Heart, Video, Mic, X } from "lucide-react"
+import { MessageSquare, Sparkles, Lightbulb, Heart, Video, Mic, X, ImageIcon } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useState, useEffect, useRef } from "react"
+import { useUser } from "@/contexts/user-context"
 
 interface HomeTabProps {
   userProfile: UserProfile
-  onNavigate: (tab: "home" | "chat" | "lessons" | "tips" | "profile" | "voice") => void
-  onOpenArtGenerator: () => void
   updateProfile: (updates: Partial<UserProfile>) => void
+  onStartChat: (prompt?: string) => void
+  onOpenLessons: () => void
+  onOpenTips: () => void
+  onOpenQuestions: () => void
+  onOpenArtGenerator: () => void
+  onOpenGallery: () => void
 }
 
 const ROTATING_FEATURES = [
@@ -201,11 +206,22 @@ const ROTATING_FEATURES = [
   },
 ]
 
-export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updateProfile }: HomeTabProps) {
+export function HomeTab({
+  userProfile,
+  updateProfile,
+  onStartChat,
+  onOpenLessons,
+  onOpenTips,
+  onOpenQuestions,
+  onOpenArtGenerator,
+  onOpenGallery,
+}: HomeTabProps) {
   const [dailyContentIndex, setDailyContentIndex] = useState(0)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [expandedCard, setExpandedCard] = useState<(typeof ROTATING_FEATURES)[0] | null>(null)
   const [expandedContentIndex, setExpandedContentIndex] = useState(0)
+
+  const { galleryCount } = useUser()
 
   useEffect(() => {
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
@@ -244,7 +260,7 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
       gradient: "from-blue-500 to-blue-600",
       shadowColor: "shadow-blue-500/30",
       size: "large",
-      action: () => onNavigate("chat"),
+      action: () => onStartChat(),
     },
     {
       id: "voice",
@@ -254,7 +270,7 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
       gradient: "from-purple-500 to-indigo-600",
       shadowColor: "shadow-purple-500/30",
       size: "small",
-      action: () => onNavigate("voice"),
+      action: () => onStartChat(), // Will be handled by main-app to go to voice
     },
     {
       id: "lessons",
@@ -264,7 +280,7 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
       gradient: "from-orange-500 to-red-500",
       shadowColor: "shadow-orange-500/30",
       size: "small",
-      action: () => onNavigate("lessons"),
+      action: onOpenLessons,
     },
     {
       id: "ai-art",
@@ -277,6 +293,16 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
       action: onOpenArtGenerator,
     },
     {
+      id: "gallery",
+      title: "Gallery",
+      description: `${galleryCount} images`,
+      icon: ImageIcon,
+      gradient: "from-violet-500 to-purple-600",
+      shadowColor: "shadow-violet-500/30",
+      size: "medium",
+      action: onOpenGallery,
+    },
+    {
       id: "tips",
       title: "Tips",
       description: "Quick help",
@@ -284,7 +310,7 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
       gradient: "from-emerald-500 to-teal-600",
       shadowColor: "shadow-emerald-500/30",
       size: "medium",
-      action: () => onNavigate("tips"),
+      action: onOpenTips,
     },
   ]
 
@@ -328,7 +354,7 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
             <button
               onClick={() => {
                 setExpandedCard(null)
-                onNavigate("chat")
+                onStartChat()
               }}
               className="px-8 py-4 bg-white text-slate-900 font-bold text-lg rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95 transition-all"
             >
@@ -454,9 +480,19 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
             className={`bg-gradient-to-br ${coreFeatures[4].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[4].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
           >
             <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
-            <Lightbulb className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
+            <ImageIcon className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
             <h3 className="text-lg font-black relative z-10">{coreFeatures[4].title}</h3>
             <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[4].description}</p>
+          </button>
+
+          <button
+            onClick={coreFeatures[5].action}
+            className={`bg-gradient-to-br ${coreFeatures[5].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[5].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
+          >
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+            <Lightbulb className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
+            <h3 className="text-lg font-black relative z-10">{coreFeatures[5].title}</h3>
+            <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[5].description}</p>
           </button>
         </div>
       </div>

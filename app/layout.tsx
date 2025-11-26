@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
+import { UserProvider } from "@/contexts/user-context"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -45,10 +46,12 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/boomer-ai-logo.png" />
       </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
-        <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-          {children}
-          <Analytics />
-        </Suspense>
+        <UserProvider>
+          <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+            {children}
+            <Analytics />
+          </Suspense>
+        </UserProvider>
       </body>
     </html>
   )

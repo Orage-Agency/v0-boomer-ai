@@ -1,8 +1,8 @@
 "use client"
 
-import { Star, Trophy, Target, Trash2, LogOut } from "lucide-react"
+import { Star, Trophy, Target, Trash2, LogOut, ImageIcon, MessageSquare, Loader2 } from "lucide-react"
 import type { UserProfile } from "@/app/page"
-import { useEffect } from "react"
+import { useUser } from "@/contexts/user-context"
 
 interface ProfileViewProps {
   userProfile: UserProfile
@@ -12,9 +12,7 @@ interface ProfileViewProps {
   onLogout?: () => void
 }
 
-function getLevelProgress(userProfile: UserProfile) {
-  const stars = userProfile.stars || 0
-
+function getLevelProgress(stars: number) {
   let currentLevel = "Basic"
   if (stars >= 1400) currentLevel = "Expert"
   else if (stars >= 600) currentLevel = "Advanced"
@@ -38,7 +36,6 @@ function getLevelProgress(userProfile: UserProfile) {
     starsNeeded = 800
     nextLevelName = "Expert"
   } else {
-    // Expert level - completed
     return {
       currentLevelStars: stars,
       starsNeeded: 0,
@@ -62,16 +59,9 @@ function getLevelProgress(userProfile: UserProfile) {
 }
 
 export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onLogout }: ProfileViewProps) {
-  const { currentLevelStars, starsNeeded, progress, nextLevelName, isComplete, displayLevel } =
-    getLevelProgress(userProfile)
+  const { email, stars, galleryCount, chatHistory, isLoading } = useUser()
 
-  useEffect(() => {
-    console.log("[v0] Profile stars:", userProfile.stars)
-    console.log("[v0] Calculated level:", displayLevel)
-    console.log("[v0] Current level stars:", currentLevelStars)
-    console.log("[v0] Stars needed:", starsNeeded)
-    console.log("[v0] Progress:", progress, "%")
-  }, [userProfile.stars, displayLevel, currentLevelStars, starsNeeded, progress])
+  const { currentLevelStars, starsNeeded, progress, nextLevelName, isComplete, displayLevel } = getLevelProgress(stars)
 
   return (
     <section className="h-full flex flex-col p-6 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -84,12 +74,67 @@ export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onL
           className="w-24 h-24 object-cover rounded-full mx-auto shadow-lg mb-4 ring-4 ring-white"
         />
 
-        {userProfile.email && (
+        {email && (
           <div className="text-center mb-6">
             <p className="text-lg font-bold text-slate-900">{userProfile.name || userProfile.userName || "User"}</p>
-            <p className="text-sm text-slate-500">{userProfile.email}</p>
+            <p className="text-sm text-slate-500">{email}</p>
           </div>
         )}
+
+        <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-4 rounded-2xl border border-slate-200 mb-6">
+          <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+            My Data
+          </h3>
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-100 rounded-lg">
+                    <MessageSquare className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <span className="text-sm text-slate-600">Logged in as:</span>
+                </div>
+                <span className="text-sm font-semibold text-slate-900 truncate max-w-[140px]">{email}</span>
+              </div>
+
+              <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-yellow-100 rounded-lg">
+                    <Star className="w-4 h-4 text-yellow-600 fill-yellow-600" />
+                  </div>
+                  <span className="text-sm text-slate-600">Total Stars Earned:</span>
+                </div>
+                <span className="text-sm font-bold text-yellow-600">{stars}</span>
+              </div>
+
+              <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-purple-100 rounded-lg">
+                    <ImageIcon className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <span className="text-sm text-slate-600">Images Created:</span>
+                </div>
+                <span className="text-sm font-bold text-purple-600">{galleryCount}</span>
+              </div>
+
+              <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-green-100 rounded-lg">
+                    <MessageSquare className="w-4 h-4 text-green-600" />
+                  </div>
+                  <span className="text-sm text-slate-600">Chats Saved:</span>
+                </div>
+                <span className="text-sm font-bold text-green-600">{chatHistory.length}</span>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Progress card */}
         <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-2xl border-2 border-blue-200 mb-6 shadow-lg">
@@ -100,7 +145,7 @@ export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onL
             </h3>
             <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full border-2 border-yellow-400">
               <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-              <span className="text-lg font-bold text-slate-900">{userProfile.stars}</span>
+              <span className="text-lg font-bold text-slate-900">{stars}</span>
             </div>
           </div>
 
