@@ -1,9 +1,9 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
+import { createUser, loginUser } from "@/lib/auth-service"
 
 interface AuthScreenProps {
   onLogin: (email: string, name: string) => void
@@ -24,10 +24,16 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   }
 
+  const triggerShake = () => {
+    setShake(true)
+    setTimeout(() => setShake(false), 500)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
+    // Validation
     if (!email || !password) {
       setError("Please fill in all fields")
       triggerShake()
@@ -54,56 +60,27 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
 
     setIsLoading(true)
 
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const result = isSignUp ? await createUser(email, password, name) : await loginUser(email, password)
 
-    const storedUsers = JSON.parse(localStorage.getItem("boomer_users") || "{}")
-
-    if (isSignUp) {
-      if (storedUsers[email]) {
-        setError("An account with this email already exists")
+      if (result.success && result.user) {
+        onLogin(result.user.email, result.user.name)
+      } else {
+        setError(result.error || "Authentication failed")
         triggerShake()
-        setIsLoading(false)
-        return
       }
-
-      storedUsers[email] = {
-        password: password,
-        name: name,
-        createdAt: new Date().toISOString(),
-      }
-      localStorage.setItem("boomer_users", JSON.stringify(storedUsers))
-      onLogin(email, name)
-    } else {
-      const user = storedUsers[email]
-
-      if (!user) {
-        setError("No account found with this email")
-        triggerShake()
-        setIsLoading(false)
-        return
-      }
-
-      if (user.password !== password) {
-        setError("Incorrect password")
-        triggerShake()
-        setIsLoading(false)
-        return
-      }
-
-      onLogin(email, user.name)
+    } catch (err) {
+      setError("Something went wrong. Please try again.")
+      triggerShake()
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
-  }
-
-  const triggerShake = () => {
-    setShake(true)
-    setTimeout(() => setShake(false), 500)
   }
 
   return (
     <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-6">
       <div className={`w-full max-w-sm bg-white rounded-3xl p-8 shadow-2xl ${shake ? "animate-shake" : ""}`}>
+        {/* Logo */}
         <div className="flex justify-center mb-6">
           <img
             src="https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/69270a5b63b30fdd4c7b60de.png"
@@ -134,6 +111,7 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
             </div>
           )}
 
+          {/* Email field */}
           <div className="mb-4">
             <input
               type="email"
@@ -144,6 +122,7 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
             />
           </div>
 
+          {/* Password field */}
           <div className="mb-4">
             <div className="relative">
               <input
@@ -163,6 +142,7 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
             </div>
           </div>
 
+          {/* Remember me toggle */}
           <div className="mb-6 flex items-center gap-3">
             <button
               type="button"
@@ -178,6 +158,7 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
             <span className="text-sm text-slate-600">Keep me logged in</span>
           </div>
 
+          {/* Submit button */}
           <button
             type="submit"
             disabled={isLoading}
@@ -196,6 +177,7 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
           </button>
         </form>
 
+        {/* Toggle sign up / sign in */}
         <div className="mt-4 text-center">
           <button
             type="button"
@@ -217,6 +199,7 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
           </button>
         </div>
 
+        {/* Terms & Privacy */}
         <p className="mt-6 text-center text-xs text-slate-400">
           By continuing, you agree to our{" "}
           <a href="#terms" className="underline hover:text-slate-600">
