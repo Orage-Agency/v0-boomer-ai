@@ -1,6 +1,6 @@
 "use client"
 
-import { Star, Trophy, Target } from "lucide-react"
+import { Star, Trophy, Target, Trash2, LogOut } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useEffect } from "react"
 
@@ -8,6 +8,8 @@ interface ProfileViewProps {
   userProfile: UserProfile
   onReset: () => void
   onBack: () => void
+  onDeleteAccount?: () => void
+  onLogout?: () => void
 }
 
 function getLevelProgress(userProfile: UserProfile) {
@@ -59,7 +61,7 @@ function getLevelProgress(userProfile: UserProfile) {
   }
 }
 
-export function ProfileView({ userProfile, onReset, onBack }: ProfileViewProps) {
+export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onLogout }: ProfileViewProps) {
   const { currentLevelStars, starsNeeded, progress, nextLevelName, isComplete, displayLevel } =
     getLevelProgress(userProfile)
 
@@ -79,9 +81,17 @@ export function ProfileView({ userProfile, onReset, onBack }: ProfileViewProps) 
         <img
           src={userProfile.avatarSrc || "https://placehold.co/128x128/E2E8F0/475569?text=AI"}
           alt="Your selected avatar"
-          className="w-24 h-24 object-cover rounded-full mx-auto shadow-lg mb-6 ring-4 ring-white"
+          className="w-24 h-24 object-cover rounded-full mx-auto shadow-lg mb-4 ring-4 ring-white"
         />
 
+        {userProfile.email && (
+          <div className="text-center mb-6">
+            <p className="text-lg font-bold text-slate-900">{userProfile.name || userProfile.userName || "User"}</p>
+            <p className="text-sm text-slate-500">{userProfile.email}</p>
+          </div>
+        )}
+
+        {/* Progress card */}
         <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-2xl border-2 border-blue-200 mb-6 shadow-lg">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -122,14 +132,14 @@ export function ProfileView({ userProfile, onReset, onBack }: ProfileViewProps) 
               <div className="p-3 bg-white rounded-xl border border-blue-200">
                 <p className="text-xs text-slate-600 text-center">
                   <span className="font-bold text-blue-600">Goal:</span> Complete all levels to unlock{" "}
-                  <span className="font-bold text-purple-600">1 FREE MONTH</span> of Boomer AI Premium! 🎉
+                  <span className="font-bold text-purple-600">1 FREE MONTH</span> of Boomer AI Premium!
                 </p>
               </div>
             </>
           ) : (
             <div className="text-center py-4">
               <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-3 animate-bounce" />
-              <p className="text-lg font-bold text-slate-900 mb-2">🎉 Congratulations! 🎉</p>
+              <p className="text-lg font-bold text-slate-900 mb-2">Congratulations!</p>
               <p className="text-sm text-slate-600 mb-3">
                 You've completed all levels and earned <span className="font-bold text-purple-600">1 FREE MONTH</span>{" "}
                 of Boomer AI Premium!
@@ -141,6 +151,7 @@ export function ProfileView({ userProfile, onReset, onBack }: ProfileViewProps) 
           )}
         </div>
 
+        {/* Profile info card */}
         <div className="space-y-2 text-left bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-4">
           <div className="flex justify-between items-center">
             <p className="text-sm text-slate-600 font-medium">Companion:</p>
@@ -164,22 +175,72 @@ export function ProfileView({ userProfile, onReset, onBack }: ProfileViewProps) 
           <hr className="border-slate-200" />
           <div className="flex justify-between items-center">
             <p className="text-sm text-slate-600 font-medium">Streak:</p>
-            <p className="text-sm font-bold text-orange-600">🔥 {userProfile.streak} days</p>
+            <p className="text-sm font-bold text-orange-600">{userProfile.streak} days</p>
           </div>
         </div>
 
-        <button
-          onClick={onReset}
-          className="w-full bg-red-500 hover:bg-red-600 text-white font-bold text-base py-3 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg mb-2"
-        >
-          Start Over
-        </button>
-        <button
-          onClick={onBack}
-          className="w-full bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold text-base py-3 px-6 rounded-xl transition-colors"
-        >
-          Back to Menu
-        </button>
+        {/* Action buttons */}
+        <div className="space-y-3">
+          {onLogout && (
+            <button
+              onClick={() => {
+                if (confirm("Are you sure you want to log out?")) {
+                  onLogout()
+                }
+              }}
+              className="w-full bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold text-base py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              <LogOut className="w-5 h-5" />
+              Log Out
+            </button>
+          )}
+
+          <button
+            onClick={onReset}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg"
+          >
+            Start Over
+          </button>
+
+          {onDeleteAccount && (
+            <button
+              onClick={() => {
+                if (
+                  confirm(
+                    "Are you sure you want to delete your account? This action cannot be undone. All your data, including stars and progress, will be permanently deleted.",
+                  )
+                ) {
+                  if (confirm("This is your final warning. Delete account permanently?")) {
+                    onDeleteAccount()
+                  }
+                }
+              }}
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold text-base py-3 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+            >
+              <Trash2 className="w-5 h-5" />
+              Delete Account
+            </button>
+          )}
+
+          <button
+            onClick={onBack}
+            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base py-3 px-6 rounded-xl transition-colors"
+          >
+            Back to Menu
+          </button>
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-slate-200 text-center">
+          <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
+            <a href="#privacy" className="hover:text-blue-600 underline">
+              Privacy Policy
+            </a>
+            <span>•</span>
+            <a href="#terms" className="hover:text-blue-600 underline">
+              Terms of Service
+            </a>
+          </div>
+        </div>
       </div>
     </section>
   )

@@ -17,6 +17,7 @@ interface CelebrationModalProps {
   message: string
   starsEarned: number
   secretTip?: string
+  onCollectReward?: () => void
 }
 
 const SECRET_AI_TIPS = [
@@ -32,10 +33,29 @@ const SECRET_AI_TIPS = [
   "Game changer: AI can help you write heartfelt birthday messages!",
 ]
 
-export function CelebrationModal({ isOpen, onClose, message, starsEarned, secretTip }: CelebrationModalProps) {
+const LEARNING_PROMPTS = [
+  "Teach me something fascinating about AI that I can share with my friends!",
+  "What's a fun and easy way I can use AI in my daily life?",
+  "Tell me an interesting fact about technology that would surprise me!",
+  "What's a creative way to use AI that most people don't know about?",
+  "Explain something new in technology like I'm just getting started!",
+  "What's a simple AI trick I can try right now?",
+  "Share a fun tip about using AI that will make me look tech-savvy!",
+  "What's something amazing AI can do that sounds like science fiction?",
+]
+
+export function CelebrationModal({
+  isOpen,
+  onClose,
+  message,
+  starsEarned,
+  secretTip,
+  onCollectReward,
+}: CelebrationModalProps) {
   const [confetti, setConfetti] = useState<ConfettiPiece[]>([])
   const [isVisible, setIsVisible] = useState(false)
   const [currentTip] = useState(() => secretTip || SECRET_AI_TIPS[Math.floor(Math.random() * SECRET_AI_TIPS.length)])
+  const [learningPrompt] = useState(() => LEARNING_PROMPTS[Math.floor(Math.random() * LEARNING_PROMPTS.length)])
 
   const generateConfetti = useCallback(() => {
     const colors = ["#FFD700", "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8"]
@@ -62,6 +82,13 @@ export function CelebrationModal({ isOpen, onClose, message, starsEarned, secret
   }, [isOpen, generateConfetti])
 
   if (!isOpen) return null
+
+  const handleCollectReward = () => {
+    onClose()
+    if (onCollectReward) {
+      onCollectReward()
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
@@ -116,9 +143,10 @@ export function CelebrationModal({ isOpen, onClose, message, starsEarned, secret
             <p className="text-sm font-medium text-purple-900 leading-relaxed">{currentTip}</p>
           </div>
 
+          <p className="mt-4 text-xs text-slate-500">Tap to learn something new!</p>
           <button
-            onClick={onClose}
-            className="mt-5 w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-black text-lg rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] transition-all"
+            onClick={handleCollectReward}
+            className="mt-2 w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-black text-lg rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             Collect Reward!
           </button>

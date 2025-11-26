@@ -344,7 +344,14 @@ export function HomeTab({ userProfile, onNavigate, onOpenArtGenerator, updatePro
         </div>
       )}
 
-      <div className="flex-shrink-0 pt-4 pb-2">
+      <div className="px-5 pt-4 pb-2">
+        <h1 className="text-xl font-black text-slate-900">
+          Hello, {userProfile.name || userProfile.userName || "Friend"}!
+        </h1>
+        <p className="text-sm text-slate-500">What would you like to explore today?</p>
+      </div>
+
+      <div className="flex-shrink-0 pb-2">
         <div
           ref={scrollContainerRef}
           className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-5 pb-2 no-scrollbar"

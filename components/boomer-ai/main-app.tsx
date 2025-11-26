@@ -15,6 +15,8 @@ import {
   RotateCcw,
   X,
   Gamepad2,
+  User,
+  LogOut,
 } from "lucide-react"
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
@@ -33,9 +35,22 @@ interface MainAppProps {
   userProfile: UserProfile
   updateProfile: (updates: Partial<UserProfile>) => void
   onReset: () => void
+  onLogout?: () => void
+  onDeleteAccount?: () => void
 }
 
-export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
+const REWARD_LEARNING_PROMPTS = [
+  "Teach me something fascinating about AI that I can share with my friends!",
+  "What's a fun and easy way I can use AI in my daily life?",
+  "Tell me an interesting fact about technology that would surprise me!",
+  "What's a creative way to use AI that most people don't know about?",
+  "Explain something new in technology like I'm just getting started!",
+  "What's a simple AI trick I can try right now?",
+  "Share a fun tip about using AI that will make me look tech-savvy!",
+  "What's something amazing AI can do that sounds like science fiction?",
+]
+
+export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDeleteAccount }: MainAppProps) {
   const [activeTab, setActiveTab] = useState<
     "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play"
   >("home")
@@ -237,11 +252,18 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
     setActiveTab("chat")
   }
 
+  const handleCollectReward = () => {
+    const randomPrompt = REWARD_LEARNING_PROMPTS[Math.floor(Math.random() * REWARD_LEARNING_PROMPTS.length)]
+    setPendingChatPrompt(randomPrompt)
+    setActiveTab("chat")
+  }
+
   return (
     <div className="flex flex-col h-screen bg-white">
       <CelebrationModal
         isOpen={showCelebration}
         onClose={() => setShowCelebration(false)}
+        onCollectReward={handleCollectReward}
         message="Milestone Reached!"
         starsEarned={celebrationStars}
       />
@@ -249,88 +271,104 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
       {isMenuOpen && (
         <div className="fixed inset-0 z-50">
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
 
           {/* Slide-over panel from right */}
-          <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-2xl transform transition-transform duration-300 ease-out">
-            <div className="flex flex-col h-full">
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-slate-200">
+          <div className="absolute right-0 top-0 bottom-0 w-72 bg-white shadow-2xl animate-in slide-in-from-right duration-300">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-slate-900">Menu</h2>
                 <button
                   onClick={() => setIsMenuOpen(false)}
-                  className="p-2 rounded-full hover:bg-slate-100 transition-colors touch-manipulation active:scale-95"
-                  aria-label="Close menu"
+                  className="p-2 rounded-full hover:bg-slate-100 transition-colors"
                 >
                   <X className="w-6 h-6 text-slate-600" />
                 </button>
               </div>
+              {userProfile.email && <p className="text-sm text-slate-500 mt-2 truncate">{userProfile.email}</p>}
+            </div>
 
-              {/* Menu Items */}
-              <div className="flex-1 overflow-y-auto p-4">
-                <button
-                  onClick={() => {
-                    setActiveTab("profile")
+            <div className="p-4 space-y-2">
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false)
+                  setActiveTab("profile")
+                }}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-slate-100 transition-colors text-left"
+              >
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900">Profile</p>
+                  <p className="text-sm text-slate-500">View your progress</p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false)
+                  setActiveTab("history")
+                }}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-slate-100 transition-colors text-left"
+              >
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <History className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900">Chat History</p>
+                  <p className="text-sm text-slate-500">Past conversations</p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (confirm("Are you sure you want to start over? This will reset your onboarding progress.")) {
                     setIsMenuOpen(false)
-                  }}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors text-left touch-manipulation active:scale-[0.98] mb-2"
-                >
-                  <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-slate-200 flex-shrink-0">
-                    <img
-                      src={userProfile.avatarSrc || "https://placehold.co/56x56/E2E8F0/475569?text=AI"}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-grow">
-                    <div className="text-lg font-semibold text-slate-900">{userProfile.name}</div>
-                    <div className="text-sm text-slate-500">View Profile</div>
-                  </div>
-                </button>
+                    onReset()
+                  }
+                }}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-orange-50 transition-colors text-left"
+              >
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                  <RotateCcw className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-orange-600">Start Over</p>
+                  <p className="text-sm text-slate-500">Reset onboarding</p>
+                </div>
+              </button>
 
-                <div className="border-t border-slate-200 my-4" />
-
+              {onLogout && (
                 <button
                   onClick={() => {
-                    setActiveTab("history")
-                    setIsMenuOpen(false)
-                  }}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors text-left touch-manipulation active:scale-[0.98] mb-2"
-                >
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <History className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div className="flex-grow">
-                    <div className="text-lg font-semibold text-slate-900">Chat History</div>
-                    <div className="text-sm text-slate-500">View past conversations</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (confirm("Are you sure you want to start over? This will reset all your progress and data.")) {
-                      onReset()
+                    if (confirm("Are you sure you want to log out?")) {
                       setIsMenuOpen(false)
+                      onLogout()
                     }
                   }}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-red-50 transition-colors text-left touch-manipulation active:scale-[0.98]"
+                  className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-slate-100 transition-colors text-left"
                 >
-                  <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                    <RotateCcw className="w-6 h-6 text-red-600" />
+                  <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
+                    <LogOut className="w-5 h-5 text-slate-600" />
                   </div>
-                  <div className="flex-grow">
-                    <div className="text-lg font-semibold text-red-600">Start Over</div>
-                    <div className="text-sm text-red-400">Reset all progress</div>
+                  <div>
+                    <p className="font-bold text-slate-900">Log Out</p>
+                    <p className="text-sm text-slate-500">Sign out of your account</p>
                   </div>
                 </button>
-              </div>
+              )}
+            </div>
 
-              {/* Footer with stars */}
-              <div className="p-4 border-t border-slate-200 bg-slate-50">
-                <div className="flex items-center justify-center gap-2 py-3 bg-yellow-50 rounded-2xl">
-                  <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-                  <span className="text-lg font-bold text-slate-900">{userProfile.stars} Stars Earned</span>
-                </div>
+            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-slate-50">
+              <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
+                <a href="#privacy" className="hover:text-blue-600 underline">
+                  Privacy Policy
+                </a>
+                <span>•</span>
+                <a href="#terms" className="hover:text-blue-600 underline">
+                  Terms of Service
+                </a>
               </div>
             </div>
           </div>
@@ -354,7 +392,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           }`}
         >
           <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-          <span className="text-lg font-black text-amber-700">{userProfile.stars}</span>
+          <span className="text-lg font-bold text-slate-900">{userProfile.stars} Stars Earned</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -437,7 +475,13 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           />
         )}
         {activeTab === "profile" && (
-          <ProfileView userProfile={userProfile} onReset={onReset} onBack={() => setActiveTab("home")} />
+          <ProfileView
+            userProfile={userProfile}
+            onReset={onReset}
+            onBack={() => setActiveTab("home")}
+            onDeleteAccount={onDeleteAccount}
+            onLogout={onLogout}
+          />
         )}
         {activeTab === "voice" && (
           <VoiceChatTab userProfile={userProfile} updateProfile={updateProfile} onBack={() => setActiveTab("home")} />
@@ -567,13 +611,12 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
         </button>
       </nav>
 
-      {isArtGeneratorOpen && (
-        <AiArtModal
-          userProfile={userProfile}
-          updateProfile={updateProfile}
-          onClose={() => setIsArtGeneratorOpen(false)}
-        />
-      )}
+      <AiArtModal
+        isOpen={isArtGeneratorOpen}
+        userProfile={userProfile}
+        updateProfile={updateProfile}
+        onClose={() => setIsArtGeneratorOpen(false)}
+      />
     </div>
   )
 }

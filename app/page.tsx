@@ -7,6 +7,7 @@ import { Quiz } from "@/components/boomer-ai/quiz"
 import { LearningLevel } from "@/components/boomer-ai/learning-level"
 import { MainApp } from "@/components/boomer-ai/main-app"
 import { Stepper } from "@/components/boomer-ai/stepper"
+import { AuthScreen } from "@/components/boomer-ai/auth-screen"
 
 export type UserProfile = {
   persona: string | null
@@ -25,6 +26,8 @@ export type UserProfile = {
   dailyArtCount: number
   lastArtDate: string | null
   pinnedFeatures: string[]
+  email: string | null
+  isLoggedIn: boolean
 }
 
 function calculateLevelFromStars(stars: number): string {
@@ -50,10 +53,12 @@ const DEFAULT_PROFILE: UserProfile = {
   dailyArtCount: 0,
   lastArtDate: null,
   pinnedFeatures: [],
+  email: null,
+  isLoggedIn: false,
 }
 
 export default function BoomerAIPage() {
-  const [currentView, setCurrentView] = useState<"onboarding" | "app">("onboarding")
+  const [currentView, setCurrentView] = useState<"auth" | "onboarding" | "app">("auth")
   const [onboardingStep, setOnboardingStep] = useState<"avatar" | "age" | "quiz" | "level">("avatar")
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_PROFILE)
   const [mounted, setMounted] = useState(false)
@@ -66,49 +71,83 @@ export default function BoomerAIPage() {
       localStorage.setItem("boomer-device-id", deviceId)
     }
 
-    loadFromDatabase(deviceId)
+    const savedSession = localStorage.getItem("boomer_session")
+    if (savedSession) {
+      const session = JSON.parse(savedSession)
+      loadFromDatabase(deviceId, session.email)
+    } else {
+      setUserProfile({ ...DEFAULT_PROFILE, deviceId })
+      setCurrentView("auth")
+    }
   }, [])
 
-  const loadFromDatabase = async (deviceId: string) => {
+  const loadFromDatabase = async (deviceId: string, email?: string) => {
     try {
-      const response = await fetch(`/api/profile?deviceId=${deviceId}`)
+      const response = await fetch(
+        `/api/profile?deviceId=${deviceId}${email ? `&email=${encodeURIComponent(email)}` : ""}`,
+      )
       const data = await response.json()
 
       if (data.success && data.profile) {
-        setUserProfile(data.profile)
-        if (data.profile.persona && data.profile.level) {
+        const loadedProfile = { ...data.profile, deviceId, isLoggedIn: !!email, email: email || null }
+        setUserProfile(loadedProfile)
+        if (loadedProfile.persona && loadedProfile.level) {
           setCurrentView("app")
+        } else if (email) {
+          setCurrentView("onboarding")
         }
       } else {
+        // Fallback to localStorage
         try {
-          const saved = localStorage.getItem("boomer_profile")
+          const saved = localStorage.getItem(`boomer_profile_${email || deviceId}`)
           if (saved) {
             const profile = JSON.parse(saved)
-            setUserProfile({ ...profile, deviceId })
+            setUserProfile({ ...profile, deviceId, isLoggedIn: !!email, email: email || null })
             if (profile.persona && profile.level) {
               setCurrentView("app")
+            } else if (email) {
+              setCurrentView("onboarding")
             }
+          } else if (email) {
+            setUserProfile({ ...DEFAULT_PROFILE, deviceId, isLoggedIn: true, email })
+            setCurrentView("onboarding")
           } else {
             setUserProfile({ ...DEFAULT_PROFILE, deviceId })
           }
         } catch (error) {
-          setUserProfile({ ...DEFAULT_PROFILE, deviceId })
+          if (email) {
+            setUserProfile({ ...DEFAULT_PROFILE, deviceId, isLoggedIn: true, email })
+            setCurrentView("onboarding")
+          } else {
+            setUserProfile({ ...DEFAULT_PROFILE, deviceId })
+          }
         }
       }
     } catch (error) {
+      // Fallback to localStorage on error
       try {
-        const saved = localStorage.getItem("boomer_profile")
+        const saved = localStorage.getItem(`boomer_profile_${email || deviceId}`)
         if (saved) {
           const profile = JSON.parse(saved)
-          setUserProfile({ ...profile, deviceId })
+          setUserProfile({ ...profile, deviceId, isLoggedIn: !!email, email: email || null })
           if (profile.persona && profile.level) {
             setCurrentView("app")
+          } else if (email) {
+            setCurrentView("onboarding")
           }
+        } else if (email) {
+          setUserProfile({ ...DEFAULT_PROFILE, deviceId, isLoggedIn: true, email })
+          setCurrentView("onboarding")
         } else {
           setUserProfile({ ...DEFAULT_PROFILE, deviceId })
         }
       } catch (error) {
-        setUserProfile({ ...DEFAULT_PROFILE, deviceId })
+        if (email) {
+          setUserProfile({ ...DEFAULT_PROFILE, deviceId, isLoggedIn: true, email })
+          setCurrentView("onboarding")
+        } else {
+          setUserProfile({ ...DEFAULT_PROFILE, deviceId })
+        }
       }
     }
   }
@@ -134,7 +173,8 @@ export default function BoomerAIPage() {
     const newProfile = { ...userProfile, ...updates }
     setUserProfile(newProfile)
     if (mounted) {
-      localStorage.setItem("boomer_profile", JSON.stringify(newProfile))
+      const storageKey = newProfile.email ? `boomer_profile_${newProfile.email}` : "boomer_profile"
+      localStorage.setItem(storageKey, JSON.stringify(newProfile))
       if (newProfile.userName && newProfile.level) {
         saveToDatabase(newProfile)
       }
@@ -146,8 +186,48 @@ export default function BoomerAIPage() {
     setUserProfile({ ...DEFAULT_PROFILE, deviceId })
     if (mounted) {
       localStorage.removeItem("boomer_profile")
+      if (userProfile.email) {
+        localStorage.removeItem(`boomer_profile_${userProfile.email}`)
+      }
     }
     setCurrentView("onboarding")
+    setOnboardingStep("avatar")
+  }
+
+  const handleLogin = (email: string, name: string) => {
+    const deviceId = localStorage.getItem("boomer-device-id")
+
+    // Save session
+    localStorage.setItem("boomer_session", JSON.stringify({ email, name }))
+
+    // Load user-specific profile or create new one
+    loadFromDatabase(deviceId || "", email)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem("boomer_session")
+    setUserProfile({ ...DEFAULT_PROFILE, deviceId: userProfile.deviceId })
+    setCurrentView("auth")
+    setOnboardingStep("avatar")
+  }
+
+  const handleDeleteAccount = () => {
+    if (userProfile.email) {
+      // Remove user from stored users
+      const storedUsers = JSON.parse(localStorage.getItem("boomer_users") || "{}")
+      delete storedUsers[userProfile.email]
+      localStorage.setItem("boomer_users", JSON.stringify(storedUsers))
+
+      // Remove user profile
+      localStorage.removeItem(`boomer_profile_${userProfile.email}`)
+    }
+
+    // Clear session and profile
+    localStorage.removeItem("boomer_session")
+    localStorage.removeItem("boomer_profile")
+
+    setUserProfile({ ...DEFAULT_PROFILE, deviceId: userProfile.deviceId })
+    setCurrentView("auth")
     setOnboardingStep("avatar")
   }
 
@@ -162,14 +242,18 @@ export default function BoomerAIPage() {
     )
   }
 
+  if (currentView === "auth") {
+    return <AuthScreen onLogin={handleLogin} />
+  }
+
   return (
-    <div 
+    <div
       className="min-h-screen bg-white flex items-center justify-center"
-      style={{ 
-        paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        paddingLeft: 'env(safe-area-inset-left)',
-        paddingRight: 'env(safe-area-inset-right)',
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
       }}
     >
       <div className="relative bg-white w-full max-w-md mx-auto h-screen overflow-hidden flex flex-col">
@@ -228,7 +312,13 @@ export default function BoomerAIPage() {
         )}
 
         {currentView === "app" && (
-          <MainApp userProfile={userProfile} updateProfile={updateProfile} onReset={resetProfile} />
+          <MainApp
+            userProfile={userProfile}
+            updateProfile={updateProfile}
+            onReset={resetProfile}
+            onLogout={handleLogout}
+            onDeleteAccount={handleDeleteAccount}
+          />
         )}
       </div>
     </div>
