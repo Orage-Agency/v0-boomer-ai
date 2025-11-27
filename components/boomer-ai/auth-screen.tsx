@@ -4,6 +4,7 @@ import type React from "react"
 import { useState } from "react"
 import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
 import { createUser, loginUser } from "@/lib/auth-service"
+import Link from "next/link"
 
 interface AuthScreenProps {
   onLogin: (email: string, name: string) => void
@@ -202,13 +203,13 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
         {/* Terms & Privacy */}
         <p className="mt-6 text-center text-xs text-slate-400">
           By continuing, you agree to our{" "}
-          <a href="#terms" className="underline hover:text-slate-600">
-            Terms
-          </a>{" "}
+          <Link href="/terms" className="underline hover:text-slate-600">
+            Terms of Service
+          </Link>{" "}
           &{" "}
-          <a href="#privacy" className="underline hover:text-slate-600">
+          <Link href="/privacy" className="underline hover:text-slate-600">
             Privacy Policy
-          </a>
+          </Link>
           .
         </p>
       </div>

@@ -257,6 +257,15 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
     setActiveTab("chat")
   }
 
+  const handleStartChat = (prompt: string) => {
+    setPendingChatPrompt(prompt)
+    setActiveTab("chat")
+  }
+
+  const handleOpenCamera = () => {
+    // Implement camera opening logic here
+  }
+
   return (
     <div className="flex flex-col h-screen bg-white">
       <CelebrationModal
@@ -424,17 +433,13 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
           <HomeTab
             userProfile={userProfile}
             updateProfile={updateProfile}
-            onStartChat={(prompt) => {
-              if (prompt) {
-                setPendingChatPrompt(prompt)
-              }
-              setActiveTab("chat")
-            }}
+            onStartChat={handleStartChat}
             onOpenLessons={() => setActiveTab("lessons")}
             onOpenTips={() => setActiveTab("tips")}
             onOpenQuestions={() => setActiveTab("questions")}
             onOpenArtGenerator={() => setIsArtGeneratorOpen(true)}
             onOpenGallery={() => setActiveTab("gallery")}
+            onOpenVoice={() => setActiveTab("voice")} // Add voice handler
           />
         )}
 

@@ -3,6 +3,7 @@
 import { Star, Trophy, Target, Trash2, LogOut, ImageIcon, MessageSquare, Loader2 } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useUser } from "@/contexts/user-context"
+import Link from "next/link"
 
 interface ProfileViewProps {
   userProfile: UserProfile
@@ -136,7 +137,7 @@ export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onL
           )}
         </div>
 
-        {/* Progress card */}
+        {/* Progress card - Removed FREE MONTH text for App Store compliance 2.3.6 */}
         <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-2xl border-2 border-blue-200 mb-6 shadow-lg">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -176,8 +177,7 @@ export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onL
 
               <div className="p-3 bg-white rounded-xl border border-blue-200">
                 <p className="text-xs text-slate-600 text-center">
-                  <span className="font-bold text-blue-600">Goal:</span> Complete all levels to unlock{" "}
-                  <span className="font-bold text-purple-600">1 FREE MONTH</span> of Boomer AI Premium!
+                  Keep learning and earning stars to reach the next level!
                 </p>
               </div>
             </>
@@ -185,12 +185,9 @@ export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onL
             <div className="text-center py-4">
               <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-3 animate-bounce" />
               <p className="text-lg font-bold text-slate-900 mb-2">Congratulations!</p>
-              <p className="text-sm text-slate-600 mb-3">
-                You've completed all levels and earned <span className="font-bold text-purple-600">1 FREE MONTH</span>{" "}
-                of Boomer AI Premium!
-              </p>
+              <p className="text-sm text-slate-600 mb-3">You've completed all levels and become a Boomer AI Expert!</p>
               <div className="p-3 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-xl border-2 border-yellow-400">
-                <p className="text-xs font-bold text-slate-900">Check your email for your premium access code!</p>
+                <p className="text-xs font-bold text-slate-900">You've mastered all the basics of AI!</p>
               </div>
             </div>
           )}
@@ -233,7 +230,7 @@ export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onL
                   onLogout()
                 }
               }}
-              className="w-full bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold text-base py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold text-base py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 min-h-[48px] touch-manipulation active:scale-95"
             >
               <LogOut className="w-5 h-5" />
               Log Out
@@ -242,7 +239,7 @@ export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onL
 
           <button
             onClick={onReset}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg min-h-[48px] touch-manipulation active:scale-95"
           >
             Start Over
           </button>
@@ -260,7 +257,7 @@ export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onL
                   }
                 }
               }}
-              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold text-base py-3 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold text-base py-3 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2 min-h-[48px] touch-manipulation active:scale-95"
             >
               <Trash2 className="w-5 h-5" />
               Delete Account
@@ -269,7 +266,7 @@ export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onL
 
           <button
             onClick={onBack}
-            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base py-3 px-6 rounded-xl transition-colors"
+            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base py-3 px-6 rounded-xl transition-colors min-h-[48px] touch-manipulation active:scale-95"
           >
             Back to Menu
           </button>
@@ -277,13 +274,13 @@ export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onL
 
         <div className="mt-6 pt-4 border-t border-slate-200 text-center">
           <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
-            <a href="#privacy" className="hover:text-blue-600 underline">
+            <Link href="/privacy" className="hover:text-blue-600 underline">
               Privacy Policy
-            </a>
-            <span>•</span>
-            <a href="#terms" className="hover:text-blue-600 underline">
+            </Link>
+            <span>|</span>
+            <Link href="/terms" className="hover:text-blue-600 underline">
               Terms of Service
-            </a>
+            </Link>
           </div>
         </div>
       </div>

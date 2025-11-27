@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { MessageSquare, Sparkles, Lightbulb, Heart, Video, Mic, X, ImageIcon } from "lucide-react"
+import { MessageSquare, Sparkles, Lightbulb, Heart, Video, Mic, X, ImageIcon, MessageCircle } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useState, useEffect, useRef } from "react"
 import { useUser } from "@/contexts/user-context"
@@ -10,12 +9,13 @@ import { useUser } from "@/contexts/user-context"
 interface HomeTabProps {
   userProfile: UserProfile
   updateProfile: (updates: Partial<UserProfile>) => void
-  onStartChat: (prompt?: string) => void
+  onStartChat: () => void
   onOpenLessons: () => void
   onOpenTips: () => void
   onOpenQuestions: () => void
   onOpenArtGenerator: () => void
   onOpenGallery: () => void
+  onOpenVoice: () => void // Add voice handler prop
 }
 
 const ROTATING_FEATURES = [
@@ -215,6 +215,7 @@ export function HomeTab({
   onOpenQuestions,
   onOpenArtGenerator,
   onOpenGallery,
+  onOpenVoice, // Add voice handler
 }: HomeTabProps) {
   const [dailyContentIndex, setDailyContentIndex] = useState(0)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -270,7 +271,7 @@ export function HomeTab({
       gradient: "from-purple-500 to-indigo-600",
       shadowColor: "shadow-purple-500/30",
       size: "small",
-      action: () => onStartChat(), // Will be handled by main-app to go to voice
+      action: onOpenVoice,
     },
     {
       id: "lessons",
@@ -312,10 +313,20 @@ export function HomeTab({
       size: "medium",
       action: onOpenTips,
     },
+    {
+      id: "ask-me",
+      title: "Ask Me",
+      description: "Anything",
+      icon: MessageCircle,
+      gradient: "from-cyan-500 to-blue-600",
+      shadowColor: "shadow-cyan-500/30",
+      size: "medium",
+      action: onOpenVoice,
+    },
   ]
 
   return (
-    <div className="h-full flex flex-col bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-full bg-gradient-to-b from-slate-50 to-white overflow-y-auto relative">
       {expandedCard && (
         <div className="fixed inset-0 z-50 flex flex-col">
           <div
@@ -432,7 +443,8 @@ export function HomeTab({
       </div>
 
       <div className="flex-1 px-5 pb-4 overflow-hidden">
-        <div className="grid grid-cols-2 gap-3 h-full auto-rows-fr" style={{ gridTemplateRows: "repeat(3, 1fr)" }}>
+        <div className="grid grid-cols-2 gap-3 h-full auto-rows-fr" style={{ gridTemplateRows: "repeat(4, 1fr)" }}>
+          {/* Chat - Full width */}
           <button
             onClick={coreFeatures[0].action}
             className={`col-span-2 bg-gradient-to-br ${coreFeatures[0].gradient} text-white rounded-3xl p-5 shadow-xl ${coreFeatures[0].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-between border border-white/20 relative overflow-hidden`}
@@ -445,6 +457,7 @@ export function HomeTab({
             <MessageSquare className="w-14 h-14 text-white/80 relative z-10" strokeWidth={1.5} />
           </button>
 
+          {/* Voice */}
           <button
             onClick={coreFeatures[1].action}
             className={`bg-gradient-to-br ${coreFeatures[1].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[1].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
@@ -455,6 +468,7 @@ export function HomeTab({
             <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[1].description}</p>
           </button>
 
+          {/* Videos */}
           <button
             onClick={coreFeatures[2].action}
             className={`bg-gradient-to-br ${coreFeatures[2].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[2].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
@@ -465,6 +479,7 @@ export function HomeTab({
             <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[2].description}</p>
           </button>
 
+          {/* Create Art */}
           <button
             onClick={coreFeatures[3].action}
             className={`bg-gradient-to-br ${coreFeatures[3].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[3].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
@@ -475,6 +490,7 @@ export function HomeTab({
             <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[3].description}</p>
           </button>
 
+          {/* Gallery */}
           <button
             onClick={coreFeatures[4].action}
             className={`bg-gradient-to-br ${coreFeatures[4].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[4].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
@@ -485,6 +501,7 @@ export function HomeTab({
             <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[4].description}</p>
           </button>
 
+          {/* Tips */}
           <button
             onClick={coreFeatures[5].action}
             className={`bg-gradient-to-br ${coreFeatures[5].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[5].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
@@ -493,6 +510,17 @@ export function HomeTab({
             <Lightbulb className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
             <h3 className="text-lg font-black relative z-10">{coreFeatures[5].title}</h3>
             <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[5].description}</p>
+          </button>
+
+          {/* Ask Me Anything - same style as Tips, positioned next to Tips under Gallery */}
+          <button
+            onClick={coreFeatures[6].action}
+            className={`bg-gradient-to-br ${coreFeatures[6].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[6].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
+          >
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+            <MessageCircle className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
+            <h3 className="text-lg font-black relative z-10">{coreFeatures[6].title}</h3>
+            <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[6].description}</p>
           </button>
         </div>
       </div>

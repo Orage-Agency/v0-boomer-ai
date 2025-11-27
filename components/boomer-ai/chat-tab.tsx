@@ -203,8 +203,11 @@ export function ChatTab({
     if (messages.length > 0) {
       const userMessages = messages.filter((m) => m.role === "user")
       if (userMessages.length > 0) {
-        const lastQuestion = userMessages[userMessages.length - 1]?.parts?.[0]?.text || ""
-        setLastUserQuestion(lastQuestion)
+        const lastMsg = userMessages[userMessages.length - 1]
+        const questionText = lastMsg?.parts?.[0]?.text || lastMsg?.content || ""
+        if (questionText) {
+          setLastUserQuestion(questionText)
+        }
       }
     }
 
@@ -367,22 +370,22 @@ export function ChatTab({
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-slate-50 to-white">
-      {!showPromptLibrary && lastUserQuestion && messages.length > 0 && (
-        <div className="flex-shrink-0 px-3 pt-3 pb-2 sticky top-0 z-40 bg-gradient-to-b from-slate-50 to-transparent">
+      {lastUserQuestion && messages.length > 0 && (
+        <div className="flex-shrink-0 px-3 pt-3 pb-2 sticky top-0 z-40 bg-slate-50">
           <div className="flex justify-end">
-            <div className="max-w-[280px] backdrop-blur-xl bg-white/70 border-2 border-white/50 rounded-xl shadow-lg p-3">
+            <div className="max-w-[300px] backdrop-blur-xl bg-white/90 border-2 border-blue-200 rounded-xl shadow-lg p-3">
               <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-700">Your Question</div>
+                <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse" />
+                <div className="text-xs font-bold uppercase tracking-wider text-blue-600">Your Question</div>
               </div>
-              <div className="text-sm font-semibold text-slate-900 leading-snug line-clamp-3">{lastUserQuestion}</div>
+              <div className="text-sm font-semibold text-slate-900 leading-snug">{lastUserQuestion}</div>
             </div>
           </div>
         </div>
       )}
 
       {!showPromptLibrary && messages.length > 0 && (
-        <div className="flex-shrink-0 px-3 pb-2 sticky top-16 z-30 bg-gradient-to-b from-transparent to-transparent">
+        <div className="flex-shrink-0 px-3 pb-2 bg-slate-50">
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setShowPromptLibrary(true)}

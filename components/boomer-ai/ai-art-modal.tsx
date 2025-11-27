@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Sparkles, Download, Loader2, Palette, ImageIcon, Brain, Maximize2 } from "lucide-react"
+import { X, Sparkles, Download, Loader2, Palette, ImageIcon, Brain, Maximize2, AlertTriangle, Home } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useUser } from "@/contexts/user-context"
+import { containsProhibitedContent, SAFETY_MESSAGE } from "@/lib/content-moderation"
 
 interface AiArtModalProps {
   isOpen: boolean
@@ -30,6 +31,8 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showSafetyModal, setShowSafetyModal] = useState(false)
+  const [safetyMessage, setSafetyMessage] = useState("")
   const [currentTip, setCurrentTip] = useState("")
   const [remainingGenerations, setRemainingGenerations] = useState(DAILY_LIMIT)
   const [isImprovingPrompt, setIsImprovingPrompt] = useState(false)
@@ -52,6 +55,13 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
   const generateImage = async () => {
     if (!prompt.trim() || remainingGenerations <= 0) return
 
+    const moderationResult = containsProhibitedContent(prompt)
+    if (moderationResult.isProhibited) {
+      setSafetyMessage(SAFETY_MESSAGE)
+      setShowSafetyModal(true)
+      return
+    }
+
     setIsGenerating(true)
     setError(null)
     setGeneratedImage(null)
@@ -63,11 +73,24 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
         body: JSON.stringify({ prompt: `sketch style, pencil drawing: ${prompt}` }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error("Failed to generate image")
+        setSafetyMessage(data.error || "This request could not be completed. Please try something else.")
+        setShowSafetyModal(true)
+        setIsGenerating(false)
+        return
       }
 
-      const data = await response.json()
+      if (!data.imageUrl) {
+        setSafetyMessage(
+          "This request could not be completed at this time. Please try again or describe something different.",
+        )
+        setShowSafetyModal(true)
+        setIsGenerating(false)
+        return
+      }
+
       setGeneratedImage(data.imageUrl)
 
       await saveImage(data.imageUrl, prompt)
@@ -82,7 +105,10 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
 
       setCurrentTip(ART_TIPS[Math.floor(Math.random() * ART_TIPS.length)])
     } catch (err) {
-      setError("Failed to generate image. Please try again.")
+      setSafetyMessage(
+        "This request could not be completed at this time due to technical limitations. Please try again or describe something different.",
+      )
+      setShowSafetyModal(true)
       console.error("Image generation error:", err)
     } finally {
       setIsGenerating(false)
@@ -131,13 +157,49 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
     setPrompt("")
     setGeneratedImage(null)
     setError(null)
+    setShowSafetyModal(false)
     onClose()
+  }
+
+  const handleSafetyModalDismiss = () => {
+    setShowSafetyModal(false)
+    setSafetyMessage("")
+    setPrompt("")
   }
 
   if (!isOpen) return null
 
   return (
     <>
+      {showSafetyModal && (
+        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-center mb-4">
+              <div className="p-3 bg-amber-100 rounded-full">
+                <AlertTriangle className="w-8 h-8 text-amber-600" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 text-center mb-3">Request Not Completed</h3>
+            <p className="text-base text-slate-600 text-center mb-6 leading-relaxed">{safetyMessage}</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleSafetyModalDismiss}
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg touch-manipulation active:scale-95"
+              >
+                Try Something Else
+              </button>
+              <button
+                onClick={handleClose}
+                className="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold text-base hover:bg-slate-200 transition-all flex items-center justify-center gap-2 touch-manipulation active:scale-95"
+              >
+                <Home className="w-5 h-5" />
+                Return to Menu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           {/* Header */}
@@ -155,7 +217,7 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
             </div>
             <button
               onClick={handleClose}
-              className="p-2 text-slate-600 hover:bg-white/50 rounded-full transition-colors"
+              className="p-2 text-slate-600 hover:bg-white/50 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
             >
               <X className="w-6 h-6" />
             </button>
@@ -173,7 +235,7 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
                   You've created {DAILY_LIMIT} amazing artworks today! Come back tomorrow for more.
                 </p>
                 <p className="text-sm text-purple-600 font-semibold">
-                  +{userProfile.dailyArtCount * 3} stars earned today! ⭐
+                  +{userProfile.dailyArtCount * 3} stars earned today!
                 </p>
               </div>
             ) : (
@@ -201,7 +263,7 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
                     <button
                       onClick={improvePrompt}
                       disabled={!prompt.trim() || isGenerating || isImprovingPrompt}
-                      className="absolute bottom-3 right-3 p-2 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+                      className="absolute bottom-3 right-3 p-2 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
                       title="AI Help - Improve your prompt"
                     >
                       {isImprovingPrompt ? <Loader2 className="w-5 h-5 animate-spin" /> : <Brain className="w-5 h-5" />}
@@ -217,7 +279,7 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
                 <button
                   onClick={generateImage}
                   disabled={!prompt.trim() || isGenerating}
-                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 mb-4"
+                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 mb-4 min-h-[56px] touch-manipulation active:scale-95"
                 >
                   {isGenerating ? (
                     <>
@@ -227,7 +289,7 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
                   ) : (
                     <>
                       <Sparkles className="w-6 h-6" />
-                      Generate Art (+3 ⭐)
+                      Generate Art (+3 Stars)
                     </>
                   )}
                 </button>
@@ -257,7 +319,7 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
                     <div className="mt-4 flex gap-3">
                       <button
                         onClick={downloadImage}
-                        className="flex-1 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-md"
+                        className="flex-1 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-md min-h-[48px] touch-manipulation active:scale-95"
                       >
                         <Download className="w-5 h-5" />
                         Download
@@ -268,7 +330,7 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
                           setPrompt("")
                           setCurrentTip(ART_TIPS[Math.floor(Math.random() * ART_TIPS.length)])
                         }}
-                        className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors shadow-md"
+                        className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors shadow-md min-h-[48px] touch-manipulation active:scale-95"
                       >
                         Create Another
                       </button>
@@ -302,7 +364,7 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
         >
           <button
             onClick={() => setShowFullImage(false)}
-            className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-10"
+            className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-10 min-h-[48px] min-w-[48px] flex items-center justify-center touch-manipulation"
           >
             <X className="w-6 h-6" />
           </button>
@@ -311,7 +373,7 @@ export function AiArtModal({ isOpen, onClose, userProfile, updateProfile }: AiAr
               e.stopPropagation()
               downloadImage()
             }}
-            className="absolute bottom-4 right-4 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-colors flex items-center gap-2 shadow-lg z-10"
+            className="absolute bottom-4 right-4 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-colors flex items-center gap-2 shadow-lg z-10 min-h-[48px] touch-manipulation active:scale-95"
           >
             <Download className="w-5 h-5" />
             Download
