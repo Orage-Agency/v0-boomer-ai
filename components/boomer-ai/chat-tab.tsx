@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, X, ChevronDown, ChevronUp, Lightbulb, Star } from "lucide-react"
+import { Sparkles, X, ChevronDown, ChevronUp, Lightbulb, Star, RefreshCw, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -179,8 +179,10 @@ export function ChatTab({
   const [lastUserQuestion, setLastUserQuestion] = useState<string>("")
   const [showStarAnimation, setShowStarAnimation] = useState(false)
   const prevStarsRef = useRef(userProfile.stars)
+  const [chatError, setChatError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
 
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const { messages, sendMessage, status, setMessages, error, reload } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
@@ -189,7 +191,34 @@ export function ChatTab({
       capturedImage: capturedImage || undefined,
       conversationId: conversationId || undefined,
     },
+    onError: (error) => {
+      console.error("[v0] Chat error:", error)
+      setChatError("Something went wrong. Tap retry to try again.")
+    },
+    onFinish: () => {
+      setChatError(null)
+      setRetryCount(0)
+    },
   })
+
+  const safeSendMessage = useCallback(
+    async (text: string) => {
+      setChatError(null)
+      try {
+        await sendMessage({ text })
+      } catch (err) {
+        console.error("[v0] Send message error:", err)
+        setChatError("Failed to send message. Please try again.")
+      }
+    },
+    [sendMessage],
+  )
+
+  const handleRetry = useCallback(() => {
+    setChatError(null)
+    setRetryCount((prev) => prev + 1)
+    reload()
+  }, [reload])
 
   useEffect(() => {
     const scrollToBottom = () => {
@@ -199,7 +228,6 @@ export function ChatTab({
     }
 
     scrollToBottom()
-
     const timeoutId = setTimeout(scrollToBottom, 100)
 
     if (messages.length > 0) {
@@ -245,9 +273,8 @@ export function ChatTab({
 
   useEffect(() => {
     if (pendingChatPrompt) {
-      sendMessage({
-        text: pendingChatPrompt,
-      })
+      setLastUserQuestion(pendingChatPrompt)
+      safeSendMessage(pendingChatPrompt)
       setPendingChatPrompt(null)
 
       const newStars = userProfile.stars + 1
@@ -255,7 +282,38 @@ export function ChatTab({
         stars: newStars,
       })
     }
-  }, [pendingChatPrompt])
+  }, [pendingChatPrompt, safeSendMessage])
+
+  useEffect(() => {
+    if (pendingMessage) {
+      setLastUserQuestion(pendingMessage)
+      safeSendMessage(pendingMessage)
+      setPendingMessage(null)
+
+      if (messages.length === 0 && !userProfile.badges.includes("First Chat")) {
+        const newStars = userProfile.stars + 10
+        updateProfile({
+          stars: newStars,
+          badges: [...userProfile.badges, "First Chat"],
+        })
+      } else {
+        const newStars = userProfile.stars + 1
+        updateProfile({
+          stars: newStars,
+        })
+      }
+    }
+  }, [pendingMessage, safeSendMessage])
+
+  useEffect(() => {
+    if (userProfile.stars > prevStarsRef.current) {
+      setShowStarAnimation(true)
+      const timer = setTimeout(() => setShowStarAnimation(false), 1500)
+      prevStarsRef.current = userProfile.stars
+      return () => clearTimeout(timer)
+    }
+    prevStarsRef.current = userProfile.stars
+  }, [userProfile.stars])
 
   const loadConversation = async (id: string) => {
     try {
@@ -304,44 +362,9 @@ export function ChatTab({
     }
   }
 
-  useEffect(() => {
-    if (pendingMessage) {
-      sendMessage({
-        text: pendingMessage,
-      })
-
-      setPendingMessage(null)
-
-      if (messages.length === 0 && !userProfile.badges.includes("First Chat")) {
-        const newStars = userProfile.stars + 10
-        updateProfile({
-          stars: newStars,
-          badges: [...userProfile.badges, "First Chat"],
-        })
-      } else {
-        const newStars = userProfile.stars + 1
-        updateProfile({
-          stars: newStars,
-        })
-      }
-    }
-  }, [pendingMessage])
-
-  useEffect(() => {
-    if (userProfile.stars > prevStarsRef.current) {
-      setShowStarAnimation(true)
-      const timer = setTimeout(() => setShowStarAnimation(false), 1500)
-      prevStarsRef.current = userProfile.stars
-      return () => clearTimeout(timer)
-    }
-    prevStarsRef.current = userProfile.stars
-  }, [userProfile.stars])
-
   const handlePromptClick = (promptText: string) => {
-    console.log("[v0] Prompt clicked:", promptText)
-    sendMessage({
-      text: promptText,
-    })
+    setLastUserQuestion(promptText)
+    safeSendMessage(promptText)
     setShowPromptLibrary(false)
 
     if (!userProfile.badges.includes("Prompt Explorer")) {
@@ -388,6 +411,24 @@ export function ChatTab({
           <div className="flex items-center gap-1 bg-yellow-100 border-2 border-yellow-400 rounded-full px-3 py-1.5 shadow-lg">
             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 animate-pulse" />
             <span className="text-sm font-bold text-yellow-700">+1</span>
+          </div>
+        </div>
+      )}
+
+      {chatError && (
+        <div className="flex-shrink-0 px-3 pt-2">
+          <div className="flex items-center justify-between bg-red-50 border-2 border-red-200 rounded-xl p-3">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              <span className="text-sm text-red-700 font-medium">{chatError}</span>
+            </div>
+            <button
+              onClick={handleRetry}
+              className="flex items-center gap-1 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-semibold rounded-full transition-colors touch-manipulation active:scale-95 min-h-[36px]"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </button>
           </div>
         </div>
       )}
@@ -518,19 +559,22 @@ export function ChatTab({
                 </div>
               </div>
             ))}
-            {status === "streaming" && (
+            {(status === "streaming" || status === "submitted") && (
               <div className="flex justify-start">
                 <div className="bg-slate-50 border-2 border-slate-200 p-3 sm:p-4 rounded-2xl shadow-md">
-                  <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
-                    <span
-                      className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                      style={{ animationDelay: "150ms" }}
-                    />
-                    <span
-                      className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                      style={{ animationDelay: "300ms" }}
-                    />
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
+                      <span
+                        className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      />
+                      <span
+                        className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      />
+                    </div>
+                    <span className="text-xs text-slate-500 ml-1">Thinking...</span>
                   </div>
                 </div>
               </div>
