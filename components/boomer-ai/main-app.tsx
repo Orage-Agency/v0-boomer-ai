@@ -190,8 +190,7 @@ export function MainApp({ userProfile, updateProfile, onLogout, onDeleteAccount 
   useEffect(() => {
     const currentMilestone = Math.floor(userProfile.stars / 5) * 5
     if (currentMilestone > lastMilestone && currentMilestone > 0) {
-      // Only show celebration if user is NOT in the chat
-      if (activeTab !== "chat") {
+      if (activeTab !== "chat" && activeTab !== "voice") {
         setCelebrationStars(5)
         setShowCelebration(true)
       }
