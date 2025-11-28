@@ -13,6 +13,7 @@ export function GalleryTab() {
     const link = document.createElement("a")
     link.href = imageUrl
     link.download = `boomer-ai-art-${Date.now()}.png`
+    link.target = "_blank"
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -75,7 +76,7 @@ export function GalleryTab() {
             {gallery.map((image) => (
               <div
                 key={image.id}
-                className="relative group rounded-xl overflow-hidden shadow-lg border border-slate-200 bg-white"
+                className="relative rounded-xl overflow-hidden shadow-lg border border-slate-200 bg-white"
               >
                 <img
                   src={image.imageUrl || "/placeholder.svg"}
@@ -84,24 +85,23 @@ export function GalleryTab() {
                   onClick={() => setSelectedImage(image.id)}
                 />
 
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                <div className="absolute top-2 right-2 flex gap-1.5">
                   <button
-                    onClick={() => setSelectedImage(image.id)}
-                    className="p-2 bg-white/90 rounded-full shadow-lg hover:bg-white transition-colors"
-                  >
-                    <Maximize2 className="w-5 h-5 text-slate-700" />
-                  </button>
-                  <button
-                    onClick={() => handleDownload(image.imageUrl, image.prompt)}
-                    className="p-2 bg-green-500 rounded-full shadow-lg hover:bg-green-600 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDownload(image.imageUrl, image.prompt)
+                    }}
+                    className="p-2.5 bg-green-500 rounded-full shadow-lg hover:bg-green-600 transition-colors touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
                   >
                     <Download className="w-5 h-5 text-white" />
                   </button>
                   <button
-                    onClick={() => handleDelete(image.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(image.id)
+                    }}
                     disabled={deletingId === image.id}
-                    className="p-2 bg-red-500 rounded-full shadow-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+                    className="p-2.5 bg-red-500 rounded-full shadow-lg hover:bg-red-600 transition-colors disabled:opacity-50 touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
                   >
                     {deletingId === image.id ? (
                       <Loader2 className="w-5 h-5 text-white animate-spin" />
@@ -111,8 +111,15 @@ export function GalleryTab() {
                   </button>
                 </div>
 
+                <button
+                  onClick={() => setSelectedImage(image.id)}
+                  className="absolute bottom-2 left-2 p-2 bg-white/90 rounded-full shadow-lg hover:bg-white transition-colors touch-manipulation active:scale-95 min-h-[40px] min-w-[40px] flex items-center justify-center"
+                >
+                  <Maximize2 className="w-4 h-4 text-slate-700" />
+                </button>
+
                 {/* Prompt caption */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-8">
                   <p className="text-xs text-white line-clamp-2">{image.prompt}</p>
                 </div>
               </div>
@@ -129,7 +136,7 @@ export function GalleryTab() {
         >
           <button
             onClick={() => setSelectedImage(null)}
-            className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-10"
+            className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-10 min-h-[48px] min-w-[48px] flex items-center justify-center touch-manipulation"
           >
             <X className="w-6 h-6" />
           </button>
@@ -143,20 +150,18 @@ export function GalleryTab() {
                 <img
                   src={image.imageUrl || "/placeholder.svg"}
                   alt={image.prompt}
-                  className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl"
                   onClick={(e) => e.stopPropagation()}
                 />
-                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                  <p className="text-white text-sm bg-black/50 px-3 py-2 rounded-lg max-w-[60%] line-clamp-2">
-                    {image.prompt}
-                  </p>
+                <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-3">
+                  <p className="text-white text-sm bg-black/50 px-3 py-2 rounded-lg line-clamp-2">{image.prompt}</p>
                   <div className="flex gap-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDownload(image.imageUrl, image.prompt)
                       }}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold flex items-center gap-2"
+                      className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2 min-h-[48px] touch-manipulation active:scale-95"
                     >
                       <Download className="w-5 h-5" />
                       Download
@@ -167,7 +172,7 @@ export function GalleryTab() {
                         handleDelete(image.id)
                         setSelectedImage(null)
                       }}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold flex items-center gap-2"
+                      className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2 min-h-[48px] touch-manipulation active:scale-95"
                     >
                       <Trash2 className="w-5 h-5" />
                       Delete

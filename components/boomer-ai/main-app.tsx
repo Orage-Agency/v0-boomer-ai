@@ -35,7 +35,6 @@ import type { UserProfile } from "@/app/page"
 interface MainAppProps {
   userProfile: UserProfile
   updateProfile: (updates: Partial<UserProfile>) => void
-  onReset: () => void
   onLogout?: () => void
   onDeleteAccount?: () => void
 }
@@ -51,7 +50,7 @@ const REWARD_LEARNING_PROMPTS = [
   "What's something amazing AI can do that sounds like science fiction?",
 ]
 
-export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDeleteAccount }: MainAppProps) {
+export function MainApp({ userProfile, updateProfile, onLogout, onDeleteAccount }: MainAppProps) {
   const [activeTab, setActiveTab] = useState<
     "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play" | "gallery"
   >("home")
@@ -191,11 +190,14 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
   useEffect(() => {
     const currentMilestone = Math.floor(userProfile.stars / 5) * 5
     if (currentMilestone > lastMilestone && currentMilestone > 0) {
-      setCelebrationStars(5)
-      setShowCelebration(true)
+      // Only show celebration if user is NOT in the chat
+      if (activeTab !== "chat") {
+        setCelebrationStars(5)
+        setShowCelebration(true)
+      }
       setLastMilestone(currentMilestone)
     }
-  }, [userProfile.stars, lastMilestone])
+  }, [userProfile.stars, lastMilestone, activeTab])
 
   useEffect(() => {
     setStarPop(true)
@@ -226,6 +228,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
   const handleSendMessage = () => {
     if (!inputValue.trim()) return
 
+    console.log("[v0] Sending message from main app:", inputValue)
     setPendingMessage(inputValue)
     setInputValue("")
     setActiveTab("chat")
@@ -331,7 +334,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
                 onClick={() => {
                   if (confirm("Are you sure you want to start over? This will reset your onboarding progress.")) {
                     setIsMenuOpen(false)
-                    onReset()
+                    // onReset()
                   }
                 }}
                 className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-orange-50 transition-colors text-left min-h-[44px] touch-manipulation"
@@ -471,7 +474,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
         {activeTab === "profile" && (
           <ProfileView
             userProfile={userProfile}
-            onReset={onReset}
+            onReset={() => {}}
             onBack={() => setActiveTab("home")}
             onLogout={onLogout}
             onDeleteAccount={onDeleteAccount}

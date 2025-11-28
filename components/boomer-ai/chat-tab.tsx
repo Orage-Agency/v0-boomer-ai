@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, X, ChevronDown, ChevronUp, Lightbulb } from "lucide-react"
+import { Sparkles, X, ChevronDown, ChevronUp, Lightbulb, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -177,6 +177,8 @@ export function ChatTab({
   const conversationLoadedRef = useRef(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [lastUserQuestion, setLastUserQuestion] = useState<string>("")
+  const [showStarAnimation, setShowStarAnimation] = useState(false)
+  const prevStarsRef = useRef(userProfile.stars)
 
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
@@ -325,7 +327,18 @@ export function ChatTab({
     }
   }, [pendingMessage])
 
+  useEffect(() => {
+    if (userProfile.stars > prevStarsRef.current) {
+      setShowStarAnimation(true)
+      const timer = setTimeout(() => setShowStarAnimation(false), 1500)
+      prevStarsRef.current = userProfile.stars
+      return () => clearTimeout(timer)
+    }
+    prevStarsRef.current = userProfile.stars
+  }, [userProfile.stars])
+
   const handlePromptClick = (promptText: string) => {
+    console.log("[v0] Prompt clicked:", promptText)
     sendMessage({
       text: promptText,
     })
@@ -369,7 +382,16 @@ export function ChatTab({
   }
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-slate-50 to-white">
+    <div className="flex flex-col h-full bg-gradient-to-b from-slate-50 to-white relative">
+      {showStarAnimation && (
+        <div className="absolute top-4 right-4 z-50 animate-in fade-in zoom-in duration-300">
+          <div className="flex items-center gap-1 bg-yellow-100 border-2 border-yellow-400 rounded-full px-3 py-1.5 shadow-lg">
+            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 animate-pulse" />
+            <span className="text-sm font-bold text-yellow-700">+1</span>
+          </div>
+        </div>
+      )}
+
       {lastUserQuestion && messages.length > 0 && (
         <div className="flex-shrink-0 px-3 pt-3 pb-2 sticky top-0 z-40 bg-slate-50">
           <div className="flex justify-end">
