@@ -1,10 +1,9 @@
 "use client"
 
 import type React from "react"
-import { MessageSquare, Sparkles, Lightbulb, Heart, Video, Mic, X, ImageIcon, MessageCircle } from "lucide-react"
+import { MessageSquare, Lightbulb, Heart, Video, Mic, X, MessageCircle } from "lucide-react"
 import type { UserProfile } from "@/app/page"
-import { useState, useEffect, useRef } from "react"
-import { useUser } from "@/contexts/user-context"
+import { useState, useEffect } from "react"
 
 interface HomeTabProps {
   userProfile: UserProfile
@@ -13,9 +12,7 @@ interface HomeTabProps {
   onOpenLessons: () => void
   onOpenTips: () => void
   onOpenQuestions: () => void
-  onOpenArtGenerator: () => void
-  onOpenGallery: () => void
-  onOpenVoice: () => void // Add voice handler prop
+  onOpenVoice: () => void
 }
 
 const ROTATING_FEATURES = [
@@ -213,16 +210,11 @@ export function HomeTab({
   onOpenLessons,
   onOpenTips,
   onOpenQuestions,
-  onOpenArtGenerator,
-  onOpenGallery,
-  onOpenVoice, // Add voice handler
+  onOpenVoice,
 }: HomeTabProps) {
   const [dailyContentIndex, setDailyContentIndex] = useState(0)
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [expandedCard, setExpandedCard] = useState<(typeof ROTATING_FEATURES)[0] | null>(null)
   const [expandedContentIndex, setExpandedContentIndex] = useState(0)
-
-  const { galleryCount } = useUser()
 
   useEffect(() => {
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
@@ -284,26 +276,6 @@ export function HomeTab({
       action: onOpenLessons,
     },
     {
-      id: "ai-art",
-      title: "Create Art",
-      description: "AI images",
-      icon: Sparkles,
-      gradient: "from-pink-500 to-rose-600",
-      shadowColor: "shadow-pink-500/30",
-      size: "medium",
-      action: onOpenArtGenerator,
-    },
-    {
-      id: "gallery",
-      title: "Gallery",
-      description: `${galleryCount} images`,
-      icon: ImageIcon,
-      gradient: "from-violet-500 to-purple-600",
-      shadowColor: "shadow-violet-500/30",
-      size: "medium",
-      action: onOpenGallery,
-    },
-    {
       id: "tips",
       title: "Tips",
       description: "Quick help",
@@ -318,7 +290,7 @@ export function HomeTab({
       title: "Ask Me",
       description: "Anything",
       icon: MessageCircle,
-      gradient: "from-cyan-500 to-blue-600",
+      gradient: "from-cyan-500 to-blue-500",
       shadowColor: "shadow-cyan-500/30",
       size: "medium",
       action: onOpenVoice,
@@ -389,11 +361,7 @@ export function HomeTab({
       </div>
 
       <div className="flex-shrink-0 pb-2">
-        <div
-          ref={scrollContainerRef}
-          className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-5 pb-2 no-scrollbar"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
+        <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-5 pb-2 no-scrollbar">
           {ROTATING_FEATURES.map((feature) => {
             const currentContent = feature.content[dailyContentIndex % feature.content.length]
             const isPinned = (userProfile.pinnedFeatures || []).includes(feature.id)
@@ -479,48 +447,26 @@ export function HomeTab({
             <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[2].description}</p>
           </button>
 
-          {/* Create Art */}
+          {/* Tips */}
           <button
             onClick={coreFeatures[3].action}
             className={`bg-gradient-to-br ${coreFeatures[3].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[3].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
           >
             <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
-            <Sparkles className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
+            <Lightbulb className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
             <h3 className="text-lg font-black relative z-10">{coreFeatures[3].title}</h3>
             <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[3].description}</p>
           </button>
 
-          {/* Gallery */}
+          {/* Ask Me Anything - same style as Tips, positioned next to Tips under Gallery */}
           <button
             onClick={coreFeatures[4].action}
             className={`bg-gradient-to-br ${coreFeatures[4].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[4].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
           >
             <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
-            <ImageIcon className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
+            <MessageCircle className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
             <h3 className="text-lg font-black relative z-10">{coreFeatures[4].title}</h3>
             <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[4].description}</p>
-          </button>
-
-          {/* Tips */}
-          <button
-            onClick={coreFeatures[5].action}
-            className={`bg-gradient-to-br ${coreFeatures[5].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[5].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
-          >
-            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
-            <Lightbulb className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
-            <h3 className="text-lg font-black relative z-10">{coreFeatures[5].title}</h3>
-            <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[5].description}</p>
-          </button>
-
-          {/* Ask Me Anything - same style as Tips, positioned next to Tips under Gallery */}
-          <button
-            onClick={coreFeatures[6].action}
-            className={`bg-gradient-to-br ${coreFeatures[6].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[6].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
-          >
-            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
-            <MessageCircle className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
-            <h3 className="text-lg font-black relative z-10">{coreFeatures[6].title}</h3>
-            <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[6].description}</p>
           </button>
         </div>
       </div>

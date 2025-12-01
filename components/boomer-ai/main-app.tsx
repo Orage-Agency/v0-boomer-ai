@@ -23,13 +23,11 @@ import { ChatTab } from "./chat-tab"
 import { LessonsTab } from "./lessons-tab"
 import { ProfileView } from "./profile-view"
 import { TipsTab } from "./tips-tab"
-import { AiArtModal } from "./ai-art-modal"
 import { ChatHistoryView } from "./chat-history-view"
 import { QuestionsTab } from "./questions-tab"
 import { VoiceChatTab } from "./voice-chat-tab"
 import { PlayTab } from "./play-tab"
 import { CelebrationModal } from "./celebration-modal"
-import { GalleryTab } from "./gallery-tab"
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
@@ -52,7 +50,7 @@ const REWARD_LEARNING_PROMPTS = [
 
 export function MainApp({ userProfile, updateProfile, onLogout, onDeleteAccount }: MainAppProps) {
   const [activeTab, setActiveTab] = useState<
-    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play" | "gallery"
+    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play"
   >("home")
   const [inputValue, setInputValue] = useState("")
   const [isListening, setIsListening] = useState(false)
@@ -62,7 +60,6 @@ export function MainApp({ userProfile, updateProfile, onLogout, onDeleteAccount 
   const menuRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [pendingMessage, setPendingMessage] = useState<string | null>(null)
-  const [isArtGeneratorOpen, setIsArtGeneratorOpen] = useState(false)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | null>(null)
@@ -439,9 +436,7 @@ export function MainApp({ userProfile, updateProfile, onLogout, onDeleteAccount 
             onOpenLessons={() => setActiveTab("lessons")}
             onOpenTips={() => setActiveTab("tips")}
             onOpenQuestions={() => setActiveTab("questions")}
-            onOpenArtGenerator={() => setIsArtGeneratorOpen(true)}
-            onOpenGallery={() => setActiveTab("gallery")}
-            onOpenVoice={() => setActiveTab("voice")} // Add voice handler
+            onOpenVoice={() => setActiveTab("voice")}
           />
         )}
 
@@ -498,8 +493,6 @@ export function MainApp({ userProfile, updateProfile, onLogout, onDeleteAccount 
         )}
 
         {activeTab === "play" && <PlayTab userProfile={userProfile} updateProfile={updateProfile} />}
-
-        {activeTab === "gallery" && <GalleryTab />}
       </main>
 
       <div className="flex-shrink-0 px-4 py-3 bg-white border-t border-slate-100 z-30 pb-safe">
@@ -581,13 +574,6 @@ export function MainApp({ userProfile, updateProfile, onLogout, onDeleteAccount 
           ))}
         </div>
       </nav>
-
-      <AiArtModal
-        isOpen={isArtGeneratorOpen}
-        onClose={() => setIsArtGeneratorOpen(false)}
-        userProfile={userProfile}
-        updateProfile={updateProfile}
-      />
     </div>
   )
 }
