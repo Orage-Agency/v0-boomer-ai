@@ -33,6 +33,7 @@ import type { UserProfile } from "@/app/page"
 interface MainAppProps {
   userProfile: UserProfile
   updateProfile: (updates: Partial<UserProfile>) => void
+  onReset?: () => void
   onLogout?: () => void
   onDeleteAccount?: () => void
 }
@@ -48,7 +49,7 @@ const REWARD_LEARNING_PROMPTS = [
   "What's something amazing AI can do that sounds like science fiction?",
 ]
 
-export function MainApp({ userProfile, updateProfile, onLogout, onDeleteAccount }: MainAppProps) {
+export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDeleteAccount }: MainAppProps) {
   const [activeTab, setActiveTab] = useState<
     "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play"
   >("home")
@@ -330,7 +331,9 @@ export function MainApp({ userProfile, updateProfile, onLogout, onDeleteAccount 
                 onClick={() => {
                   if (confirm("Are you sure you want to start over? This will reset your onboarding progress.")) {
                     setIsMenuOpen(false)
-                    // onReset()
+                    if (onReset) {
+                      onReset()
+                    }
                   }
                 }}
                 className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-orange-50 transition-colors text-left min-h-[44px] touch-manipulation"
@@ -468,7 +471,7 @@ export function MainApp({ userProfile, updateProfile, onLogout, onDeleteAccount 
         {activeTab === "profile" && (
           <ProfileView
             userProfile={userProfile}
-            onReset={() => {}}
+            onReset={onReset}
             onBack={() => setActiveTab("home")}
             onLogout={onLogout}
             onDeleteAccount={onDeleteAccount}
