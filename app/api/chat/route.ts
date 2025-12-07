@@ -1,6 +1,7 @@
 import { consumeStream, convertToModelMessages, streamText, type UIMessage } from "ai"
+import { containsProhibitedContent } from "@/lib/content-moderation"
 
-export const maxDuration = 60 // Increased timeout for longer responses
+export const maxDuration = 60
 
 export async function POST(req: Request) {
   try {
@@ -17,18 +18,34 @@ export async function POST(req: Request) {
       })
     }
 
-    console.log("[v0] Chat API - Model:", model)
-    console.log("[v0] Chat API - Messages count:", messages.length)
-    console.log("[v0] Chat API - Has captured image:", !!capturedImage)
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage?.role === "user") {
+      const messageText =
+        typeof lastMessage.content === "string" ? lastMessage.content : lastMessage.content?.[0]?.text || ""
+
+      const { isProhibited } = containsProhibitedContent(messageText)
+      if (isProhibited) {
+        return new Response(
+          JSON.stringify({
+            error: "content_blocked",
+            message: "I can't help with that request. Please ask me something else about technology or AI!",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        )
+      }
+    }
 
     let processedMessages = messages
     if (capturedImage && messages.length > 0) {
-      const lastMessage = messages[messages.length - 1]
-      if (lastMessage.role === "user") {
+      const lastMsg = messages[messages.length - 1]
+      if (lastMsg.role === "user") {
         processedMessages = [
           ...messages.slice(0, -1),
           {
-            ...lastMessage,
+            ...lastMsg,
             content: [
               {
                 type: "image" as const,
@@ -36,13 +53,11 @@ export async function POST(req: Request) {
               },
               {
                 type: "text" as const,
-                text:
-                  typeof lastMessage.content === "string" ? lastMessage.content : lastMessage.content[0]?.text || "",
+                text: typeof lastMsg.content === "string" ? lastMsg.content : lastMsg.content[0]?.text || "",
               },
             ],
           },
         ]
-        console.log("[v0] Added image to last user message")
       }
     }
 
@@ -51,7 +66,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: model,
       system:
-        "You are a friendly and helpful AI companion named Boomer AI. You specialize in helping older adults learn about and use technology. Always provide clear, concise, and easy-to-understand answers. Be patient, encouraging, and supportive. When explaining technical concepts, use simple language and relatable examples. Break down complex topics into simple steps. When analyzing images, describe what you see in detail and provide helpful context about what's in the image, what it might be used for, and any relevant information that would be helpful to someone learning about technology.",
+        "You are a friendly and helpful AI companion named Boomer AI. You specialize in helping older adults learn about and use technology. Always provide clear, concise, and easy-to-understand answers. Be patient, encouraging, and supportive. When explaining technical concepts, use simple language and relatable examples. Break down complex topics into simple steps. When analyzing images, describe what you see in detail and provide helpful context. You must refuse any requests for inappropriate, harmful, violent, sexual, or illegal content.",
       messages: prompt,
       abortSignal: req.signal,
     })
@@ -60,7 +75,7 @@ export async function POST(req: Request) {
       consumeSseStream: consumeStream,
     })
   } catch (error) {
-    console.error("[v0] Chat API error:", error)
+    console.error("Chat API error:", error)
     return new Response(JSON.stringify({ error: "Failed to process chat request" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

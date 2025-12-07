@@ -1,11 +1,12 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
+import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { UserProvider } from "@/contexts/user-context"
 import "./globals.css"
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
 export const metadata: Metadata = {
   title: "Boomer AI - Learn AI at Your Own Pace",
@@ -21,6 +22,11 @@ export const metadata: Metadata = {
     telephone: false,
   },
   manifest: "/manifest.json",
+  keywords: ["AI", "learning", "technology", "education", "assistant"],
+  authors: [{ name: "Orage Agency", url: "https://orage.agency" }],
+  creator: "Orage Agency",
+  publisher: "Orage Agency",
+  robots: "index, follow",
 }
 
 export const viewport: Viewport = {
@@ -45,7 +51,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="apple-touch-icon" href="/boomer-ai-logo.png" />
       </head>
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
+      <body className={`font-sans ${inter.variable} antialiased`}>
         <UserProvider>
           <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
             {children}
