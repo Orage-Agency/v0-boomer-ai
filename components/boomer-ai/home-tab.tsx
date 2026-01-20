@@ -1,203 +1,164 @@
 "use client"
 
 import type React from "react"
-import { MessageSquare, Lightbulb, Heart, Video, Mic, X, MessageCircle } from "lucide-react"
+import { MessageSquare, Lightbulb, Heart, Video, Mic, X, MessageCircle, Palette, Gamepad2 } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useState, useEffect } from "react"
 
 interface HomeTabProps {
   userProfile: UserProfile
   updateProfile: (updates: Partial<UserProfile>) => void
-  onStartChat: () => void
+  onStartChat: (prompt?: string) => void
   onOpenLessons: () => void
   onOpenTips: () => void
   onOpenQuestions: () => void
   onOpenVoice: () => void
+  onOpenAiArt: () => void
+  onOpenGames: () => void
 }
 
 const ROTATING_FEATURES = [
   {
-    id: "whats-new",
+    id: "create-images",
     type: "What's New",
-    icon: "✨",
+    icon: "🎨",
     gradient: "from-purple-500 via-pink-500 to-red-500",
     fullScreenBg: "from-purple-600 via-pink-600 to-red-600",
+    action: "ai-art",
     content: [
-      "New Voice Assistant: Talk to AI hands-free!",
-      "Daily Discoveries: Learn something new every day!",
-      "Video Lessons: Step-by-step AI tutorials!",
-      "Smart Tips: Quick tricks to use AI better!",
+      "Create beautiful AI images with just words!",
+      "Turn your ideas into stunning artwork!",
+      "Design landscapes, portraits, and more!",
+      "Express yourself through AI art!",
     ],
     expandedContent: [
       {
-        title: "Voice Assistant is Here!",
-        description:
-          "Simply tap the avatar and start talking. No typing needed - just have a natural conversation with AI!",
-        cta: "Try Voice Chat",
+        title: "Create Amazing Images!",
+        description: "Just describe what you want to see, and AI will create beautiful artwork for you in seconds!",
+        cta: "Create Art Now",
       },
       {
-        title: "Daily Discoveries Await!",
-        description: "Every day brings a new AI exploration. Ask questions you've always wondered about!",
-        cta: "Start Exploring",
+        title: "Turn Ideas Into Art!",
+        description: "Have an image in your mind? Describe it and watch AI bring it to life!",
+        cta: "Start Creating",
       },
       {
-        title: "Video Lessons Ready!",
-        description: "Watch step-by-step tutorials designed specifically for you. Learn at your own pace!",
-        cta: "Watch Now",
+        title: "Design Beautiful Scenes!",
+        description: "Create landscapes, portraits, still life, and more with simple descriptions!",
+        cta: "Try It Now",
       },
       {
-        title: "Smart Tips Daily!",
-        description: "Quick, actionable tips to make AI work better for you. New tips every day!",
-        cta: "See Tips",
+        title: "Express Yourself!",
+        description: "AI art is a new way to express your creativity. No drawing skills needed!",
+        cta: "Make Art",
       },
     ],
   },
   {
-    id: "daily-discovery",
-    type: "Today's Discovery",
-    icon: "🎯",
-    gradient: "from-yellow-400 via-orange-400 to-pink-400",
-    fullScreenBg: "from-yellow-500 via-orange-500 to-pink-500",
+    id: "play-games",
+    type: "Fun & Games",
+    icon: "🎮",
+    gradient: "from-green-400 via-teal-400 to-cyan-400",
+    fullScreenBg: "from-green-500 via-teal-500 to-cyan-500",
+    action: "games",
     content: [
-      "Let's ask AI how to make a cherry cobbler gluten-free!",
-      "Tell me about the manufacturing of tires - I'm curious!",
-      "What's the history behind my favorite old TV shows?",
-      "How do microwave ovens actually work?",
-      "Teach me about the Northern Lights - why do they happen?",
-      "What makes bread rise? I'd love to know the science!",
-      "How did people navigate before GPS?",
-      "What's the story behind my birthstone?",
+      "Play Tech Collector and earn stars!",
+      "New game: Collect items and learn AI!",
+      "Fun way to earn rewards while playing!",
+      "Challenge yourself with our mini games!",
     ],
     expandedContent: [
       {
-        title: "Gluten-Free Cherry Cobbler",
-        description:
-          "Let's discover how to make a delicious cherry cobbler that everyone can enjoy, with easy substitutions!",
-        cta: "Ask AI Now",
+        title: "Tech Collector Game!",
+        description: "Move your robot to collect tech items and earn stars! Simple, fun, and rewarding!",
+        cta: "Play Now",
       },
       {
-        title: "The World of Tires",
-        description: "Ever wondered how rubber becomes the tires on your car? Let's explore this fascinating process!",
-        cta: "Learn More",
+        title: "Learn While Playing!",
+        description: "Our games are designed to be fun while teaching you about technology!",
+        cta: "Start Playing",
       },
       {
-        title: "TV Show History",
-        description: "Take a trip down memory lane and discover the stories behind your favorite classic shows!",
-        cta: "Explore",
+        title: "Earn Stars!",
+        description: "Every item you collect earns you stars. Reach milestones for bonus rewards!",
+        cta: "Play Game",
       },
       {
-        title: "Microwave Magic",
-        description:
-          "The science behind this kitchen wonder is actually quite fascinating. Let's find out how it works!",
-        cta: "Discover",
-      },
-      {
-        title: "Northern Lights Mystery",
-        description: "One of nature's most beautiful displays - learn the science behind the aurora borealis!",
-        cta: "Explore",
-      },
-      {
-        title: "The Science of Bread",
-        description: "Yeast, gluten, and chemistry combine to create the perfect loaf. Let's dive in!",
-        cta: "Learn",
-      },
-      {
-        title: "Navigation Before GPS",
-        description: "From stars to compasses to paper maps - how did people find their way?",
-        cta: "Discover",
-      },
-      {
-        title: "Your Birthstone Story",
-        description: "Each month has a special gem with its own history and meaning. What's yours?",
-        cta: "Find Out",
+        title: "Challenge Yourself!",
+        description: "How many items can you collect? Set your personal best!",
+        cta: "Accept Challenge",
       },
     ],
   },
   {
-    id: "use-ai-this-way",
-    type: "Use AI This Way",
-    icon: "💡",
-    gradient: "from-green-400 to-teal-400",
-    fullScreenBg: "from-green-500 to-teal-500",
+    id: "new-lessons",
+    type: "New Lessons",
+    icon: "📚",
+    gradient: "from-orange-400 via-red-400 to-pink-400",
+    fullScreenBg: "from-orange-500 via-red-500 to-pink-500",
+    action: "lessons",
     content: [
-      "Ask AI to plan your weekly meals",
-      "Get AI to explain your medications",
-      "Let AI help write birthday cards",
-      "Use AI for family history research",
-      "Have AI suggest gift ideas for loved ones",
-      "Ask AI about local events happening near you",
+      "New video lessons added weekly!",
+      "Learn AI at your own pace!",
+      "Step-by-step tutorials for beginners!",
+      "Master new skills with video guides!",
     ],
     expandedContent: [
       {
-        title: "Meal Planning Made Easy",
-        description: "Tell AI your preferences and dietary needs, and get a whole week of delicious meal ideas!",
-        cta: "Plan Meals",
+        title: "Fresh Lessons Weekly!",
+        description: "We add new video lessons every week to help you learn something new!",
+        cta: "Watch Lessons",
       },
       {
-        title: "Understand Your Medications",
-        description: "Ask AI to explain what your medications do in simple terms. Always consult your doctor too!",
-        cta: "Ask Now",
+        title: "Learn at Your Pace!",
+        description: "No rush - pause, rewind, and watch again as many times as you need!",
+        cta: "Start Learning",
       },
       {
-        title: "Perfect Birthday Messages",
-        description: "Let AI help you write heartfelt, personalized birthday cards for your loved ones!",
-        cta: "Write Card",
+        title: "Perfect for Beginners!",
+        description: "Our lessons are designed with you in mind - clear, simple, and easy to follow!",
+        cta: "Begin Now",
       },
       {
-        title: "Family History Research",
-        description: "AI can help you explore genealogy resources and organize your family tree!",
-        cta: "Start Research",
-      },
-      {
-        title: "Gift Ideas Generator",
-        description: "Describe the person and occasion, and AI will suggest thoughtful gift ideas!",
-        cta: "Get Ideas",
-      },
-      {
-        title: "Local Events Finder",
-        description: "Ask AI about concerts, festivals, and activities happening in your area!",
-        cta: "Find Events",
+        title: "Master New Skills!",
+        description: "From basics to advanced tips, our lessons cover everything you need!",
+        cta: "View Lessons",
       },
     ],
   },
   {
-    id: "weekly-challenge",
-    type: "Challenge of the Week",
-    icon: "🏆",
-    gradient: "from-indigo-400 to-blue-400",
-    fullScreenBg: "from-indigo-500 to-blue-500",
+    id: "chat-with-ai",
+    type: "Chat with AI",
+    icon: "💬",
+    gradient: "from-blue-400 via-indigo-400 to-purple-400",
+    fullScreenBg: "from-blue-500 via-indigo-500 to-purple-500",
+    action: "chat",
     content: [
-      "This week: Ask AI about 3 hobbies you've never tried!",
-      "Challenge: Use AI to plan a family gathering!",
-      "Try it: Ask AI to explain something you've always wondered!",
-      "Goal: Have 5 conversations with AI this week!",
-      "Mission: Discover 3 new ways AI can help your daily life!",
+      "Ask AI anything - it's here to help!",
+      "Have a friendly conversation with AI!",
+      "Get answers to all your questions!",
+      "AI is ready to chat whenever you are!",
     ],
     expandedContent: [
       {
-        title: "Explore New Hobbies!",
-        description: "Ask AI about hobbies you've always been curious about. You might find your new passion!",
-        cta: "Start Exploring",
-      },
-      {
-        title: "Plan a Family Gathering",
-        description: "Let AI help you plan the menu, activities, and logistics for a memorable family event!",
-        cta: "Start Planning",
-      },
-      {
-        title: "Satisfy Your Curiosity",
-        description: "What have you always wondered about? Space? History? Science? Ask AI anything!",
-        cta: "Ask Away",
-      },
-      {
-        title: "5 Conversations Challenge",
-        description: "Try having 5 different conversations with AI this week. Each one teaches you something new!",
+        title: "Ask Anything!",
+        description: "Curious about something? Just ask! AI is here to answer all your questions!",
         cta: "Start Chatting",
       },
       {
-        title: "AI Life Hacks",
-        description: "Discover 3 new ways AI can make your daily routine easier and more enjoyable!",
-        cta: "Discover",
+        title: "Friendly Conversation!",
+        description: "Chat naturally with AI like you're talking to a helpful friend!",
+        cta: "Chat Now",
+      },
+      {
+        title: "Get Answers Fast!",
+        description: "No waiting, no searching - just ask and get helpful answers instantly!",
+        cta: "Ask Now",
+      },
+      {
+        title: "Always Available!",
+        description: "AI is here 24/7, ready to help whenever you need it!",
+        cta: "Start Chat",
       },
     ],
   },
@@ -211,6 +172,8 @@ export function HomeTab({
   onOpenTips,
   onOpenQuestions,
   onOpenVoice,
+  onOpenAiArt,
+  onOpenGames,
 }: HomeTabProps) {
   const [dailyContentIndex, setDailyContentIndex] = useState(0)
   const [expandedCard, setExpandedCard] = useState<(typeof ROTATING_FEATURES)[0] | null>(null)
@@ -225,6 +188,26 @@ export function HomeTab({
     const contentIndex = dailyContentIndex % feature.content.length
     setExpandedContentIndex(contentIndex)
     setExpandedCard(feature)
+  }
+
+  const handleFeatureAction = (feature: (typeof ROTATING_FEATURES)[0]) => {
+    setExpandedCard(null)
+    switch (feature.action) {
+      case "ai-art":
+        onOpenAiArt()
+        break
+      case "games":
+        onOpenGames()
+        break
+      case "lessons":
+        onOpenLessons()
+        break
+      case "chat":
+        onStartChat()
+        break
+      default:
+        onStartChat()
+    }
   }
 
   const togglePin = (featureId: string, e: React.MouseEvent) => {
@@ -282,7 +265,7 @@ export function HomeTab({
       icon: Lightbulb,
       gradient: "from-emerald-500 to-teal-600",
       shadowColor: "shadow-emerald-500/30",
-      size: "medium",
+      size: "small",
       action: onOpenTips,
     },
     {
@@ -292,8 +275,28 @@ export function HomeTab({
       icon: MessageCircle,
       gradient: "from-cyan-500 to-blue-500",
       shadowColor: "shadow-cyan-500/30",
-      size: "medium",
+      size: "small",
       action: onOpenVoice,
+    },
+    {
+      id: "ai-art",
+      title: "Create Art",
+      description: "AI Images",
+      icon: Palette,
+      gradient: "from-pink-500 to-rose-600",
+      shadowColor: "shadow-pink-500/30",
+      size: "small",
+      action: onOpenAiArt,
+    },
+    {
+      id: "games",
+      title: "Games",
+      description: "Play & Learn",
+      icon: Gamepad2,
+      gradient: "from-green-500 to-emerald-600",
+      shadowColor: "shadow-green-500/30",
+      size: "small",
+      action: onOpenGames,
     },
   ]
 
@@ -334,17 +337,14 @@ export function HomeTab({
                 "Tap below to explore this with AI!"}
             </p>
 
-            <button
-              onClick={() => {
-                setExpandedCard(null)
-                onStartChat()
-              }}
-              className="px-8 py-4 bg-white text-slate-900 font-bold text-lg rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95 transition-all"
-            >
-              {expandedCard.expandedContent[expandedContentIndex % expandedCard.expandedContent.length]?.cta ||
-                "Try It Now"}{" "}
-              →
-            </button>
+<button
+  onClick={() => handleFeatureAction(expandedCard)}
+  className="px-8 py-4 bg-white text-slate-900 font-bold text-lg rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95 transition-all"
+  >
+  {expandedCard.expandedContent[expandedContentIndex % expandedCard.expandedContent.length]?.cta ||
+  "Try It Now"}{" "}
+  →
+  </button>
           </div>
 
           <div className="relative z-10 pb-8 text-center">
@@ -410,66 +410,88 @@ export function HomeTab({
         </div>
       </div>
 
-      <div className="flex-1 px-5 pb-4 overflow-hidden">
-        <div className="grid grid-cols-2 gap-3 h-full auto-rows-fr" style={{ gridTemplateRows: "repeat(4, 1fr)" }}>
-          {/* Chat - Full width */}
-          <button
-            onClick={coreFeatures[0].action}
-            className={`col-span-2 bg-gradient-to-br ${coreFeatures[0].gradient} text-white rounded-3xl p-5 shadow-xl ${coreFeatures[0].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-between border border-white/20 relative overflow-hidden`}
-          >
-            <div className="absolute -top-16 -right-16 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-            <div className="relative z-10">
-              <h3 className="text-2xl font-black mb-1">{coreFeatures[0].title}</h3>
-              <p className="text-base text-white/90 font-medium">{coreFeatures[0].description}</p>
-            </div>
-            <MessageSquare className="w-14 h-14 text-white/80 relative z-10" strokeWidth={1.5} />
-          </button>
-
-          {/* Voice */}
-          <button
-            onClick={coreFeatures[1].action}
-            className={`bg-gradient-to-br ${coreFeatures[1].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[1].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
-          >
-            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
-            <Mic className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
-            <h3 className="text-lg font-black relative z-10">{coreFeatures[1].title}</h3>
-            <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[1].description}</p>
-          </button>
-
-          {/* Videos */}
-          <button
-            onClick={coreFeatures[2].action}
-            className={`bg-gradient-to-br ${coreFeatures[2].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[2].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
-          >
-            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
-            <Video className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
-            <h3 className="text-lg font-black relative z-10">{coreFeatures[2].title}</h3>
-            <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[2].description}</p>
-          </button>
-
-          {/* Tips */}
-          <button
-            onClick={coreFeatures[3].action}
-            className={`bg-gradient-to-br ${coreFeatures[3].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[3].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
-          >
-            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
-            <Lightbulb className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
-            <h3 className="text-lg font-black relative z-10">{coreFeatures[3].title}</h3>
-            <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[3].description}</p>
-          </button>
-
-          {/* Ask Me Anything - same style as Tips, positioned next to Tips under Gallery */}
-          <button
-            onClick={coreFeatures[4].action}
-            className={`bg-gradient-to-br ${coreFeatures[4].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[4].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
-          >
-            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
-            <MessageCircle className="w-10 h-10 mb-2 relative z-10" strokeWidth={2} />
-            <h3 className="text-lg font-black relative z-10">{coreFeatures[4].title}</h3>
-            <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[4].description}</p>
-          </button>
-        </div>
-      </div>
+<div className="flex-1 px-5 pb-4 overflow-hidden">
+  <div className="grid grid-cols-2 gap-3 h-full auto-rows-fr" style={{ gridTemplateRows: "repeat(4, 1fr)" }}>
+  {/* Chat - Full width */}
+  <button
+  onClick={coreFeatures[0].action}
+  className={`col-span-2 bg-gradient-to-br ${coreFeatures[0].gradient} text-white rounded-3xl p-4 shadow-xl ${coreFeatures[0].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-between border border-white/20 relative overflow-hidden`}
+  >
+  <div className="absolute -top-16 -right-16 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+  <div className="relative z-10">
+  <h3 className="text-xl font-black mb-0.5">{coreFeatures[0].title}</h3>
+  <p className="text-sm text-white/90 font-medium">{coreFeatures[0].description}</p>
+  </div>
+  <MessageSquare className="w-12 h-12 text-white/80 relative z-10" strokeWidth={1.5} />
+  </button>
+  
+  {/* Voice */}
+  <button
+  onClick={coreFeatures[1].action}
+  className={`bg-gradient-to-br ${coreFeatures[1].gradient} text-white rounded-3xl p-3 shadow-xl ${coreFeatures[1].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
+  >
+  <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+  <Mic className="w-8 h-8 mb-1 relative z-10" strokeWidth={2} />
+  <h3 className="text-base font-black relative z-10">{coreFeatures[1].title}</h3>
+  <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[1].description}</p>
+  </button>
+  
+  {/* Videos */}
+  <button
+  onClick={coreFeatures[2].action}
+  className={`bg-gradient-to-br ${coreFeatures[2].gradient} text-white rounded-3xl p-3 shadow-xl ${coreFeatures[2].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
+  >
+  <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+  <Video className="w-8 h-8 mb-1 relative z-10" strokeWidth={2} />
+  <h3 className="text-base font-black relative z-10">{coreFeatures[2].title}</h3>
+  <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[2].description}</p>
+  </button>
+  
+  {/* Tips */}
+  <button
+  onClick={coreFeatures[3].action}
+  className={`bg-gradient-to-br ${coreFeatures[3].gradient} text-white rounded-3xl p-3 shadow-xl ${coreFeatures[3].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
+  >
+  <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+  <Lightbulb className="w-8 h-8 mb-1 relative z-10" strokeWidth={2} />
+  <h3 className="text-base font-black relative z-10">{coreFeatures[3].title}</h3>
+  <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[3].description}</p>
+  </button>
+  
+  {/* Ask Me */}
+  <button
+  onClick={coreFeatures[4].action}
+  className={`bg-gradient-to-br ${coreFeatures[4].gradient} text-white rounded-3xl p-3 shadow-xl ${coreFeatures[4].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
+  >
+  <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+  <MessageCircle className="w-8 h-8 mb-1 relative z-10" strokeWidth={2} />
+  <h3 className="text-base font-black relative z-10">{coreFeatures[4].title}</h3>
+  <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[4].description}</p>
+  </button>
+  
+  {/* Create Art */}
+  <button
+  onClick={coreFeatures[5].action}
+  className={`bg-gradient-to-br ${coreFeatures[5].gradient} text-white rounded-3xl p-3 shadow-xl ${coreFeatures[5].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
+  >
+  <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+  <Palette className="w-8 h-8 mb-1 relative z-10" strokeWidth={2} />
+  <h3 className="text-base font-black relative z-10">{coreFeatures[5].title}</h3>
+  <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[5].description}</p>
+  </button>
+  
+  {/* Games */}
+  <button
+  onClick={coreFeatures[6].action}
+  className={`bg-gradient-to-br ${coreFeatures[6].gradient} text-white rounded-3xl p-3 shadow-xl ${coreFeatures[6].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
+  >
+  <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+  <Gamepad2 className="w-8 h-8 mb-1 relative z-10" strokeWidth={2} />
+  <h3 className="text-base font-black relative z-10">{coreFeatures[6].title}</h3>
+  <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[6].description}</p>
+  </button>
+  </div>
+  </div>
     </div>
   )
 }

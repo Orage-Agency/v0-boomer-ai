@@ -28,6 +28,7 @@ import { QuestionsTab } from "./questions-tab"
 import { VoiceChatTab } from "./voice-chat-tab"
 import { PlayTab } from "./play-tab"
 import { CelebrationModal } from "./celebration-modal"
+import { AiArtModal } from "./ai-art-modal"
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
@@ -68,6 +69,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
   const [celebrationStars, setCelebrationStars] = useState(5)
   const [lastMilestone, setLastMilestone] = useState(() => Math.floor(userProfile.stars / 5) * 5)
   const [starPop, setStarPop] = useState(false)
+  const [showAiArt, setShowAiArt] = useState(false)
 
   useEffect(() => {
     if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
@@ -268,15 +270,17 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
 
   return (
     <div className="flex flex-col h-screen bg-white">
-      <CelebrationModal
-        isOpen={showCelebration}
-        onClose={() => setShowCelebration(false)}
-        onCollectReward={handleCollectReward}
-        message="Milestone Reached!"
-        starsEarned={celebrationStars}
-      />
-
-      {isMenuOpen && (
+<CelebrationModal
+  isOpen={showCelebration}
+  onClose={() => setShowCelebration(false)}
+  onCollectReward={handleCollectReward}
+  message="Milestone Reached!"
+  starsEarned={celebrationStars}
+  />
+  
+  <AiArtModal isOpen={showAiArt} onClose={() => setShowAiArt(false)} />
+  
+  {isMenuOpen && (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
 
@@ -432,15 +436,17 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
 
       <main className="flex-grow overflow-hidden flex flex-col">
         {activeTab === "home" && (
-          <HomeTab
-            userProfile={userProfile}
-            updateProfile={updateProfile}
-            onStartChat={handleStartChat}
-            onOpenLessons={() => setActiveTab("lessons")}
-            onOpenTips={() => setActiveTab("tips")}
-            onOpenQuestions={() => setActiveTab("questions")}
-            onOpenVoice={() => setActiveTab("voice")}
-          />
+<HomeTab
+  userProfile={userProfile}
+  updateProfile={updateProfile}
+  onStartChat={handleStartChat}
+  onOpenLessons={() => setActiveTab("lessons")}
+  onOpenTips={() => setActiveTab("tips")}
+  onOpenQuestions={() => setActiveTab("questions")}
+  onOpenVoice={() => setActiveTab("voice")}
+  onOpenAiArt={() => setShowAiArt(true)}
+  onOpenGames={() => setActiveTab("play")}
+  />
         )}
 
         {activeTab === "chat" && (
