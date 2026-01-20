@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { X, Wand2, Download, Share2, Loader2, AlertTriangle, ArrowLeft } from "lucide-react"
+import { X, Wand2, Download, Share2, Loader2, AlertTriangle, ArrowLeft, Sparkles } from "lucide-react"
 import { containsProhibitedContent, SAFETY_MESSAGE } from "@/lib/content-moderation"
 
 interface AiArtModalProps {
@@ -17,12 +17,12 @@ const STYLE_PRESETS = [
 ]
 
 const PROMPT_SUGGESTIONS = [
-  "A cozy cottage in a flower garden",
-  "A peaceful mountain lake at sunset",
-  "A friendly golden retriever in a park",
-  "A vintage car on a country road",
-  "A beautiful bouquet of spring flowers",
-  "A charming small town main street",
+  "A cozy cottage in a garden",
+  "A peaceful lake at sunset",
+  "A friendly dog in the park",
+  "A vintage car on the road",
+  "A bouquet of spring flowers",
+  "A charming small town",
 ]
 
 export function AiArtModal({ isOpen, onClose }: AiArtModalProps) {
@@ -38,7 +38,6 @@ export function AiArtModal({ isOpen, onClose }: AiArtModalProps) {
   const handleGenerate = async () => {
     if (!prompt.trim()) return
 
-    // Client-side content moderation
     const moderationResult = containsProhibitedContent(prompt)
     if (moderationResult.isProhibited) {
       setShowSafetyModal(true)
@@ -120,23 +119,23 @@ export function AiArtModal({ isOpen, onClose }: AiArtModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900">
+    <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800">
       {/* Safety Modal */}
       {showSafetyModal && (
-        <div className="absolute inset-0 z-60 flex items-center justify-center bg-black/80 p-6">
-          <div className="bg-white rounded-3xl p-8 max-w-sm text-center shadow-2xl">
-            <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-8 h-8 text-amber-600" />
+        <div className="absolute inset-0 z-60 flex items-center justify-center bg-black/80 p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl">
+            <div className="w-14 h-14 mx-auto mb-3 bg-amber-100 rounded-full flex items-center justify-center">
+              <AlertTriangle className="w-7 h-7 text-amber-600" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Request Not Completed</h3>
-            <p className="text-slate-600 mb-6">{SAFETY_MESSAGE}</p>
-            <div className="flex flex-col gap-3">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Request Not Completed</h3>
+            <p className="text-slate-600 text-sm mb-5">{SAFETY_MESSAGE}</p>
+            <div className="flex flex-col gap-2">
               <button
                 onClick={() => {
                   setShowSafetyModal(false)
                   setPrompt("")
                 }}
-                className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors touch-manipulation active:scale-95"
+                className="w-full min-h-[48px] py-3 bg-blue-600 text-white font-bold rounded-xl touch-manipulation active:scale-95 transition-transform"
               >
                 Try Something Else
               </button>
@@ -145,7 +144,7 @@ export function AiArtModal({ isOpen, onClose }: AiArtModalProps) {
                   setShowSafetyModal(false)
                   onClose()
                 }}
-                className="w-full py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors touch-manipulation active:scale-95"
+                className="w-full min-h-[48px] py-3 bg-slate-100 text-slate-700 font-bold rounded-xl touch-manipulation active:scale-95 transition-transform"
               >
                 Return to Menu
               </button>
@@ -154,146 +153,155 @@ export function AiArtModal({ isOpen, onClose }: AiArtModalProps) {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-700">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-700/50">
         <button
           onClick={onClose}
-          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          className="min-w-[44px] min-h-[44px] p-2 rounded-xl bg-slate-800 flex items-center justify-center touch-manipulation active:scale-95 transition-transform"
         >
           <ArrowLeft className="w-6 h-6 text-white" />
         </button>
-        <h1 className="text-xl font-bold text-white">Create AI Art</h1>
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-pink-400" />
+          <h1 className="text-lg font-bold text-white">Create AI Art</h1>
+        </div>
         <button
           onClick={onClose}
-          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          className="min-w-[44px] min-h-[44px] p-2 rounded-xl bg-slate-800 flex items-center justify-center touch-manipulation active:scale-95 transition-transform"
         >
           <X className="w-6 h-6 text-white" />
         </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 pb-safe" style={{ height: "calc(100vh - 80px)" }}>
-        {generatedImage ? (
-          /* Generated Image View */
-          <div className="flex flex-col items-center gap-6">
-            <div className="relative w-full max-w-md aspect-square rounded-3xl overflow-hidden shadow-2xl">
-              <img
-                src={generatedImage || "/placeholder.svg"}
-                alt="Generated AI Art"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            
-            <div className="flex gap-3 w-full max-w-md">
+      {/* Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="px-4 py-4 pb-safe" style={{ paddingBottom: "max(env(safe-area-inset-bottom), 16px)" }}>
+          {generatedImage ? (
+            /* Generated Image View */
+            <div className="flex flex-col gap-4">
+              {/* Image */}
+              <div className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-2xl bg-slate-800">
+                <img
+                  src={generatedImage || "/placeholder.svg"}
+                  alt="Generated AI Art"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDownload}
+                  className="flex-1 flex items-center justify-center gap-2 min-h-[52px] py-3 bg-green-600 text-white font-bold text-base rounded-2xl touch-manipulation active:scale-95 transition-transform"
+                >
+                  <Download className="w-5 h-5" />
+                  Save
+                </button>
+                <button
+                  onClick={handleShare}
+                  className="flex-1 flex items-center justify-center gap-2 min-h-[52px] py-3 bg-blue-600 text-white font-bold text-base rounded-2xl touch-manipulation active:scale-95 transition-transform"
+                >
+                  <Share2 className="w-5 h-5" />
+                  Share
+                </button>
+              </div>
+
+              {/* Create Another */}
               <button
-                onClick={handleDownload}
-                className="flex-1 flex items-center justify-center gap-2 py-4 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-colors touch-manipulation active:scale-95"
+                onClick={handleNewImage}
+                className="w-full min-h-[56px] py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-lg rounded-2xl touch-manipulation active:scale-95 transition-transform"
               >
-                <Download className="w-5 h-5" />
-                Save
-              </button>
-              <button
-                onClick={handleShare}
-                className="flex-1 flex items-center justify-center gap-2 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-colors touch-manipulation active:scale-95"
-              >
-                <Share2 className="w-5 h-5" />
-                Share
+                Create Another Image
               </button>
             </div>
-
-            <button
-              onClick={handleNewImage}
-              className="w-full max-w-md py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-2xl hover:opacity-90 transition-opacity touch-manipulation active:scale-95"
-            >
-              Create Another Image
-            </button>
-          </div>
-        ) : (
-          /* Creation View */
-          <div className="flex flex-col gap-6">
-            {/* Prompt Input */}
-            <div>
-              <label className="block text-white font-semibold mb-2 text-lg">
-                Describe what you want to create
-              </label>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="A beautiful sunset over the ocean..."
-                className="w-full h-32 p-4 bg-slate-800 text-white text-lg rounded-2xl border-2 border-slate-700 focus:border-purple-500 focus:outline-none resize-none placeholder-slate-500"
-              />
-            </div>
-
-            {/* Suggestions */}
-            <div>
-              <p className="text-slate-400 font-medium mb-2">Try one of these:</p>
-              <div className="flex flex-wrap gap-2">
-                {PROMPT_SUGGESTIONS.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    onClick={() => setPrompt(suggestion)}
-                    className="px-3 py-2 bg-slate-800 text-slate-300 text-sm rounded-xl hover:bg-slate-700 transition-colors touch-manipulation active:scale-95"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
+          ) : (
+            /* Creation View */
+            <div className="flex flex-col gap-4">
+              {/* Prompt Input */}
+              <div>
+                <label className="block text-white font-semibold mb-2 text-base">
+                  Describe your image
+                </label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="A beautiful sunset over the ocean..."
+                  className="w-full h-24 p-3 bg-slate-800 text-white text-base rounded-2xl border-2 border-slate-700 focus:border-purple-500 focus:outline-none resize-none placeholder-slate-500"
+                  style={{ fontSize: "16px" }} /* Prevents zoom on iOS */
+                />
               </div>
-            </div>
 
-            {/* Style Selection */}
-            <div>
-              <label className="block text-white font-semibold mb-2 text-lg">
-                Choose a style
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                {STYLE_PRESETS.map((style) => (
-                  <button
-                    key={style.id}
-                    onClick={() => setSelectedStyle(style.id)}
-                    className={`p-4 rounded-2xl border-2 transition-all touch-manipulation active:scale-95 ${
-                      selectedStyle === style.id
-                        ? "bg-purple-600 border-purple-400 text-white"
-                        : "bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600"
-                    }`}
-                  >
-                    <span className="text-2xl mb-1 block">{style.emoji}</span>
-                    <span className="font-semibold">{style.label}</span>
-                  </button>
-                ))}
+              {/* Quick Suggestions */}
+              <div>
+                <p className="text-slate-400 font-medium mb-2 text-sm">Quick ideas:</p>
+                <div className="flex flex-wrap gap-2">
+                  {PROMPT_SUGGESTIONS.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => setPrompt(suggestion)}
+                      className="px-3 py-2 min-h-[40px] bg-slate-800 text-slate-300 text-sm rounded-xl touch-manipulation active:scale-95 active:bg-slate-700 transition-all"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="p-4 bg-red-900/50 border border-red-700 rounded-2xl">
-                <p className="text-red-200 text-center">{error}</p>
+              {/* Style Selection */}
+              <div>
+                <label className="block text-white font-semibold mb-2 text-base">
+                  Choose a style
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {STYLE_PRESETS.map((style) => (
+                    <button
+                      key={style.id}
+                      onClick={() => setSelectedStyle(style.id)}
+                      className={`min-h-[72px] p-2 rounded-xl border-2 flex flex-col items-center justify-center touch-manipulation active:scale-95 transition-all ${
+                        selectedStyle === style.id
+                          ? "bg-purple-600 border-purple-400 text-white"
+                          : "bg-slate-800 border-slate-700 text-slate-300"
+                      }`}
+                    >
+                      <span className="text-xl mb-0.5">{style.emoji}</span>
+                      <span className="font-medium text-xs">{style.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
 
-            {/* Generate Button */}
-            <button
-              onClick={handleGenerate}
-              disabled={!prompt.trim() || isGenerating}
-              className={`w-full py-5 rounded-2xl font-bold text-xl transition-all touch-manipulation active:scale-95 flex items-center justify-center gap-3 ${
-                !prompt.trim() || isGenerating
-                  ? "bg-slate-700 text-slate-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90"
-              }`}
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                  Creating your art...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="w-6 h-6" />
-                  Create Image
-                </>
+              {/* Error Message */}
+              {error && (
+                <div className="p-3 bg-red-900/50 border border-red-700 rounded-xl">
+                  <p className="text-red-200 text-sm text-center">{error}</p>
+                </div>
               )}
-            </button>
-          </div>
-        )}
+
+              {/* Generate Button */}
+              <button
+                onClick={handleGenerate}
+                disabled={!prompt.trim() || isGenerating}
+                className={`w-full min-h-[60px] py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 touch-manipulation active:scale-95 transition-all ${
+                  !prompt.trim() || isGenerating
+                    ? "bg-slate-700 text-slate-500 cursor-not-allowed active:scale-100"
+                    : "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                }`}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-6 h-6" />
+                    Create Image
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
