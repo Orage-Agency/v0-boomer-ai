@@ -236,19 +236,22 @@ export function ChatTab({
     scrollToBottom()
     const timeoutId = setTimeout(scrollToBottom, 100)
 
+    // Only update lastUserQuestion from messages if we don't have one yet
+    // or if there's a newer user message in the array
     if (messages.length > 0) {
       const userMessages = messages.filter((m) => m.role === "user")
       if (userMessages.length > 0) {
         const lastMsg = userMessages[userMessages.length - 1]
         const questionText = lastMsg?.parts?.[0]?.text || lastMsg?.content || ""
-        if (questionText) {
+        // Only update if this is different from current question
+        if (questionText && questionText !== lastUserQuestion) {
           setLastUserQuestion(questionText)
         }
       }
     }
 
     return () => clearTimeout(timeoutId)
-  }, [messages, status])
+  }, [messages, status, lastUserQuestion])
 
   useEffect(() => {
     if (conversationId) {
