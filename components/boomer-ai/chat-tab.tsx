@@ -555,16 +555,22 @@ export function ChatTab({
                       : "bg-slate-50 text-slate-900 border-2 border-slate-200"
                   }`}
                 >
-                  {message.parts?.map((part, index) => {
-                    if (part.type === "text") {
-                      return (
-                        <p key={index} className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
-                          {part.text}
-                        </p>
-                      )
-                    }
-                    return null
-                  })}
+                  {message.parts && message.parts.length > 0 ? (
+                    message.parts.map((part, index) => {
+                      if (part.type === "text") {
+                        return (
+                          <p key={index} className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
+                            {part.text}
+                          </p>
+                        )
+                      }
+                      return null
+                    })
+                  ) : (
+                    <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
+                      {message.content || ""}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
