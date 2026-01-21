@@ -4,12 +4,18 @@ import { containsProhibitedContent } from "@/lib/content-moderation"
 export const maxDuration = 60
 
 export async function POST(req: Request) {
+  console.log("[v0] Chat API called")
   try {
+    const body = await req.json()
+    console.log("[v0] Chat API received body keys:", Object.keys(body))
+    
     const {
       messages,
       model = "openai/gpt-4o-mini",
       capturedImage,
-    }: { messages: UIMessage[]; model?: string; capturedImage?: string } = await req.json()
+    }: { messages: UIMessage[]; model?: string; capturedImage?: string } = body
+    
+    console.log("[v0] Messages count:", messages?.length, "Model:", model)
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "Invalid messages format" }), {
@@ -63,6 +69,8 @@ export async function POST(req: Request) {
 
     const prompt = convertToModelMessages(processedMessages)
 
+    console.log("[v0] Calling streamText with model:", model)
+    
     const result = streamText({
       model: model,
       system:
@@ -71,6 +79,8 @@ export async function POST(req: Request) {
       abortSignal: req.signal,
     })
 
+    console.log("[v0] streamText called successfully, returning response")
+    
     return result.toUIMessageStreamResponse({
       consumeSseStream: consumeStream,
     })
