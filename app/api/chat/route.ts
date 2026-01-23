@@ -67,7 +67,8 @@ export async function POST(req: Request) {
       }
     }
 
-    const prompt = convertToModelMessages(processedMessages)
+    // v6: convertToModelMessages is now async
+    const prompt = await convertToModelMessages(processedMessages)
 
     console.log("[v0] Calling streamText with model:", model)
     
