@@ -1,23 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import {
-  Home,
-  MessageSquare,
-  BookOpen,
-  Star,
-  Mic,
-  MicOff,
-  Send,
-  Lightbulb,
-  History,
-  Menu,
-  RotateCcw,
-  X,
-  Gamepad2,
-  User,
-  LogOut,
-} from "lucide-react"
+import { Home, MessageSquare, BookOpen, Star, Mic, MicOff, Send, Lightbulb, History, Menu, RotateCcw, X, Gamepad2, User, LogOut, Palette } from "lucide-react"
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
 import { LessonsTab } from "./lessons-tab"
@@ -69,7 +53,6 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
   const [celebrationStars, setCelebrationStars] = useState(5)
   const [lastMilestone, setLastMilestone] = useState(() => Math.floor(userProfile.stars / 5) * 5)
   const [starPop, setStarPop] = useState(false)
-  const [showAiArt, setShowAiArt] = useState(false)
 
   useEffect(() => {
     if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
@@ -571,7 +554,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
             { id: "lessons", icon: BookOpen, label: "Learn" },
             { id: "tips", icon: Lightbulb, label: "Tips" },
             { id: "play", icon: Gamepad2, label: "Play" },
-            { id: "aiart", icon: AiArtModal, label: "AI Art" }, // Add AI Art button here
+            { id: "aiart", icon: Palette, label: "AI Art" },
           ].map((item) => (
             <button
               key={item.id}
