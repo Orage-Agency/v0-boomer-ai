@@ -17,7 +17,6 @@ import {
   Gamepad2,
   User,
   LogOut,
-  AiArtModal, // Declare the variable here
 } from "lucide-react"
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
