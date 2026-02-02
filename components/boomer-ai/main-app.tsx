@@ -17,6 +17,7 @@ import {
   Gamepad2,
   User,
   LogOut,
+  AiArtModal, // Declare the variable here
 } from "lucide-react"
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
@@ -28,8 +29,7 @@ import { QuestionsTab } from "./questions-tab"
 import { VoiceChatTab } from "./voice-chat-tab"
 import { PlayTab } from "./play-tab"
 import { CelebrationModal } from "./celebration-modal"
-import { AiArtModal } from "./ai-art-modal"
-import { AiArtTab } from "./ai-art-tab" // Import AiArtTab here
+import { AiArtTab } from "./ai-art-tab"
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
