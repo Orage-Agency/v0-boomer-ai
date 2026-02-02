@@ -29,6 +29,7 @@ import { VoiceChatTab } from "./voice-chat-tab"
 import { PlayTab } from "./play-tab"
 import { CelebrationModal } from "./celebration-modal"
 import { AiArtModal } from "./ai-art-modal"
+import { AiArtTab } from "./ai-art-tab" // Import AiArtTab here
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
@@ -52,8 +53,8 @@ const REWARD_LEARNING_PROMPTS = [
 
 export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDeleteAccount }: MainAppProps) {
   const [activeTab, setActiveTab] = useState<
-    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play"
-  >("home")
+    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play" | "aiart"
+  >("home") // Update activeTab type to include "aiart"
   const [inputValue, setInputValue] = useState("")
   const [isListening, setIsListening] = useState(false)
   const [interimTranscript, setInterimTranscript] = useState("")
@@ -270,17 +271,15 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
 
   return (
     <div className="flex flex-col h-screen bg-white">
-<CelebrationModal
-  isOpen={showCelebration}
-  onClose={() => setShowCelebration(false)}
-  onCollectReward={handleCollectReward}
-  message="Milestone Reached!"
-  starsEarned={celebrationStars}
-  />
-  
-  <AiArtModal isOpen={showAiArt} onClose={() => setShowAiArt(false)} />
-  
-  {isMenuOpen && (
+      <CelebrationModal
+        isOpen={showCelebration}
+        onClose={() => setShowCelebration(false)}
+        onCollectReward={handleCollectReward}
+        message="Milestone Reached!"
+        starsEarned={celebrationStars}
+      />
+      
+      {isMenuOpen && (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
 
@@ -436,17 +435,17 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
 
       <main className="flex-grow overflow-hidden flex flex-col">
         {activeTab === "home" && (
-<HomeTab
-  userProfile={userProfile}
-  updateProfile={updateProfile}
-  onStartChat={handleStartChat}
-  onOpenLessons={() => setActiveTab("lessons")}
-  onOpenTips={() => setActiveTab("tips")}
-  onOpenQuestions={() => setActiveTab("questions")}
-  onOpenVoice={() => setActiveTab("voice")}
-  onOpenAiArt={() => setShowAiArt(true)}
-  onOpenGames={() => setActiveTab("play")}
-  />
+          <HomeTab
+            userProfile={userProfile}
+            updateProfile={updateProfile}
+            onStartChat={handleStartChat}
+            onOpenLessons={() => setActiveTab("lessons")}
+            onOpenTips={() => setActiveTab("tips")}
+            onOpenQuestions={() => setActiveTab("questions")}
+            onOpenVoice={() => setActiveTab("voice")}
+            onOpenAiArt={() => setActiveTab("aiart")}
+            onOpenGames={() => setActiveTab("play")}
+          />
         )}
 
         {activeTab === "chat" && (
@@ -502,6 +501,14 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
         )}
 
         {activeTab === "play" && <PlayTab userProfile={userProfile} updateProfile={updateProfile} />}
+
+        {activeTab === "aiart" && (
+          <AiArtTab
+            userProfile={userProfile}
+            updateProfile={updateProfile}
+            onBack={() => setActiveTab("home")}
+          />
+        )}
       </main>
 
       <div className="flex-shrink-0 px-4 py-3 bg-white border-t border-slate-100 z-30 pb-safe">
@@ -565,6 +572,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
             { id: "lessons", icon: BookOpen, label: "Learn" },
             { id: "tips", icon: Lightbulb, label: "Tips" },
             { id: "play", icon: Gamepad2, label: "Play" },
+            { id: "aiart", icon: AiArtModal, label: "AI Art" }, // Add AI Art button here
           ].map((item) => (
             <button
               key={item.id}
@@ -575,7 +583,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
               }`}
             >
-              <item.icon className={`w-6 h-6 ${activeTab === item.id ? "stroke-[2.5px]" : ""}`} />
+              {item.icon}
               <span className={`text-xs mt-1 font-medium ${activeTab === item.id ? "font-bold" : ""}`}>
                 {item.label}
               </span>
