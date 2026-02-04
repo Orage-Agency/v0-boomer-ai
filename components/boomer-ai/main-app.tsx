@@ -555,22 +555,25 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
             { id: "tips", icon: Lightbulb, label: "Tips" },
             { id: "play", icon: Gamepad2, label: "Play" },
             { id: "aiart", icon: Palette, label: "AI Art" },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id as any)}
-              className={`flex flex-col items-center justify-center py-2 px-3 rounded-xl transition-all touch-manipulation min-h-[56px] min-w-[56px] ${
-                activeTab === item.id
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {item.icon}
-              <span className={`text-xs mt-1 font-medium ${activeTab === item.id ? "font-bold" : ""}`}>
-                {item.label}
-              </span>
-            </button>
-          ))}
+          ].map((item) => {
+            const IconComponent = item.icon
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id as any)}
+                className={`flex flex-col items-center justify-center py-2 px-3 rounded-xl transition-all touch-manipulation min-h-[56px] min-w-[56px] ${
+                  activeTab === item.id
+                    ? "text-blue-600 bg-blue-50"
+                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <IconComponent className="w-6 h-6" />
+                <span className={`text-xs mt-1 font-medium ${activeTab === item.id ? "font-bold" : ""}`}>
+                  {item.label}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </nav>
     </div>
