@@ -4,7 +4,7 @@ import type React from "react"
 import { MessageSquare, Lightbulb, Heart, Video, Mic, X, MessageCircle, Palette, Gamepad2 } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useState, useEffect } from "react"
-import { QuickQuestions } from "./quick-questions"
+import { QuickQuestionsTile } from "./quick-questions"
 
 interface HomeTabProps {
   userProfile: UserProfile
@@ -16,6 +16,7 @@ interface HomeTabProps {
   onOpenVoice: () => void
   onOpenAiArt: () => void
   onOpenGames: () => void
+  onOpenAskMe: () => void
 }
 
 const ROTATING_FEATURES = [
@@ -175,7 +176,8 @@ export function HomeTab({
   onOpenVoice,
   onOpenAiArt,
   onOpenGames,
-}: HomeTabProps) {
+  onOpenAskMe,
+  }: HomeTabProps) {
   const [dailyContentIndex, setDailyContentIndex] = useState(0)
   const [expandedCard, setExpandedCard] = useState<(typeof ROTATING_FEATURES)[0] | null>(null)
   const [expandedContentIndex, setExpandedContentIndex] = useState(0)
@@ -459,8 +461,8 @@ export function HomeTab({
   <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[3].description}</p>
   </button>
   
-  {/* Quick Questions - Replaces Ask Me */}
-  <QuickQuestions onQuestionSelect={(question) => onStartChat(question)} />
+  {/* Quick Questions - Opens Ask Me tab */}
+  <QuickQuestionsTile onOpen={onOpenAskMe} />
   
   {/* Create Art */}
   <button
