@@ -4,6 +4,7 @@ import type React from "react"
 import { MessageSquare, Lightbulb, Heart, Video, Mic, X, MessageCircle, Palette, Gamepad2 } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useState, useEffect } from "react"
+import { QuickQuestions } from "./quick-questions"
 
 interface HomeTabProps {
   userProfile: UserProfile
@@ -458,16 +459,8 @@ export function HomeTab({
   <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[3].description}</p>
   </button>
   
-  {/* Ask Me */}
-  <button
-  onClick={coreFeatures[4].action}
-  className={`bg-gradient-to-br ${coreFeatures[4].gradient} text-white rounded-3xl p-3 shadow-xl ${coreFeatures[4].shadowColor} hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden`}
-  >
-  <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
-  <MessageCircle className="w-8 h-8 mb-1 relative z-10" strokeWidth={2} />
-  <h3 className="text-base font-black relative z-10">{coreFeatures[4].title}</h3>
-  <p className="text-xs text-white/80 font-medium relative z-10">{coreFeatures[4].description}</p>
-  </button>
+  {/* Quick Questions - Replaces Ask Me */}
+  <QuickQuestions onQuestionSelect={(question) => onStartChat(question)} />
   
   {/* Create Art */}
   <button
