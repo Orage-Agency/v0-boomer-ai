@@ -85,8 +85,7 @@ export function QuickQuestionsTile({ onOpen }: { onOpen: () => void }) {
     >
       <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl pointer-events-none" />
       <MessageCircle className="w-9 h-9 mb-1 relative z-10" strokeWidth={2} />
-      <h3 className="text-lg font-black relative z-10">Ask Me</h3>
-      <p className="text-sm text-white/80 font-medium relative z-10">Anything</p>
+      <h3 className="text-lg font-black relative z-10">50 Questions?</h3>
     </button>
   )
 }
