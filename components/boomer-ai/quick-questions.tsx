@@ -95,32 +95,30 @@ export function QuickQuestionsTile({ onOpen }: { onOpen: () => void }) {
 export function QuickQuestionsTab({ onQuestionSelect }: QuickQuestionsProps) {
   const [poppedIndex, setPoppedIndex] = useState<number | null>(null)
   const [visibleSet, setVisibleSet] = useState(0)
-  const BUBBLES_PER_VIEW = 8
+  const BUBBLES_PER_VIEW = 6
 
-  // Rotate questions every 5 seconds
+  // Rotate questions every 7.5 seconds (50% slower than 5s)
   useEffect(() => {
     const interval = setInterval(() => {
       setVisibleSet((prev) => {
         const maxSets = Math.ceil(QUESTIONS.length / BUBBLES_PER_VIEW)
         return (prev + 1) % maxSets
       })
-    }, 5000)
+    }, 7500)
     return () => clearInterval(interval)
   }, [])
 
   const startIndex = visibleSet * BUBBLES_PER_VIEW
   const currentQuestions = QUESTIONS.slice(startIndex, startIndex + BUBBLES_PER_VIEW)
 
-  // Fixed positions for 8 bubbles in a grid that fits the viewport
+  // 3 rows x 2 columns, well-spaced to avoid overlap and clear of dots
   const positions = [
-    { x: 4, y: 4 },
-    { x: 52, y: 2 },
-    { x: 8, y: 28 },
-    { x: 50, y: 26 },
-    { x: 2, y: 52 },
-    { x: 52, y: 50 },
-    { x: 6, y: 76 },
-    { x: 50, y: 74 },
+    { x: 2, y: 0 },
+    { x: 50, y: 0 },
+    { x: 6, y: 30 },
+    { x: 52, y: 30 },
+    { x: 2, y: 60 },
+    { x: 50, y: 60 },
   ]
 
   const handleBubbleTap = useCallback(
@@ -149,57 +147,62 @@ export function QuickQuestionsTab({ onQuestionSelect }: QuickQuestionsProps) {
         </div>
       </div>
 
-      {/* Bubble area - fills remaining space, NO scroll */}
-      <div className="flex-1 relative overflow-hidden px-3">
-        <style jsx>{`
-          @keyframes bubbleFloat {
-            0%, 100% { transform: translateY(0px) translateX(0px); }
-            25% { transform: translateY(-8px) translateX(4px); }
-            50% { transform: translateY(-3px) translateX(-5px); }
-            75% { transform: translateY(-10px) translateX(3px); }
-          }
-          @keyframes bubblePop {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.3); opacity: 0.5; }
-            100% { transform: scale(0); opacity: 0; }
-          }
-          @keyframes bubbleIn {
-            0% { transform: scale(0); opacity: 0; }
-            60% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
-          }
-          .bubble-float {
-            animation: bubbleFloat var(--duration) ease-in-out infinite;
-            animation-delay: var(--delay);
-          }
-          .bubble-pop {
-            animation: bubblePop 0.4s ease-out forwards !important;
-          }
-          .bubble-enter {
-            animation: bubbleIn 0.5s ease-out forwards;
-            animation-delay: var(--enter-delay);
-            opacity: 0;
-          }
-        `}</style>
+      {/* Bubble area - fills remaining space minus dots, NO scroll */}
+      <style jsx>{`
+        @keyframes bubbleFloat {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          25% { transform: translateY(-6px) translateX(3px); }
+          50% { transform: translateY(-2px) translateX(-4px); }
+          75% { transform: translateY(-8px) translateX(2px); }
+        }
+        @keyframes bubblePop {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.3); opacity: 0.5; }
+          100% { transform: scale(0); opacity: 0; }
+        }
+        @keyframes bubbleIn {
+          0% { transform: scale(0); opacity: 0; }
+          60% { transform: scale(1.1); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .bubble-float {
+          animation: bubbleFloat var(--duration) ease-in-out infinite;
+          animation-delay: var(--delay);
+        }
+        .bubble-pop {
+          animation: bubblePop 0.4s ease-out forwards !important;
+        }
+        .bubble-enter {
+          animation: bubbleIn 0.5s ease-out forwards;
+          animation-delay: var(--enter-delay);
+          opacity: 0;
+        }
+      `}</style>
 
+      <div className="flex-1 relative overflow-hidden px-4 pb-2">
         {currentQuestions.map((question, index) => {
           const pos = positions[index]
+          if (!pos) return null
           const globalIndex = startIndex + index
           const colorIndex = globalIndex % BUBBLE_COLORS.length
-          const duration = 3.5 + seededRandom(globalIndex * 5) * 3
+          const duration = 4 + seededRandom(globalIndex * 5) * 3
           const delay = seededRandom(globalIndex * 3) * 2
 
           return (
             <button
               key={`${visibleSet}-${index}`}
               onClick={() => handleBubbleTap(index, question)}
-              className={`bubble-float bubble-enter absolute ${BUBBLE_COLORS[colorIndex]} backdrop-blur-sm text-white text-lg leading-snug font-semibold px-4 py-3 rounded-2xl border border-white/30 shadow-lg touch-manipulation active:scale-90 max-w-[46%] text-center ${
+              className={`bubble-float bubble-enter absolute ${BUBBLE_COLORS[colorIndex]} backdrop-blur-sm text-white text-lg leading-snug font-semibold px-4 py-3 rounded-2xl border border-white/30 shadow-lg touch-manipulation active:scale-90 w-[44%] text-center ${
                 poppedIndex === index ? "bubble-pop" : ""
               }`}
               style={
                 {
                   left: `${pos.x}%`,
                   top: `${pos.y}%`,
+                  maxHeight: "27%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   "--delay": `${delay}s`,
                   "--duration": `${duration}s`,
                   "--enter-delay": `${index * 0.08}s`,
@@ -210,19 +213,19 @@ export function QuickQuestionsTab({ onQuestionSelect }: QuickQuestionsProps) {
             </button>
           )
         })}
+      </div>
 
-        {/* Page dots */}
-        <div className="absolute bottom-3 left-0 right-0 flex items-center justify-center gap-2">
-          {Array.from({ length: Math.ceil(QUESTIONS.length / BUBBLES_PER_VIEW) }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setVisibleSet(i)}
-              className={`w-2.5 h-2.5 rounded-full transition-all touch-manipulation ${
-                i === visibleSet ? "bg-white scale-125" : "bg-white/40"
-              }`}
-            />
-          ))}
-        </div>
+      {/* Page dots - separate section, never overlapped */}
+      <div className="flex-shrink-0 flex items-center justify-center gap-2.5 py-3">
+        {Array.from({ length: Math.ceil(QUESTIONS.length / BUBBLES_PER_VIEW) }).map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setVisibleSet(i)}
+            className={`w-3 h-3 rounded-full transition-all touch-manipulation ${
+              i === visibleSet ? "bg-white scale-125" : "bg-white/40"
+            }`}
+          />
+        ))}
       </div>
     </div>
   )
