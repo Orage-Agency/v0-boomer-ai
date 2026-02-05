@@ -83,13 +83,12 @@ export function QuickQuestions({ onQuestionSelect }: QuickQuestionsProps) {
   const [poppedIndex, setPoppedIndex] = useState<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Generate bubble positions once
+  // Generate bubble positions - 2 columns for mobile readability
   const bubbles = QUESTIONS.map((q, i) => {
-    const col = i % 3
-    const row = Math.floor(i / 3)
-    // Stagger positions with some randomness
-    const x = 4 + col * 33 + seededRandom(i * 7) * 14
-    const y = 2 + row * 5.2 + seededRandom(i * 13) * 1.5
+    const col = i % 2
+    const row = Math.floor(i / 2)
+    const x = 2 + col * 48 + seededRandom(i * 7) * 6
+    const y = row * 76 // Fixed pixel spacing per row for consistent layout
     const delay = seededRandom(i * 3) * 4
     const duration = 3.5 + seededRandom(i * 5) * 3
     const colorIndex = i % BUBBLE_COLORS.length
@@ -118,9 +117,9 @@ export function QuickQuestions({ onQuestionSelect }: QuickQuestionsProps) {
         className="bg-gradient-to-br from-cyan-500 to-blue-500 text-white rounded-3xl p-3 shadow-xl shadow-cyan-500/30 hover:shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center border border-white/20 relative overflow-hidden"
       >
         <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-        <MessageCircle className="w-8 h-8 mb-1 relative z-10" strokeWidth={2} />
-        <h3 className="text-base font-black relative z-10">Ask Me</h3>
-        <p className="text-xs text-white/80 font-medium relative z-10">Anything</p>
+        <MessageCircle className="w-9 h-9 mb-1 relative z-10" strokeWidth={2} />
+        <h3 className="text-lg font-black relative z-10">Ask Me</h3>
+        <p className="text-sm text-white/80 font-medium relative z-10">Anything</p>
       </button>
 
       {/* Full screen bubble overlay */}
@@ -137,10 +136,10 @@ export function QuickQuestions({ onQuestionSelect }: QuickQuestionsProps) {
           {/* Header */}
           <div className="relative z-10 flex items-center justify-between px-5 pt-14 pb-3">
             <div className="flex items-center gap-3">
-              <MessageCircle className="w-7 h-7 text-white" />
+              <MessageCircle className="w-9 h-9 text-white" />
               <div>
-                <h2 className="text-xl font-black text-white">Quick Questions</h2>
-                <p className="text-xs text-white/70 font-medium">Tap a bubble to ask</p>
+                <h2 className="text-2xl font-black text-white">Quick Questions</h2>
+                <p className="text-sm text-white/70 font-medium">Tap a bubble to ask</p>
               </div>
             </div>
             <button
@@ -160,8 +159,8 @@ export function QuickQuestions({ onQuestionSelect }: QuickQuestionsProps) {
             className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden px-2 pb-10"
             style={{ WebkitOverflowScrolling: "touch" }}
           >
-            {/* Tall container to hold all bubbles */}
-            <div className="relative w-full" style={{ height: `${Math.ceil(QUESTIONS.length / 3) * 64}px` }}>
+            {/* Tall container to hold all bubbles - 2 cols, 76px per row */}
+            <div className="relative w-full" style={{ height: `${Math.ceil(QUESTIONS.length / 2) * 76 + 60}px` }}>
               <style jsx>{`
                 @keyframes bubbleFloat {
                   0%, 100% {
@@ -204,13 +203,13 @@ export function QuickQuestions({ onQuestionSelect }: QuickQuestionsProps) {
                 <button
                   key={index}
                   onClick={() => handleBubbleTap(index, bubble.question)}
-                  className={`bubble-float absolute ${BUBBLE_COLORS[bubble.colorIndex]} backdrop-blur-sm text-white text-[11px] leading-tight font-semibold px-3 py-2 rounded-2xl border border-white/30 shadow-lg touch-manipulation transition-shadow hover:shadow-xl max-w-[30%] text-center ${
+                  className={`bubble-float absolute ${BUBBLE_COLORS[bubble.colorIndex]} backdrop-blur-sm text-white text-[15px] leading-snug font-semibold px-4 py-3 rounded-2xl border border-white/30 shadow-lg touch-manipulation transition-shadow hover:shadow-xl max-w-[46%] text-center ${
                     poppedIndex === index ? "bubble-pop" : ""
                   }`}
                   style={
                     {
                       left: `${bubble.x}%`,
-                      top: `${bubble.y}%`,
+                      top: `${bubble.y}px`,
                       "--delay": `${bubble.delay}s`,
                       "--duration": `${bubble.duration}s`,
                     } as React.CSSProperties
