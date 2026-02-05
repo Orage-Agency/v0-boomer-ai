@@ -13,6 +13,7 @@ import { VoiceChatTab } from "./voice-chat-tab"
 import { PlayTab } from "./play-tab"
 import { CelebrationModal } from "./celebration-modal"
 import { AiArtTab } from "./ai-art-tab"
+import { QuickQuestionsTab } from "./quick-questions"
 import type { UserProfile } from "@/app/page"
 
 interface MainAppProps {
@@ -36,8 +37,8 @@ const REWARD_LEARNING_PROMPTS = [
 
 export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDeleteAccount }: MainAppProps) {
   const [activeTab, setActiveTab] = useState<
-    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play" | "aiart"
-  >("home") // Update activeTab type to include "aiart"
+    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play" | "aiart" | "askme"
+  >("home")
   const [inputValue, setInputValue] = useState("")
   const [isListening, setIsListening] = useState(false)
   const [interimTranscript, setInterimTranscript] = useState("")
@@ -425,9 +426,10 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
             onOpenTips={() => setActiveTab("tips")}
             onOpenQuestions={() => setActiveTab("questions")}
             onOpenVoice={() => setActiveTab("voice")}
-            onOpenAiArt={() => setActiveTab("aiart")}
-            onOpenGames={() => setActiveTab("play")}
-          />
+  onOpenAiArt={() => setActiveTab("aiart")}
+  onOpenGames={() => setActiveTab("play")}
+  onOpenAskMe={() => setActiveTab("askme")}
+  />
         )}
 
         {activeTab === "chat" && (
@@ -484,14 +486,23 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
 
         {activeTab === "play" && <PlayTab userProfile={userProfile} updateProfile={updateProfile} />}
 
-        {activeTab === "aiart" && (
-          <AiArtTab
-            userProfile={userProfile}
-            updateProfile={updateProfile}
-            onBack={() => setActiveTab("home")}
-          />
-        )}
-      </main>
+  {activeTab === "aiart" && (
+  <AiArtTab
+  userProfile={userProfile}
+  updateProfile={updateProfile}
+  onBack={() => setActiveTab("home")}
+  />
+  )}
+  
+  {activeTab === "askme" && (
+  <QuickQuestionsTab
+  onQuestionSelect={(question) => {
+    setPendingMessage(question)
+    setActiveTab("chat")
+  }}
+  />
+  )}
+  </main>
 
       <div className="flex-shrink-0 px-4 py-3 bg-white border-t border-slate-100 z-30 pb-safe">
         {isListening && (
