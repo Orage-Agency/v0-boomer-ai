@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Home, MessageSquare, BookOpen, Star, Mic, MicOff, Send, Lightbulb, History, Menu, RotateCcw, X, Gamepad2, User, LogOut, Palette } from "lucide-react"
+import { Home, MessageSquare, BookOpen, Star, Mic, MicOff, Send, Lightbulb, History, Menu, RotateCcw, X, Gamepad2, User, Palette } from "lucide-react"
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
 import { LessonsTab } from "./lessons-tab"
@@ -20,8 +20,6 @@ interface MainAppProps {
   userProfile: UserProfile
   updateProfile: (updates: Partial<UserProfile>) => void
   onReset?: () => void
-  onLogout?: () => void
-  onDeleteAccount?: () => void
 }
 
 const REWARD_LEARNING_PROMPTS = [
@@ -35,7 +33,7 @@ const REWARD_LEARNING_PROMPTS = [
   "What's something amazing AI can do that sounds like science fiction?",
 ]
 
-export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDeleteAccount }: MainAppProps) {
+export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
   const [activeTab, setActiveTab] = useState<
     "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play" | "aiart" | "askme"
   >("home")
@@ -333,25 +331,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
                 </div>
               </button>
 
-              {onLogout && (
-                <button
-                  onClick={() => {
-                    if (confirm("Are you sure you want to log out?")) {
-                      setIsMenuOpen(false)
-                      onLogout()
-                    }
-                  }}
-                  className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-slate-100 transition-colors text-left min-h-[44px] touch-manipulation"
-                >
-                  <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
-                    <LogOut className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900">Log Out</p>
-                    <p className="text-sm text-slate-500">Sign out of your account</p>
-                  </div>
-                </button>
-              )}
+
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-slate-50 pb-safe">
@@ -462,8 +442,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
             userProfile={userProfile}
             onReset={onReset}
             onBack={() => setActiveTab("home")}
-            onLogout={onLogout}
-            onDeleteAccount={onDeleteAccount}
+
           />
         )}
 

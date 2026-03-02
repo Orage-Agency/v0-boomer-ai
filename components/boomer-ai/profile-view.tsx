@@ -1,6 +1,6 @@
 "use client"
 
-import { Star, Trophy, Target, Trash2, LogOut, ImageIcon, MessageSquare, Loader2 } from "lucide-react"
+import { Star, Trophy, Target, ImageIcon, MessageSquare, Loader2 } from "lucide-react"
 import type { UserProfile } from "@/app/page"
 import { useUser } from "@/contexts/user-context"
 import Link from "next/link"
@@ -9,8 +9,6 @@ interface ProfileViewProps {
   userProfile: UserProfile
   onReset: () => void
   onBack: () => void
-  onDeleteAccount?: () => void
-  onLogout?: () => void
 }
 
 function getLevelProgress(stars: number) {
@@ -59,7 +57,7 @@ function getLevelProgress(stars: number) {
   }
 }
 
-export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onLogout }: ProfileViewProps) {
+export function ProfileView({ userProfile, onReset, onBack }: ProfileViewProps) {
   const { email, stars, galleryCount, chatHistory, isLoading } = useUser()
 
   const { currentLevelStars, starsNeeded, progress, nextLevelName, isComplete, displayLevel } = getLevelProgress(stars)
@@ -223,46 +221,12 @@ export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onL
 
         {/* Action buttons */}
         <div className="space-y-3">
-          {onLogout && (
-            <button
-              onClick={() => {
-                if (confirm("Are you sure you want to log out?")) {
-                  onLogout()
-                }
-              }}
-              className="w-full bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold text-base py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 min-h-[48px] touch-manipulation active:scale-95"
-            >
-              <LogOut className="w-5 h-5" />
-              Log Out
-            </button>
-          )}
-
           <button
             onClick={onReset}
             className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg min-h-[48px] touch-manipulation active:scale-95"
           >
             Start Over
           </button>
-
-          {onDeleteAccount && (
-            <button
-              onClick={() => {
-                if (
-                  confirm(
-                    "Are you sure you want to delete your account? This action cannot be undone. All your data, including stars and progress, will be permanently deleted.",
-                  )
-                ) {
-                  if (confirm("This is your final warning. Delete account permanently?")) {
-                    onDeleteAccount()
-                  }
-                }
-              }}
-              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold text-base py-3 px-6 rounded-xl transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2 min-h-[48px] touch-manipulation active:scale-95"
-            >
-              <Trash2 className="w-5 h-5" />
-              Delete Account
-            </button>
-          )}
 
           <button
             onClick={onBack}

@@ -7,7 +7,6 @@ import { Quiz } from "@/components/boomer-ai/quiz"
 import { LearningLevel } from "@/components/boomer-ai/learning-level"
 import { MainApp } from "@/components/boomer-ai/main-app"
 import { Stepper } from "@/components/boomer-ai/stepper"
-import { AuthScreen } from "@/components/boomer-ai/auth-screen"
 
 export type UserProfile = {
   persona: string | null
@@ -58,7 +57,7 @@ const DEFAULT_PROFILE: UserProfile = {
 }
 
 export default function BoomerAIPage() {
-  const [currentView, setCurrentView] = useState<"auth" | "onboarding" | "app">("onboarding")
+  const [currentView, setCurrentView] = useState<"onboarding" | "app">("onboarding")
   const [onboardingStep, setOnboardingStep] = useState<"avatar" | "age" | "quiz" | "level">("avatar")
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_PROFILE)
   const [mounted, setMounted] = useState(false)
@@ -71,83 +70,53 @@ export default function BoomerAIPage() {
       localStorage.setItem("boomer-device-id", deviceId)
     }
 
-    const savedSession = localStorage.getItem("boomer_session")
-    if (savedSession) {
-      const session = JSON.parse(savedSession)
-      loadFromDatabase(deviceId, session.email)
-    } else {
-      setUserProfile({ ...DEFAULT_PROFILE, deviceId })
-      setCurrentView("auth")
-    }
+    // Try to load existing profile
+    loadProfile(deviceId)
   }, [])
 
-  const loadFromDatabase = async (deviceId: string, email?: string) => {
+  const loadProfile = async (deviceId: string) => {
     try {
-      const response = await fetch(
-        `/api/profile?deviceId=${deviceId}${email ? `&email=${encodeURIComponent(email)}` : ""}`,
-      )
+      const response = await fetch(`/api/profile?deviceId=${deviceId}`)
       const data = await response.json()
 
       if (data.success && data.profile) {
-        const loadedProfile = { ...data.profile, deviceId, isLoggedIn: !!email, email: email || null }
+        const loadedProfile = { ...data.profile, deviceId, isLoggedIn: false, email: null }
         setUserProfile(loadedProfile)
         if (loadedProfile.persona && loadedProfile.level) {
           setCurrentView("app")
-        } else if (email) {
-          setCurrentView("onboarding")
         }
       } else {
         // Fallback to localStorage
         try {
-          const saved = localStorage.getItem(`boomer_profile_${email || deviceId}`)
+          const saved = localStorage.getItem("boomer_profile")
           if (saved) {
             const profile = JSON.parse(saved)
-            setUserProfile({ ...profile, deviceId, isLoggedIn: !!email, email: email || null })
+            setUserProfile({ ...profile, deviceId })
             if (profile.persona && profile.level) {
               setCurrentView("app")
-            } else if (email) {
-              setCurrentView("onboarding")
             }
-          } else if (email) {
-            setUserProfile({ ...DEFAULT_PROFILE, deviceId, isLoggedIn: true, email })
-            setCurrentView("onboarding")
           } else {
             setUserProfile({ ...DEFAULT_PROFILE, deviceId })
           }
-        } catch (error) {
-          if (email) {
-            setUserProfile({ ...DEFAULT_PROFILE, deviceId, isLoggedIn: true, email })
-            setCurrentView("onboarding")
-          } else {
-            setUserProfile({ ...DEFAULT_PROFILE, deviceId })
-          }
+        } catch {
+          setUserProfile({ ...DEFAULT_PROFILE, deviceId })
         }
       }
-    } catch (error) {
+    } catch {
       // Fallback to localStorage on error
       try {
-        const saved = localStorage.getItem(`boomer_profile_${email || deviceId}`)
+        const saved = localStorage.getItem("boomer_profile")
         if (saved) {
           const profile = JSON.parse(saved)
-          setUserProfile({ ...profile, deviceId, isLoggedIn: !!email, email: email || null })
+          setUserProfile({ ...profile, deviceId })
           if (profile.persona && profile.level) {
             setCurrentView("app")
-          } else if (email) {
-            setCurrentView("onboarding")
           }
-        } else if (email) {
-          setUserProfile({ ...DEFAULT_PROFILE, deviceId, isLoggedIn: true, email })
-          setCurrentView("onboarding")
         } else {
           setUserProfile({ ...DEFAULT_PROFILE, deviceId })
         }
-      } catch (error) {
-        if (email) {
-          setUserProfile({ ...DEFAULT_PROFILE, deviceId, isLoggedIn: true, email })
-          setCurrentView("onboarding")
-        } else {
-          setUserProfile({ ...DEFAULT_PROFILE, deviceId })
-        }
+      } catch {
+        setUserProfile({ ...DEFAULT_PROFILE, deviceId })
       }
     }
   }
@@ -159,7 +128,7 @@ export default function BoomerAIPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profile),
       })
-    } catch (error) {
+    } catch {
       // Silently fail - data is saved to localStorage as backup
     }
   }
@@ -173,8 +142,7 @@ export default function BoomerAIPage() {
     const newProfile = { ...userProfile, ...updates }
     setUserProfile(newProfile)
     if (mounted) {
-      const storageKey = newProfile.email ? `boomer_profile_${newProfile.email}` : "boomer_profile"
-      localStorage.setItem(storageKey, JSON.stringify(newProfile))
+      localStorage.setItem("boomer_profile", JSON.stringify(newProfile))
       if (newProfile.userName && newProfile.level) {
         saveToDatabase(newProfile)
       }
@@ -186,48 +154,8 @@ export default function BoomerAIPage() {
     setUserProfile({ ...DEFAULT_PROFILE, deviceId })
     if (mounted) {
       localStorage.removeItem("boomer_profile")
-      if (userProfile.email) {
-        localStorage.removeItem(`boomer_profile_${userProfile.email}`)
-      }
     }
     setCurrentView("onboarding")
-    setOnboardingStep("avatar")
-  }
-
-  const handleLogin = (email: string, name: string) => {
-    const deviceId = localStorage.getItem("boomer-device-id")
-
-    // Save session
-    localStorage.setItem("boomer_session", JSON.stringify({ email, name }))
-
-    // Load user-specific profile or create new one
-    loadFromDatabase(deviceId || "", email)
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem("boomer_session")
-    setUserProfile({ ...DEFAULT_PROFILE, deviceId: userProfile.deviceId })
-    setCurrentView("auth")
-    setOnboardingStep("avatar")
-  }
-
-  const handleDeleteAccount = () => {
-    if (userProfile.email) {
-      // Remove user from stored users
-      const storedUsers = JSON.parse(localStorage.getItem("boomer_users") || "{}")
-      delete storedUsers[userProfile.email]
-      localStorage.setItem("boomer_users", JSON.stringify(storedUsers))
-
-      // Remove user profile
-      localStorage.removeItem(`boomer_profile_${userProfile.email}`)
-    }
-
-    // Clear session and profile
-    localStorage.removeItem("boomer_session")
-    localStorage.removeItem("boomer_profile")
-
-    setUserProfile({ ...DEFAULT_PROFILE, deviceId: userProfile.deviceId })
-    setCurrentView("auth")
     setOnboardingStep("avatar")
   }
 
@@ -240,10 +168,6 @@ export default function BoomerAIPage() {
         </div>
       </div>
     )
-  }
-
-  if (currentView === "auth") {
-    return <AuthScreen onLogin={handleLogin} />
   }
 
   return (
@@ -316,8 +240,6 @@ export default function BoomerAIPage() {
             userProfile={userProfile}
             updateProfile={updateProfile}
             onReset={resetProfile}
-            onLogout={handleLogout}
-            onDeleteAccount={handleDeleteAccount}
           />
         )}
       </div>
