@@ -51,7 +51,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="apple-touch-icon" href="/boomer-ai-logo.png" />
       </head>
-      <body className={`font-sans ${inter.variable} antialiased`}>
+      <body suppressHydrationWarning className={`font-sans ${inter.variable} antialiased`}>
         <UserProvider>
           <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
             {children}
