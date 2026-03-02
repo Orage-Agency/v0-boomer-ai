@@ -58,7 +58,7 @@ const DEFAULT_PROFILE: UserProfile = {
 }
 
 export default function BoomerAIPage() {
-  const [currentView, setCurrentView] = useState<"auth" | "onboarding" | "app">("auth")
+  const [currentView, setCurrentView] = useState<"auth" | "onboarding" | "app">("onboarding")
   const [onboardingStep, setOnboardingStep] = useState<"avatar" | "age" | "quiz" | "level">("avatar")
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_PROFILE)
   const [mounted, setMounted] = useState(false)
