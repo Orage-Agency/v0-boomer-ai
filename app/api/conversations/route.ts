@@ -1,62 +1,34 @@
-import { neon } from "@neondatabase/serverless"
+import { getSql } from "@/lib/db"
+import { ensureDeviceSession } from "@/lib/session"
 
-const sql = neon(process.env.DATABASE_URL!)
+/**
+ * Conversations are owned by a SERVER-ISSUED device id (signed session cookie).
+ * Every read/write/delete is scoped to the caller's own device id so a caller
+ * cannot access another device's conversations by guessing ids (IDOR).
+ *
+ * Schema is managed by scripts/002-create-conversations-table.sql — we no
+ * longer run CREATE TABLE DDL on every request.
+ */
 
 function getClientIp(request: Request): string {
-  // Try various headers that might contain the IP
   const forwarded = request.headers.get("x-forwarded-for")
-  const realIp = request.headers.get("x-real-ip")
-  const cfConnectingIp = request.headers.get("cf-connecting-ip")
-
-  if (forwarded) {
-    return forwarded.split(",")[0].trim()
-  }
-  if (realIp) {
-    return realIp
-  }
-  if (cfConnectingIp) {
-    return cfConnectingIp
-  }
-
-  return "unknown"
+  if (forwarded) return forwarded.split(",")[0].trim()
+  return request.headers.get("x-real-ip") || request.headers.get("cf-connecting-ip") || "unknown"
 }
 
 export async function GET(request: Request) {
   try {
+    const deviceId = await ensureDeviceSession()
     const { searchParams } = new URL(request.url)
-    const deviceId = searchParams.get("deviceId")
     const id = searchParams.get("id")
 
-    // Check if table exists, if not create it
-    try {
-      await sql`
-        CREATE TABLE IF NOT EXISTS boomer_conversations (
-          id SERIAL PRIMARY KEY,
-          device_id TEXT NOT NULL,
-          ip_address TEXT,
-          title TEXT,
-          preview TEXT,
-          messages JSONB,
-          message_count INTEGER DEFAULT 0,
-          created_at TIMESTAMP DEFAULT NOW(),
-          updated_at TIMESTAMP DEFAULT NOW()
-        )
-      `
-      await sql`
-        CREATE INDEX IF NOT EXISTS idx_device_id ON boomer_conversations(device_id)
-      `
-      await sql`
-        CREATE INDEX IF NOT EXISTS idx_created_at ON boomer_conversations(created_at DESC)
-      `
-    } catch (tableError) {
-      console.error("[v0] Table creation check error:", tableError)
-    }
+    const sql = getSql()
 
     if (id) {
-      // Get specific conversation
+      // Scoped to the caller's device id — cannot read someone else's conversation.
       const result = await sql`
-        SELECT * FROM boomer_conversations 
-        WHERE id = ${id}
+        SELECT * FROM boomer_conversations
+        WHERE id = ${id} AND device_id = ${deviceId}
         LIMIT 1
       `
       if (result.length === 0) {
@@ -65,84 +37,53 @@ export async function GET(request: Request) {
       return Response.json(result[0])
     }
 
-    if (deviceId) {
-      const conversations = await sql`
-        SELECT id, title, preview, created_at as timestamp, message_count, ip_address
-        FROM boomer_conversations 
-        WHERE device_id = ${deviceId}
-        ORDER BY created_at DESC
-        LIMIT 50
-      `
-      return Response.json({ conversations })
-    }
-
-    return Response.json({ error: "Missing parameters" }, { status: 400 })
+    const conversations = await sql`
+      SELECT id, title, preview, created_at as timestamp, message_count
+      FROM boomer_conversations
+      WHERE device_id = ${deviceId}
+      ORDER BY created_at DESC
+      LIMIT 50
+    `
+    return Response.json({ conversations })
   } catch (error) {
-    console.error("[v0] Conversations GET error:", error)
-    return Response.json(
-      {
-        error: "Failed to fetch conversations",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
+    console.error("Conversations GET error:", error)
+    return Response.json({ error: "Failed to fetch conversations" }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const { deviceId, title, preview, messages } = await request.json()
+    const deviceId = await ensureDeviceSession()
+    const { title, preview, messages } = await request.json()
 
-    if (!deviceId || !messages) {
+    if (!messages || !Array.isArray(messages)) {
       return Response.json({ error: "Missing required fields" }, { status: 400 })
     }
 
     const ipAddress = getClientIp(request)
-    console.log("[v0] Saving conversation from IP:", ipAddress, "Message count:", messages.length)
+    const sql = getSql()
 
-    try {
-      await sql`
-        CREATE TABLE IF NOT EXISTS boomer_conversations (
-          id SERIAL PRIMARY KEY,
-          device_id TEXT NOT NULL,
-          ip_address TEXT,
-          title TEXT,
-          preview TEXT,
-          messages JSONB,
-          message_count INTEGER DEFAULT 0,
-          created_at TIMESTAMP DEFAULT NOW(),
-          updated_at TIMESTAMP DEFAULT NOW()
-        )
-      `
-    } catch (tableError) {
-      console.error("[v0] Table creation check error:", tableError)
-    }
-
-    // First try to update existing, if not found then insert new
-    const existingResult = await sql`
-      SELECT id FROM boomer_conversations 
+    const existing = await sql`
+      SELECT id FROM boomer_conversations
       WHERE device_id = ${deviceId} AND title = ${title || "Untitled"}
       LIMIT 1
     `
 
-    let resultId: number
+    let resultId: number | string
 
-    if (existingResult.length > 0) {
-      // Update existing conversation
+    if (existing.length > 0) {
       await sql`
-        UPDATE boomer_conversations 
-        SET 
+        UPDATE boomer_conversations
+        SET
           ip_address = ${ipAddress},
           preview = ${preview || ""},
           messages = ${JSON.stringify(messages)},
           message_count = ${messages.length},
           updated_at = NOW()
-        WHERE id = ${existingResult[0].id}
+        WHERE id = ${existing[0].id} AND device_id = ${deviceId}
       `
-      resultId = existingResult[0].id
-      console.log("[v0] Conversation updated with ID:", resultId)
+      resultId = existing[0].id
     } else {
-      // Insert new conversation
       const result = await sql`
         INSERT INTO boomer_conversations (device_id, ip_address, title, preview, messages, message_count, created_at, updated_at)
         VALUES (
@@ -158,24 +99,18 @@ export async function POST(request: Request) {
         RETURNING id
       `
       resultId = result[0].id
-      console.log("[v0] Conversation saved with ID:", resultId)
     }
 
     return Response.json({ success: true, id: resultId })
   } catch (error) {
-    console.error("[v0] Conversations POST error:", error)
-    return Response.json(
-      {
-        error: "Failed to save conversation",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
+    console.error("Conversations POST error:", error)
+    return Response.json({ error: "Failed to save conversation" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: Request) {
   try {
+    const deviceId = await ensureDeviceSession()
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
 
@@ -183,17 +118,13 @@ export async function DELETE(request: Request) {
       return Response.json({ error: "Missing conversation ID" }, { status: 400 })
     }
 
-    await sql`DELETE FROM boomer_conversations WHERE id = ${id}`
+    // Scoped to the caller's device id — cannot delete someone else's conversation.
+    const sql = getSql()
+    await sql`DELETE FROM boomer_conversations WHERE id = ${id} AND device_id = ${deviceId}`
 
     return Response.json({ success: true })
   } catch (error) {
-    console.error("[v0] Conversations DELETE error:", error)
-    return Response.json(
-      {
-        error: "Failed to delete conversation",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
+    console.error("Conversations DELETE error:", error)
+    return Response.json({ error: "Failed to delete conversation" }, { status: 500 })
   }
 }

@@ -1,8 +1,9 @@
 /**
- * Authentication Service Layer
+ * Client-side auth helpers.
  *
- * This service connects to the Neon Postgres database via API routes
- * for user authentication, signup, and profile management.
+ * The authoritative session is a signed, httpOnly cookie set by the API routes
+ * (see lib/session.ts). These helpers only call the API and keep a small,
+ * NON-authoritative copy of display info (email/name) in localStorage for UI.
  */
 
 export interface User {
@@ -23,9 +24,6 @@ export interface AuthResult {
 
 const SESSION_KEY = "boomer_session"
 
-/**
- * Create a new user account via API
- */
 export async function createUser(email: string, password: string, name: string): Promise<AuthResult> {
   try {
     const response = await fetch("/api/auth/signup", {
@@ -37,7 +35,6 @@ export async function createUser(email: string, password: string, name: string):
     const result = await response.json()
 
     if (result.success && result.user) {
-      // Save session locally
       saveSession({ email: result.user.email, name: result.user.name, userId: result.user.id })
     }
 
@@ -48,9 +45,6 @@ export async function createUser(email: string, password: string, name: string):
   }
 }
 
-/**
- * Authenticate a user via API
- */
 export async function loginUser(email: string, password: string): Promise<AuthResult> {
   try {
     const response = await fetch("/api/auth/login", {
@@ -62,7 +56,6 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
     const result = await response.json()
 
     if (result.success && result.user) {
-      // Save session locally
       saveSession({ email: result.user.email, name: result.user.name, userId: result.user.id })
     }
 
@@ -73,15 +66,13 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
   }
 }
 
-/**
- * Update user stars via API
- */
-export async function updateUserStars(email: string, stars: number, level: string): Promise<AuthResult> {
+/** Update the signed-in user's stars. Identity is derived server-side from the session cookie. */
+export async function updateUserStars(stars: number): Promise<AuthResult> {
   try {
     const response = await fetch("/api/auth/update-stars", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, stars, level }),
+      body: JSON.stringify({ stars }),
     })
 
     return await response.json()
@@ -91,32 +82,12 @@ export async function updateUserStars(email: string, stars: number, level: strin
   }
 }
 
-/**
- * Get user by email via API
- */
-export async function getUserByEmail(email: string): Promise<AuthResult> {
-  try {
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password: "" }), // Will fail but we can check if user exists
-    })
-
-    return await response.json()
-  } catch (error) {
-    return { success: false, error: "User not found" }
-  }
-}
-
-/**
- * Delete user account via API
- */
-export async function deleteUser(email: string): Promise<{ success: boolean }> {
+/** Delete the signed-in account. Identity is derived server-side from the session cookie. */
+export async function deleteUser(): Promise<{ success: boolean }> {
   try {
     const response = await fetch("/api/auth/delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
     })
 
     const result = await response.json()
@@ -132,9 +103,15 @@ export async function deleteUser(email: string): Promise<{ success: boolean }> {
   }
 }
 
-/**
- * Session Management (localStorage for client-side session tracking)
- */
+export async function logoutUser(): Promise<void> {
+  try {
+    await fetch("/api/auth/logout", { method: "POST" })
+  } catch {
+    // ignore network errors on logout
+  }
+  clearSession()
+}
+
 function saveSession(session: { email: string; name: string; userId: string }): void {
   if (typeof window === "undefined") return
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
@@ -151,9 +128,6 @@ export function clearSession(): void {
   localStorage.removeItem(SESSION_KEY)
 }
 
-/**
- * Check if user is logged in (has valid session)
- */
 export function isLoggedIn(): boolean {
   return getSession() !== null
 }

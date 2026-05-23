@@ -1,7 +1,7 @@
-import { neon } from "@neondatabase/serverless"
 import { NextResponse } from "next/server"
-
-const sql = neon(process.env.DATABASE_URL!)
+import { getSql } from "@/lib/db"
+import { verifyPassword } from "@/lib/password"
+import { setSessionCookie } from "@/lib/session"
 
 export async function POST(request: Request) {
   try {
@@ -12,23 +12,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Email and password are required" }, { status: 400 })
     }
 
+    const sql = getSql()
+    const normalizedEmail = String(email).toLowerCase()
+
     // Find user by email
     const users = await sql`
       SELECT id, email, password_hash, name, stars, level, created_at, updated_at
       FROM boomer_users
-      WHERE email = ${email.toLowerCase()}
+      WHERE email = ${normalizedEmail}
     `
 
-    if (users.length === 0) {
-      return NextResponse.json({ success: false, error: "No account found with this email" }, { status: 401 })
-    }
-
+    // Use a generic message and always run bcrypt.compare path to avoid
+    // leaking whether an account exists (account enumeration).
     const user = users[0]
+    const passwordOk = user ? await verifyPassword(password, user.password_hash) : false
 
-    // Verify password (in production use bcrypt.compare)
-    if (user.password_hash !== password) {
-      return NextResponse.json({ success: false, error: "Incorrect password" }, { status: 401 })
+    if (!user || !passwordOk) {
+      return NextResponse.json({ success: false, error: "Incorrect email or password" }, { status: 401 })
     }
+
+    // Issue a signed session bound to this account.
+    await setSessionCookie({ userId: String(user.id), email: user.email })
 
     return NextResponse.json({
       success: true,
