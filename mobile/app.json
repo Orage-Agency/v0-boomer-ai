@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Boomer AI",
+    "slug": "boomer-ai",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "boomerai",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "agency.orage.boomerai",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "Boomer AI uses the microphone for voice chat so you can talk to your AI guide hands-free."
+      }
+    },
+    "android": {
+      "package": "agency.orage.boomerai",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f172a"
+      },
+      "permissions": ["RECORD_AUDIO"]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": ["expo-router"],
+    "extra": {
+      "apiBaseUrl": "https://CHANGE-ME.vercel.app",
+      "revenueCatApiKeyIos": "appl_PLACEHOLDER",
+      "revenueCatApiKeyAndroid": "goog_PLACEHOLDER",
+      "eas": {
+        "projectId": "00000000-0000-0000-0000-000000000000"
+      }
+    }
+  }
+}
