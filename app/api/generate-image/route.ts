@@ -1,41 +1,38 @@
 import { type NextRequest, NextResponse } from "next/server"
 import * as fal from "@fal-ai/serverless-client"
 import { containsProhibitedContent, SAFETY_MESSAGE, TECHNICAL_ERROR_MESSAGE } from "@/lib/content-moderation"
-
-// Configure fal client
-fal.config({
-  credentials: process.env.FAL_KEY,
-})
+import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 10 image generations per minute per IP.
+    const limit = rateLimit(clientKey(request, "generate-image"), 10, 60_000)
+    if (!limit.ok) return tooManyRequests(limit.resetAt)
+
+    if (!process.env.FAL_KEY) {
+      return NextResponse.json(
+        { error: TECHNICAL_ERROR_MESSAGE, errorType: "configuration" },
+        { status: 500 },
+      )
+    }
+
+    // Configure fal client inside the handler so build does not require FAL_KEY.
+    fal.config({ credentials: process.env.FAL_KEY })
+
     const { prompt } = await request.json()
 
     if (!prompt) {
       return NextResponse.json(
-        {
-          error: "Please describe what you'd like to create.",
-          errorType: "validation",
-        },
+        { error: "Please describe what you'd like to create.", errorType: "validation" },
         { status: 400 },
       )
     }
 
     const moderationResult = containsProhibitedContent(prompt)
     if (moderationResult.isProhibited) {
-      console.log("[v0] Content moderation blocked prompt:", prompt)
-      return NextResponse.json(
-        {
-          error: SAFETY_MESSAGE,
-          errorType: "content_safety",
-        },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: SAFETY_MESSAGE, errorType: "content_safety" }, { status: 400 })
     }
 
-    console.log("[v0] Generating image with prompt:", prompt)
-
-    // Generate image using the fal schnell model
     const result = await fal.subscribe("fal-ai/flux/schnell", {
       input: {
         prompt,
@@ -45,31 +42,18 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Extract the image URL from the result
-    const imageUrl = result.images?.[0]?.url
+    const imageUrl = (result as { images?: { url?: string }[] }).images?.[0]?.url
 
     if (!imageUrl) {
-      console.error("[v0] No image URL in result")
       return NextResponse.json(
-        {
-          error: TECHNICAL_ERROR_MESSAGE,
-          errorType: "generation_failed",
-        },
+        { error: TECHNICAL_ERROR_MESSAGE, errorType: "generation_failed" },
         { status: 500 },
       )
     }
 
-    console.log("[v0] Image generated successfully:", imageUrl)
-
     return NextResponse.json({ imageUrl })
   } catch (error) {
-    console.error("[v0] Error generating image:", error)
-    return NextResponse.json(
-      {
-        error: TECHNICAL_ERROR_MESSAGE,
-        errorType: "technical_error",
-      },
-      { status: 500 },
-    )
+    console.error("Error generating image:", error)
+    return NextResponse.json({ error: TECHNICAL_ERROR_MESSAGE, errorType: "technical_error" }, { status: 500 })
   }
 }

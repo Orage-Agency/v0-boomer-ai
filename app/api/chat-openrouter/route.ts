@@ -1,20 +1,21 @@
+import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit"
+
 export const maxDuration = 30
 
 export async function POST(req: Request) {
+  // Rate limit: 30 chat requests per minute per IP.
+  const limit = rateLimit(clientKey(req, "chat-openrouter"), 30, 60_000)
+  if (!limit.ok) return tooManyRequests(limit.resetAt)
+
   const {
     messages,
     model = "anthropic/claude-3.5-sonnet",
     capturedImage,
   }: { messages: any[]; model?: string; capturedImage?: string } = await req.json()
 
-  console.log("[v0] OpenRouter API - Model:", model)
-  console.log("[v0] OpenRouter API - Messages count:", messages.length)
-  console.log("[v0] OpenRouter API - Has captured image:", !!capturedImage)
-
   const openRouterKey = process.env.OPENROUTER_API_KEY || process.env.GEMINIFREEOPENROUTER
 
   if (!openRouterKey) {
-    console.error("[v0] OpenRouter API key not found")
     return new Response(
       JSON.stringify({
         error:
@@ -82,7 +83,7 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       const errorBody = await response.text()
-      console.error("[v0] OpenRouter API error:", response.status, errorBody)
+      console.error("OpenRouter API error:", response.status, errorBody)
 
       return new Response(
         JSON.stringify({
@@ -149,7 +150,7 @@ export async function POST(req: Request) {
       },
     })
   } catch (error) {
-    console.error("[v0] OpenRouter API error:", error)
+    console.error("OpenRouter API error:", error)
     return new Response(
       JSON.stringify({
         error: "Failed to connect to OpenRouter. Please check your API key or switch to AI SDK provider.",

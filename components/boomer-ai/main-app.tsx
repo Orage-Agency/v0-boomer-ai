@@ -211,7 +211,6 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
   const handleSendMessage = () => {
     if (!inputValue.trim()) return
 
-    console.log("[v0] Sending message from main app:", inputValue)
     setPendingMessage(inputValue)
     setInputValue("")
     setActiveTab("chat")

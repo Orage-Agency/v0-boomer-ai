@@ -192,20 +192,14 @@ export function ChatTab({
       conversationId: conversationId || undefined,
     },
     onError: (error) => {
-      console.error("[v0] Chat useChat error:", error)
+      console.error("Chat error:", error)
       setChatError("Something went wrong. Tap retry to try again.")
     },
-    onFinish: (message) => {
-      console.log("[v0] Chat finished, message:", message?.content?.substring(0, 50))
+    onFinish: () => {
       setChatError(null)
       setRetryCount(0)
     },
   })
-  
-  // Log status changes
-  useEffect(() => {
-    console.log("[v0] Chat status changed:", status, "Messages count:", messages.length)
-  }, [status, messages.length])
 
   const safeSendMessage = useCallback(
     async (text: string) => {
@@ -213,7 +207,7 @@ export function ChatTab({
       try {
         await sendMessage({ text })
       } catch (err) {
-        console.error("[v0] Send message error:", err)
+        console.error("Send message error:", err)
         setChatError("Failed to send message. Please try again.")
       }
     },

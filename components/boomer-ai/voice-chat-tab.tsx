@@ -23,23 +23,20 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
 
   const conversation = useConversation({
     onConnect: () => {
-      console.log("[v0] Voice assistant connected")
       setHasStarted(true)
       startSpeechRecognition()
     },
     onDisconnect: () => {
-      console.log("[v0] Voice assistant disconnected")
       setHasStarted(false)
       stopSpeechRecognition()
     },
     onMessage: (message) => {
-      console.log("[v0] Voice assistant message:", message)
       setConversationMessages((prev) => [...prev, message])
       // Clear live transcript when AI responds
       setLiveTranscript("")
     },
     onError: (error) => {
-      console.error("[v0] Voice assistant error:", error)
+      console.error("Voice assistant error:", error)
       alert("Voice assistant error. Please try again.")
     },
   })
@@ -49,7 +46,6 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
-      console.log("[v0] Speech recognition not supported")
       return
     }
 
@@ -60,7 +56,6 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
 
     recognition.onstart = () => {
       setIsListening(true)
-      console.log("[v0] Speech recognition started")
     }
 
     recognition.onresult = (event: any) => {
@@ -88,7 +83,6 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
     }
 
     recognition.onerror = (event: any) => {
-      console.log("[v0] Speech recognition error:", event.error)
       if (event.error === "no-speech") {
         // Restart recognition if no speech detected
         setTimeout(() => {
@@ -120,8 +114,8 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
     recognitionRef.current = recognition
     try {
       recognition.start()
-    } catch (e) {
-      console.log("[v0] Failed to start speech recognition:", e)
+    } catch {
+      // recognition already started
     }
   }
 
@@ -164,7 +158,7 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
         stars: userProfile.stars + 2,
       })
     } catch (error) {
-      console.error("[v0] Failed to start voice assistant:", error)
+      console.error("Failed to start voice assistant:", error)
       alert("Please allow microphone access to use the voice assistant.")
     }
   }

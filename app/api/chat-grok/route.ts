@@ -1,13 +1,15 @@
 import { consumeStream, convertToModelMessages, streamText, type UIMessage } from "ai"
 import { xai } from "@ai-sdk/xai"
+import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit"
 
 export const maxDuration = 30
 
 export async function POST(req: Request) {
-  const { messages, capturedImage }: { messages: UIMessage[]; capturedImage?: string } = await req.json()
+  // Rate limit: 30 chat requests per minute per IP.
+  const limit = rateLimit(clientKey(req, "chat-grok"), 30, 60_000)
+  if (!limit.ok) return tooManyRequests(limit.resetAt)
 
-  console.log("[v0] Grok Chat API - Messages count:", messages.length)
-  console.log("[v0] Grok Chat API - Has captured image:", !!capturedImage)
+  const { messages, capturedImage }: { messages: UIMessage[]; capturedImage?: string } = await req.json()
 
   // Process messages with image if provided
   let processedMessages = messages
@@ -30,11 +32,10 @@ export async function POST(req: Request) {
           ],
         },
       ]
-      console.log("[v0] Added image to last user message")
     }
   }
 
-  const prompt = convertToModelMessages(processedMessages)
+  const prompt = await convertToModelMessages(processedMessages)
 
   const result = streamText({
     model: xai("grok-4", {

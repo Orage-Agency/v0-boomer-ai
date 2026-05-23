@@ -1,21 +1,22 @@
 import { consumeStream, convertToModelMessages, streamText, type UIMessage } from "ai"
 import { containsProhibitedContent } from "@/lib/content-moderation"
+import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit"
 
 export const maxDuration = 60
 
 export async function POST(req: Request) {
-  console.log("[v0] Chat API called")
   try {
+    // Rate limit: 30 chat requests per minute per IP.
+    const limit = rateLimit(clientKey(req, "chat"), 30, 60_000)
+    if (!limit.ok) return tooManyRequests(limit.resetAt)
+
     const body = await req.json()
-    console.log("[v0] Chat API received body keys:", Object.keys(body))
-    
+
     const {
       messages,
       model = "openai/gpt-4o-mini",
       capturedImage,
     }: { messages: UIMessage[]; model?: string; capturedImage?: string } = body
-    
-    console.log("[v0] Messages count:", messages?.length, "Model:", model)
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "Invalid messages format" }), {
@@ -70,8 +71,6 @@ export async function POST(req: Request) {
     // v6: convertToModelMessages is now async
     const prompt = await convertToModelMessages(processedMessages)
 
-    console.log("[v0] Calling streamText with model:", model)
-    
     const result = streamText({
       model: model,
       system:
@@ -80,8 +79,6 @@ export async function POST(req: Request) {
       abortSignal: req.signal,
     })
 
-    console.log("[v0] streamText called successfully, returning response")
-    
     return result.toUIMessageStreamResponse({
       consumeSseStream: consumeStream,
     })

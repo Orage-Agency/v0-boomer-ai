@@ -1,9 +1,14 @@
 import { streamText } from "ai"
+import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit"
 
 export const maxDuration = 30
 
 export async function POST(req: Request) {
   try {
+    // Rate limit: 20 prompt-improvement requests per minute per IP.
+    const limit = rateLimit(clientKey(req, "improve-prompt"), 20, 60_000)
+    if (!limit.ok) return tooManyRequests(limit.resetAt)
+
     const { prompt } = await req.json()
 
     if (!prompt) {

@@ -12,18 +12,11 @@ export function VoiceAssistant({ agentId }: VoiceAssistantProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   const conversation = useConversation({
-    onConnect: () => {
-      console.log("[v0] Voice assistant connected")
-    },
     onDisconnect: () => {
-      console.log("[v0] Voice assistant disconnected")
       setIsOpen(false)
     },
-    onMessage: (message) => {
-      console.log("[v0] Voice assistant message:", message)
-    },
     onError: (error) => {
-      console.error("[v0] Voice assistant error:", error)
+      console.error("Voice assistant error:", error)
       alert("Voice assistant error. Please try again.")
     },
   })
@@ -38,7 +31,7 @@ export function VoiceAssistant({ agentId }: VoiceAssistantProps) {
 
       setIsOpen(true)
     } catch (error) {
-      console.error("[v0] Failed to start voice assistant:", error)
+      console.error("Failed to start voice assistant:", error)
       alert("Please allow microphone access to use the voice assistant.")
     }
   }
