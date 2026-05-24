@@ -25,7 +25,6 @@ export default function Index() {
     );
   }
 
-  if (view === 'auth') return <Redirect href="/auth" />;
   if (view === 'onboarding') return <Redirect href="/onboarding" />;
   return <Redirect href="/(tabs)" />;
 }

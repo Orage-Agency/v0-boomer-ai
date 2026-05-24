@@ -9,9 +9,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { InfoBanner } from '@/components/InfoBanner';
 import { useChatSession } from '@/screens/useChat';
+import { consumePendingPrompt, subscribePendingPrompt } from '@/screens/pendingPrompt';
 import { useProfile } from '@/context/ProfileContext';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 import type { ChatMessage } from '@/types';
@@ -56,6 +58,25 @@ export default function Chat() {
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     },
     [awardStars, send],
+  );
+
+  // Keep a stable ref so focus/subscription handlers always call the latest
+  // version of handleSend without re-registering on every render.
+  const handleSendRef = useRef(handleSend);
+  handleSendRef.current = handleSend;
+
+  // When the Chat tab gains focus, pick up any prompt queued by another screen
+  // (Lessons / Tips / Quick Questions "Try in chat" actions) and send it.
+  useFocusEffect(
+    useCallback(() => {
+      const queued = consumePendingPrompt();
+      if (queued) handleSendRef.current(queued);
+      // Also handle prompts pushed while the screen is already focused.
+      const unsubscribe = subscribePendingPrompt((prompt) => {
+        handleSendRef.current(prompt);
+      });
+      return unsubscribe;
+    }, []),
   );
 
   const busy = status === 'streaming' || status === 'submitted';

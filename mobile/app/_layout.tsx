@@ -7,8 +7,9 @@ import { initPurchases } from '@/context/purchases';
 
 /**
  * Root layout. Wraps the whole app in providers and declares the top-level
- * navigation stack. The actual routing decision (auth vs onboarding vs app)
- * is driven by the index route based on the ProfileContext `view`.
+ * navigation stack. The actual routing decision (onboarding vs app) is driven
+ * by the index route based on the ProfileContext `view`. Device-only — there
+ * is no auth screen.
  */
 export default function RootLayout() {
   useEffect(() => {
@@ -28,9 +29,24 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" />
-          <Stack.Screen name="auth" />
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="voice"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="image-gen"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="quick-questions"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="lesson/[id]"
+            options={{ animation: 'slide_from_right' }}
+          />
           <Stack.Screen
             name="paywall"
             options={{ presentation: 'modal', animation: 'slide_from_bottom' }}

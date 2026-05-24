@@ -8,11 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEYS = {
   deviceId: 'boomer-device-id',
-  session: 'boomer_session',
   profile: (id: string) => `boomer_profile_${id}`,
 } as const;
-
-export type Session = { email: string; name: string };
 
 function makeDeviceId(): string {
   return `device_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
@@ -26,24 +23,6 @@ export async function getDeviceId(): Promise<string> {
     await AsyncStorage.setItem(KEYS.deviceId, id);
   }
   return id;
-}
-
-export async function getSession(): Promise<Session | null> {
-  const raw = await AsyncStorage.getItem(KEYS.session);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as Session;
-  } catch {
-    return null;
-  }
-}
-
-export async function setSession(session: Session): Promise<void> {
-  await AsyncStorage.setItem(KEYS.session, JSON.stringify(session));
-}
-
-export async function clearSession(): Promise<void> {
-  await AsyncStorage.removeItem(KEYS.session);
 }
 
 export async function getCachedProfile<T>(key: string): Promise<T | null> {

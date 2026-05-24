@@ -75,18 +75,35 @@ export default function Home() {
 
         <View style={styles.row}>
           <GradientTile
+            emoji="❓"
+            title="Questions"
+            subtitle="50 quick ideas"
+            gradient={gradients.games}
+            onPress={() => router.push('/quick-questions')}
+          />
+          <GradientTile
             emoji="⭐"
             title="Go Pro"
             subtitle="Unlock everything"
             gradient={gradients.brand}
             onPress={() => router.push('/paywall')}
           />
+        </View>
+
+        <View style={styles.row}>
           <GradientTile
             emoji="👤"
             title="Profile"
             subtitle="Your progress"
-            gradient={gradients.games}
+            gradient={gradients.chat}
             onPress={() => router.push('/(tabs)/profile')}
+          />
+          <GradientTile
+            emoji="📚"
+            title="Learn"
+            subtitle="Video lessons"
+            gradient={gradients.lessons}
+            onPress={() => router.push('/(tabs)/lessons')}
           />
         </View>
       </ScrollView>
