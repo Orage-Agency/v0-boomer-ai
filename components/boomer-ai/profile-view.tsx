@@ -1,8 +1,8 @@
 "use client"
 
-import { Star, Trophy, Target, Trash2, LogOut, ImageIcon, MessageSquare, Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Star, Trophy, Target, Trash2, LogOut, MessageSquare, Loader2 } from "lucide-react"
 import type { UserProfile } from "@/app/page"
-import { useUser } from "@/contexts/user-context"
 import Link from "next/link"
 
 interface ProfileViewProps {
@@ -60,7 +60,33 @@ function getLevelProgress(stars: number) {
 }
 
 export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onLogout }: ProfileViewProps) {
-  const { email, stars, galleryCount, chatHistory, isLoading } = useUser()
+  // Real data comes from the authenticated profile prop + the device-scoped
+  // conversations API; this no longer relies on the unused localStorage context.
+  const email = userProfile.email
+  const stars = userProfile.stars
+  const [chatCount, setChatCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch("/api/conversations")
+        if (res.ok) {
+          const data = await res.json()
+          if (!cancelled) setChatCount((data.conversations || []).length)
+        }
+      } catch {
+        // ignore — count stays 0
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const { currentLevelStars, starsNeeded, progress, nextLevelName, isComplete, displayLevel } = getLevelProgress(stars)
 
@@ -116,22 +142,12 @@ export function ProfileView({ userProfile, onReset, onBack, onDeleteAccount, onL
 
               <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-purple-100 rounded-lg">
-                    <ImageIcon className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <span className="text-sm text-slate-600">Images Created:</span>
-                </div>
-                <span className="text-sm font-bold text-purple-600">{galleryCount}</span>
-              </div>
-
-              <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100">
-                <div className="flex items-center gap-2">
                   <div className="p-1.5 bg-green-100 rounded-lg">
                     <MessageSquare className="w-4 h-4 text-green-600" />
                   </div>
                   <span className="text-sm text-slate-600">Chats Saved:</span>
                 </div>
-                <span className="text-sm font-bold text-green-600">{chatHistory.length}</span>
+                <span className="text-sm font-bold text-green-600">{chatCount}</span>
               </div>
             </div>
           )}
