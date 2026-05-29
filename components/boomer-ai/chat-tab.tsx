@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, X, ChevronDown, ChevronUp, Lightbulb, Star, RefreshCw, AlertCircle } from "lucide-react"
+import { Sparkles, X, ChevronDown, ChevronUp, Lightbulb, Star, RefreshCw, AlertCircle, Volume2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
 
@@ -174,6 +174,7 @@ export function ChatTab({
   const [expandedSections, setExpandedSections] = useState<string[]>([])
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
   const conversationLoadedRef = useRef(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [lastUserQuestion, setLastUserQuestion] = useState<string>("")
@@ -181,6 +182,7 @@ export function ChatTab({
   const prevStarsRef = useRef(userProfile.stars)
   const [chatError, setChatError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [speakingId, setSpeakingId] = useState<string | null>(null)
 
   const { messages, sendMessage, status, setMessages, error, reload } = useChat({
     transport: new DefaultChatTransport({
@@ -225,6 +227,33 @@ export function ChatTab({
     setRetryCount((prev) => prev + 1)
     reload()
   }, [reload])
+
+  const handleSpeak = useCallback(async (text: string, id: string) => {
+    if (speakingId === id) {
+      audioRef.current?.pause()
+      audioRef.current = null
+      setSpeakingId(null)
+      return
+    }
+    setSpeakingId(id)
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      })
+      if (!res.ok) { setSpeakingId(null); return }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audioRef.current = audio
+      audio.onended = () => { setSpeakingId(null); URL.revokeObjectURL(url) }
+      audio.onerror = () => { setSpeakingId(null); URL.revokeObjectURL(url) }
+      await audio.play()
+    } catch {
+      setSpeakingId(null)
+    }
+  }, [speakingId])
 
   useEffect(() => {
     const scrollToBottom = () => {
@@ -548,29 +577,50 @@ export function ChatTab({
                 key={message.id}
                 className={`flex w-full ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <div
-                  className={`max-w-[85%] sm:max-w-[80%] p-3 sm:p-4 rounded-2xl shadow-md ${
-                    message.role === "user"
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white"
-                      : "bg-slate-50 text-slate-900 border-2 border-slate-200"
-                  }`}
-                >
-                  {message.parts && message.parts.length > 0 ? (
-                    message.parts.map((part, index) => {
-                      if (part.type === "text") {
-                        return (
-                          <p key={index} className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
-                            {part.text}
-                          </p>
-                        )
-                      }
-                      return null
-                    })
-                  ) : (
-                    <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
-                      {message.content || ""}
-                    </p>
-                  )}
+                <div className={`flex flex-col gap-1 max-w-[85%] sm:max-w-[80%] ${message.role === "user" ? "items-end" : "items-start"}`}>
+                  <div
+                    className={`p-3 sm:p-4 rounded-2xl shadow-md w-full ${
+                      message.role === "user"
+                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white"
+                        : "bg-slate-50 text-slate-900 border-2 border-slate-200"
+                    }`}
+                  >
+                    {message.parts && message.parts.length > 0 ? (
+                      message.parts.map((part, index) => {
+                        if (part.type === "text") {
+                          return (
+                            <p key={index} className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
+                              {part.text}
+                            </p>
+                          )
+                        }
+                        return null
+                      })
+                    ) : (
+                      <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
+                        {message.content || ""}
+                      </p>
+                    )}
+                  </div>
+                  {message.role === "assistant" && (() => {
+                    const msgText = message.parts?.find((p: any) => p.type === "text")?.text || message.content || ""
+                    return msgText ? (
+                      <button
+                        onClick={() => handleSpeak(msgText, message.id)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold transition-all touch-manipulation min-h-[32px] ${
+                          speakingId === message.id
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-slate-100 text-slate-500 hover:bg-blue-50 hover:text-blue-600"
+                        }`}
+                        aria-label={speakingId === message.id ? "Stop speaking" : "Read aloud"}
+                      >
+                        {speakingId === message.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <Volume2 className="w-3.5 h-3.5" />}
+                        <span>{speakingId === message.id ? "Speaking..." : "Read aloud"}</span>
+                      </button>
+                    ) : null
+                  })()}
                 </div>
               </div>
             ))}

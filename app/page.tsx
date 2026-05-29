@@ -180,7 +180,7 @@ export default function BoomerAIPage() {
         paddingRight: "env(safe-area-inset-right)",
       }}
     >
-      <div className="relative bg-white w-full max-w-md mx-auto h-screen overflow-hidden flex flex-col">
+      <div className="relative bg-white w-full max-w-md md:max-w-2xl lg:max-w-full lg:w-screen mx-auto h-screen overflow-hidden flex flex-col md:border-x md:border-slate-200 lg:border-none">
         {currentView === "onboarding" && (
           <>
             <Stepper
