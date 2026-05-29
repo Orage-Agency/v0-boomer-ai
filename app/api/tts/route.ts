@@ -1,11 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit"
 
 const DEFAULT_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM"
 
 export async function POST(req: NextRequest) {
-  const limit = rateLimit(clientKey(req, "tts"), 20, 60_000)
-  if (!limit.ok) return tooManyRequests(limit.resetAt)
 
   const apiKey = process.env.ELEVENLABS_API_KEY
   if (!apiKey) {
