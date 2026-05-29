@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Home, MessageSquare, BookOpen, Star, Mic, MicOff, Send, Lightbulb, History, Menu, RotateCcw, X, Gamepad2, User, LogOut, Palette } from "lucide-react"
+import { Home, MessageSquare, BookOpen, Star, Mic, MicOff, Send, Lightbulb, History, Menu, RotateCcw, X, Gamepad2, User, LogOut, Palette, ImagePlus, Camera } from "lucide-react"
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
 import { LessonsTab } from "./lessons-tab"
@@ -46,6 +46,8 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
   const recognitionRef = useRef<any>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const [pendingMessage, setPendingMessage] = useState<string | null>(null)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
@@ -226,6 +228,17 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
     setInputValue("What can you tell me about this image?")
   }
 
+  const handleImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === "string") handleCameraCapture(reader.result)
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleLoadConversation = (conversationId: string) => {
     setCurrentConversationId(conversationId)
     setActiveTab("chat")
@@ -248,11 +261,11 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
   }
 
   const handleOpenCamera = () => {
-    // Implement camera opening logic here
+    cameraInputRef.current?.click()
   }
 
   return (
-    <div className="flex flex-col h-screen bg-white">
+    <div className="flex flex-col lg:flex-row h-screen bg-white overflow-hidden">
       <CelebrationModal
         isOpen={showCelebration}
         onClose={() => setShowCelebration(false)}
@@ -371,6 +384,68 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
           </div>
         </div>
       )}
+
+      {/* ── Sidebar: visible on lg (iPad landscape) ── */}
+      <aside className="hidden lg:flex flex-col w-56 flex-shrink-0 border-r border-slate-200 bg-white">
+        <div className="p-4 pt-5 border-b border-slate-100 flex items-center justify-between">
+          <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-10 w-auto object-contain" />
+          <div className={`flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-100 to-amber-100 rounded-full border border-yellow-200 transition-transform ${starPop ? "scale-125" : "scale-100"}`}>
+            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+            <span className="text-sm font-bold text-slate-900">{userProfile.stars}</span>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto py-2 px-2">
+          {[
+            { id: "home", icon: Home, label: "Home" },
+            { id: "chat", icon: MessageSquare, label: "Chat" },
+            { id: "lessons", icon: BookOpen, label: "Learn" },
+            { id: "tips", icon: Lightbulb, label: "Tips" },
+            { id: "play", icon: Gamepad2, label: "Play" },
+            { id: "aiart", icon: Palette, label: "AI Art" },
+          ].map((item) => {
+            const IconComponent = item.icon
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id as any)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all touch-manipulation ${
+                  activeTab === item.id
+                    ? "text-blue-600 bg-blue-50 font-bold"
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                <IconComponent className="w-5 h-5 flex-shrink-0" />
+                <span className="text-base font-semibold">{item.label}</span>
+              </button>
+            )
+          })}
+        </div>
+        <div className="p-3 border-t border-slate-100 space-y-1">
+          <button
+            onClick={() => setActiveTab("voice")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all touch-manipulation ${
+              activeTab === "voice"
+                ? "text-purple-600 bg-purple-50 font-bold"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-purple-200">
+              <img src="/voice-assistant-avatar.jpg" alt="" className="w-full h-full object-cover" />
+            </div>
+            <span className="text-base font-semibold">Voice Chat</span>
+          </button>
+          <button
+            onClick={() => setIsMenuOpen(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all touch-manipulation"
+          >
+            <Menu className="w-5 h-5 flex-shrink-0" />
+            <span className="text-base font-semibold">Menu</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Main column ── */}
+      <div className="flex flex-col flex-1 overflow-hidden min-w-0">
 
       <header className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 z-40 sticky top-0">
         <div className="flex items-center gap-2">
@@ -514,7 +589,51 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
           </div>
         )}
 
+        {capturedImage && (
+          <div className="mb-2 flex items-center gap-3 bg-blue-50 border-2 border-blue-200 rounded-2xl p-2">
+            <img src={capturedImage || "/placeholder.svg"} alt="Attached" className="w-14 h-14 rounded-xl object-cover" />
+            <span className="flex-grow text-base font-semibold text-blue-900">Photo attached</span>
+            <button
+              onClick={() => setCapturedImage(null)}
+              className="p-2 rounded-full text-blue-700 hover:bg-blue-100 min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
+              aria-label="Remove photo"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        )}
+
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageFile}
+          className="hidden"
+        />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleImageFile}
+          className="hidden"
+        />
+
         <div className="flex items-center gap-2 bg-slate-100 rounded-2xl p-2 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.15)]">
+          <button
+            onClick={() => imageInputRef.current?.click()}
+            className="p-3 rounded-xl transition-all flex-shrink-0 touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-white"
+            aria-label="Attach photo from library"
+          >
+            <ImagePlus className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            className="p-3 rounded-xl transition-all flex-shrink-0 touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-white"
+            aria-label="Take a photo with camera"
+          >
+            <Camera className="w-6 h-6" />
+          </button>
           <button
             onClick={toggleVoiceRecognition}
             className={`p-3 rounded-xl transition-all flex-shrink-0 touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center ${
@@ -554,7 +673,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
       </div>
 
       <nav
-        className="flex-shrink-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 px-2 pt-2 pb-safe z-50"
+        className="flex-shrink-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 px-2 pt-2 pb-safe z-50 lg:hidden"
         style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
       >
         <div className="flex items-center justify-around">
@@ -586,6 +705,7 @@ export function MainApp({ userProfile, updateProfile, onReset, onLogout, onDelet
           })}
         </div>
       </nav>
+      </div>{/* end main column */}
     </div>
   )
 }
