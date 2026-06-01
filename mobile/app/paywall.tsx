@@ -155,7 +155,7 @@ export default function PaywallScreen() {
           <Text style={styles.heroEmoji}>⭐</Text>
           <Text style={styles.heroTitle}>Boomer AI Pro</Text>
           <Text style={styles.heroSub}>
-            Start your 7-day free trial. Cancel anytime.
+            7 days free, then $97 a year. Cancel anytime.
           </Text>
         </LinearGradient>
 
@@ -220,17 +220,18 @@ export default function PaywallScreen() {
                     <View style={styles.pkgBody}>
                       <View style={styles.pkgTitleRow}>
                         <Text style={styles.pkgTitle}>
-                          {annual ? 'Annual' : 'Monthly'}
+                          {annual ? 'Yearly' : 'Monthly'}
                         </Text>
                         {annual && (
                           <View style={styles.badge}>
-                            <Text style={styles.badgeText}>BEST VALUE</Text>
+                            <Text style={styles.badgeText}>7-DAY FREE TRIAL</Text>
                           </View>
                         )}
                       </View>
                       <Text style={styles.pkgDesc}>
-                        7-day free trial, then {pkg.product.priceString}
-                        {annual ? '/year' : '/month'}
+                        {annual
+                          ? `7 days free, then ${pkg.product.priceString}/year`
+                          : `${pkg.product.priceString}/month, billed monthly`}
                       </Text>
                     </View>
                     <Text style={styles.pkgPrice}>{pkg.product.priceString}</Text>
@@ -243,8 +244,10 @@ export default function PaywallScreen() {
         <Button
           title={
             selected
-              ? `Start 7-day free trial · ${selected.product.priceString}`
-              : 'Start 7-day free trial'
+              ? selected.product.identifier.includes(PRODUCT_IDS.annual)
+                ? `Start 7-day free trial · ${selected.product.priceString}/yr`
+                : `Subscribe · ${selected.product.priceString}/mo`
+              : 'Continue'
           }
           onPress={() => buy(selected)}
           variant="ink"
