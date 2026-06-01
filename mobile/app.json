@@ -46,8 +46,8 @@
     ],
     "extra": {
       "apiBaseUrl": "https://CHANGE-ME.vercel.app",
-      "revenueCatApiKeyIos": "appl_PLACEHOLDER",
-      "revenueCatApiKeyAndroid": "goog_PLACEHOLDER",
+      "revenueCatApiKeyIos": "__REPLACE_ME__",
+      "revenueCatApiKeyAndroid": "__REPLACE_ME__",
       "eas": {
         "projectId": "00000000-0000-0000-0000-000000000000"
       }

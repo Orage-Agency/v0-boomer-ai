@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ProfileProvider } from '@/context/ProfileContext';
+import { EntitlementProvider } from '@/context/EntitlementContext';
 import { initPurchases } from '@/context/purchases';
 
 /**
@@ -20,6 +21,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ProfileProvider>
+        <EntitlementProvider>
         <StatusBar style="dark" />
         <Stack
           screenOptions={{
@@ -52,6 +54,7 @@ export default function RootLayout() {
             options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
           />
         </Stack>
+        </EntitlementProvider>
       </ProfileProvider>
     </SafeAreaProvider>
   );
