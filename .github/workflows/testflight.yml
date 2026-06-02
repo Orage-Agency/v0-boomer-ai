@@ -73,13 +73,36 @@ jobs:
         working-directory: mobile/ios
         run: bundle exec pod install --repo-update
 
+      - name: Materialize ASC API key on disk
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_KEY_BASE64" | base64 -d > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "ASC_KEY_FILEPATH=$KEY_PATH" >> "$GITHUB_ENV"
+          # Sanity check: file must start with PEM header.
+          head -1 "$KEY_PATH" | grep -q "BEGIN" || { echo "::error::Decoded ASC key is not a PEM"; exit 1; }
+          # Sanity check: verify the key signs a JWT Apple accepts (catches secret-corruption before match runs).
+          NOW=$(date +%s); EXP=$((NOW + 600))
+          H=$(printf '{"alg":"ES256","kid":"%s","typ":"JWT"}' "$ASC_KEY_ID" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          P=$(printf '{"iss":"%s","iat":%d,"exp":%d,"aud":"appstoreconnect-v1"}' "${{ secrets.ASC_ISSUER_ID }}" "$NOW" "$EXP" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          S=$(printf '%s' "${H}.${P}" | openssl dgst -sha256 -sign "$KEY_PATH" -binary | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          JWT="${H}.${P}.${S}"
+          HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $JWT" "https://api.appstoreconnect.apple.com/v1/apps?limit=1")
+          echo "ASC API preflight: HTTP $HTTP"
+          [ "$HTTP" = "200" ] || { echo "::error::ASC API rejected JWT (HTTP $HTTP) — check ASC_KEY_BASE64 / ASC_KEY_ID / ASC_ISSUER_ID secrets"; exit 1; }
+
       - name: fastlane beta
         working-directory: mobile/ios
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+          ASC_KEY_FILEPATH: ${{ env.ASC_KEY_FILEPATH }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
