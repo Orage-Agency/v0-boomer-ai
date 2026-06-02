@@ -3,7 +3,11 @@ name: TestFlight (iOS)
 on:
   push:
     branches:
+      - mobile-native
       - release/testflight-001
+    paths:
+      - "mobile/**"
+      - ".github/workflows/testflight.yml"
   workflow_dispatch:
     inputs:
       match_readonly:
