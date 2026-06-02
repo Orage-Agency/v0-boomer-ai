@@ -1,7 +1,6 @@
-git_url(ENV["MATCH_GIT_URL"] || "https://github.com/Orage-Agency/boomerai-ios-certs.git")
-storage_mode("git")
-type("appstore")
-app_identifier(["boomerai.orage.agency"])
-# ASC API key is provided via env in the Fastfile (api_key_path / APP_STORE_CONNECT_API_KEY_*).
-# In CI we run match read/write on first run, switch to readonly after seeding.
-readonly(false)
+git_url        ENV["MATCH_GIT_URL"]
+storage_mode   "git"
+type           "appstore"
+app_identifier ["boomerai.orage.agency"]
+team_id        ENV["APPLE_TEAM_ID"]
+readonly       false

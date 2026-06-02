@@ -47,10 +47,10 @@ jobs:
           echo "::warning::No Xcode 26.x found, using default"
           xcodebuild -version
 
-      - name: Set up Ruby 3.3
+      - name: Set up Ruby 3.2
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.3"
+          ruby-version: "3.2"
           bundler-cache: true
           working-directory: mobile/ios
 
@@ -72,15 +72,6 @@ jobs:
       - name: Install CocoaPods
         working-directory: mobile/ios
         run: bundle exec pod install --repo-update
-
-      - name: Decode ASC API key
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
-        run: |
-          mkdir -p "$HOME/.appstoreconnect/private_keys"
-          echo "$ASC_KEY_BASE64" | base64 -d > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
-          chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
 
       - name: fastlane beta
         working-directory: mobile/ios
