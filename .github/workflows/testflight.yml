@@ -71,7 +71,10 @@ jobs:
       - name: Decode ASC API key
         run: |
           mkdir -p "$HOME/.appstoreconnect/private_keys"
-          echo "$ASC_KEY_BASE64" | base64 -d > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          echo "$ASC_KEY_BASE64" | base64 -d > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "ASC_KEY_FILEPATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: fastlane beta
         working-directory: mobile/ios
