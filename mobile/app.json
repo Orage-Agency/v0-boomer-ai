@@ -2,7 +2,7 @@
   "expo": {
     "name": "Boomer AI",
     "slug": "boomer-ai",
-    "version": "0.1.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "boomerai",
@@ -18,14 +18,15 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "agency.orage.boomerai",
+      "bundleIdentifier": "boomerai.orage.agency",
+      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "Boomer AI uses the microphone for voice chat so you can talk to your AI guide hands-free."
       }
     },
     "android": {
-      "package": "agency.orage.boomerai",
+      "package": "boomerai.orage.agency",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
