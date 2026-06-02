@@ -95,7 +95,11 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           set -euo pipefail
-          python3 -m pip install --quiet --user pyjwt cryptography
+          python3 -m venv "$RUNNER_TEMP/asc-venv"
+          # shellcheck disable=SC1091
+          source "$RUNNER_TEMP/asc-venv/bin/activate"
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet pyjwt cryptography
           python3 - <<'PY'
           import jwt, time, os, sys, urllib.request
           kid = os.environ["ASC_KEY_ID"]
