@@ -87,7 +87,10 @@ jobs:
           echo "ASC_KEY_FILEPATH=$KEY_PATH" >> "$GITHUB_ENV"
           head -1 "$KEY_PATH" | grep -q "BEGIN" || { echo "::error::Decoded ASC key is not a PEM"; exit 1; }
           BYTES=$(wc -c < "$KEY_PATH")
-          echo "ASC key on disk: $BYTES bytes, header: $(head -1 "$KEY_PATH")"
+          HASH=$(shasum -a 256 "$KEY_PATH" | awk '{print $1}')
+          echo "ASC key on disk: $BYTES bytes, sha256: $HASH"
+          echo "Header: $(head -1 "$KEY_PATH"); Footer: $(tail -1 "$KEY_PATH")"
+          echo "Expected local sha256: 85a4fc542b583ee7c8ede26f0b57153b7706d71d8bf50d7c913a4da84975dbcd"
 
       - name: ASC API preflight (catches corrupted secrets before fastlane)
         env:
