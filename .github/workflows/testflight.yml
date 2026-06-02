@@ -18,34 +18,39 @@ concurrency:
 jobs:
   build:
     name: Archive & upload to TestFlight
-    runs-on: macos-13
-    timeout-minutes: 60
+    runs-on: macos-15
+    timeout-minutes: 75
 
     env:
-      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-      ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
-      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
-      MATCH_READONLY: ${{ github.event.inputs.match_readonly || 'false' }}
-      TF_GROUP_ID: 6162d862-da50-4650-b96d-8f55ea851ef5
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
       FASTLANE_HIDE_CHANGELOG: "1"
       FASTLANE_SKIP_UPDATE_CHECK: "1"
-      LC_ALL: en_US.UTF-8
-      LANG: en_US.UTF-8
+      FASTLANE_DISABLE_COLORS: "1"
+      TF_GROUP_ID: da3e8d53-dc07-43d4-9415-f91bb21f2c73
+      MATCH_READONLY: ${{ github.event.inputs.match_readonly || 'false' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode 15.4
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+      - name: Select Xcode 26
+        run: |
+          for v in 26.3 26.2 26.1.1 26.0.1 26; do
+            if [ -d "/Applications/Xcode_${v}.app" ]; then
+              sudo xcode-select -s "/Applications/Xcode_${v}.app"
+              echo "Selected /Applications/Xcode_${v}.app"
+              xcodebuild -version
+              exit 0
+            fi
+          done
+          echo "::warning::No Xcode 26.x found, using default"
+          xcodebuild -version
 
-      - name: Set up Ruby
+      - name: Set up Ruby 3.2
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.3"
+          ruby-version: "3.2"
           bundler-cache: true
           working-directory: mobile/ios
 
@@ -68,27 +73,33 @@ jobs:
         working-directory: mobile/ios
         run: bundle exec pod install --repo-update
 
-      - name: Decode ASC API key
+      - name: fastlane beta
+        working-directory: mobile/ios
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+        run: bundle exec fastlane beta
+
+      - name: Assign build to TestFlight group "BOOMER AI V1"
+        if: success()
+        working-directory: mobile/ios
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+          APP_ID_NUMERIC: "6755741429"
         run: |
+          set -euo pipefail
           mkdir -p "$HOME/.appstoreconnect/private_keys"
           KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
           echo "$ASC_KEY_BASE64" | base64 -d > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
-          echo "ASC_KEY_FILEPATH=$KEY_PATH" >> "$GITHUB_ENV"
 
-      - name: fastlane beta
-        working-directory: mobile/ios
-        run: bundle exec fastlane beta
-
-      - name: Assign latest build to TestFlight group "BOOMER AI V1"
-        if: success()
-        working-directory: mobile/ios
-        env:
-          APP_ID_NUMERIC: "6755741429"
-        run: |
-          set -euo pipefail
-          # Mint a short-lived JWT for App Store Connect.
-          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
           NOW=$(date +%s)
           EXP=$((NOW + 600))
           HEADER=$(printf '{"alg":"ES256","kid":"%s","typ":"JWT"}' "$ASC_KEY_ID" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
@@ -96,18 +107,16 @@ jobs:
           SIG=$(printf '%s' "${HEADER}.${PAYLOAD}" | openssl dgst -sha256 -sign "$KEY_PATH" -binary | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
           JWT="${HEADER}.${PAYLOAD}.${SIG}"
 
-          # Find the newest build for this app and bundle ID.
-          BUILD_ID=$(curl -sS -H "Authorization: Bearer $JWT" \
-            "https://api.appstoreconnect.apple.com/v1/builds?filter[app]=${APP_ID_NUMERIC}&sort=-uploadedDate&limit=1" \
+          BUILD_ID=$(curl -gsS -H "Authorization: Bearer $JWT" \
+            "https://api.appstoreconnect.apple.com/v1/builds?filter%5Bapp%5D=${APP_ID_NUMERIC}&sort=-uploadedDate&limit=1" \
             | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data'][0]['id'] if d.get('data') else '')")
           if [ -z "$BUILD_ID" ]; then
-            echo "::warning::No build found in ASC yet — group assignment skipped (build still processing)."
+            echo "::warning::No build found in ASC yet."
             exit 0
           fi
           echo "Latest build id: $BUILD_ID"
 
-          # POST the build into the internal group.
-          HTTP=$(curl -sS -o /tmp/assign.json -w "%{http_code}" \
+          HTTP=$(curl -gsS -o /tmp/assign.json -w "%{http_code}" \
             -X POST \
             -H "Authorization: Bearer $JWT" \
             -H "Content-Type: application/json" \
@@ -117,7 +126,7 @@ jobs:
           cat /tmp/assign.json || true
           case "$HTTP" in
             2*) echo "Build assigned to TestFlight group." ;;
-            *)  echo "::warning::Group assignment returned $HTTP — may need manual nudge in ASC."; exit 0 ;;
+            *)  echo "::warning::Group assignment returned $HTTP — may need manual nudge."; exit 0 ;;
           esac
 
       - name: Upload IPA artifact
