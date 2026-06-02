@@ -1,0 +1,2 @@
+app_identifier "boomerai.orage.agency"
+team_id ENV["APPLE_TEAM_ID"]

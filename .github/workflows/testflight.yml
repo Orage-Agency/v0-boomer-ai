@@ -1,0 +1,86 @@
+name: TestFlight
+
+on:
+  push:
+    branches:
+      - release/testflight-001
+      - ci/testflight-fastlane
+  workflow_dispatch:
+
+concurrency:
+  group: testflight-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ios:
+    name: Build & upload BoomerAI to TestFlight
+    runs-on: macos-14
+    timeout-minutes: 75
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+      FASTLANE_HIDE_CHANGELOG: "true"
+      FASTLANE_SKIP_UPDATE_CHECK: "true"
+      FASTLANE_DISABLE_COLORS: "1"
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 15.4
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+        working-directory: .
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          ruby -v
+          node -v || true
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Ruby 3.2 with bundler cache
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: mobile/ios
+
+      - name: Install JS deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Install CocoaPods
+        working-directory: mobile/ios
+        run: bundle exec pod install --repo-update
+
+      - name: Build and upload (fastlane beta)
+        working-directory: mobile/ios
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+        run: bundle exec fastlane beta
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boomerai-ios-build
+          path: |
+            mobile/ios/build/*.ipa
+            mobile/ios/build/*.dSYM.zip
+            mobile/ios/fastlane/report.xml
+          if-no-files-found: ignore
