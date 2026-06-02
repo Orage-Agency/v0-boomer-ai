@@ -1,0 +1,127 @@
+name: TestFlight (iOS)
+
+on:
+  push:
+    branches:
+      - release/testflight-001
+  workflow_dispatch:
+    inputs:
+      match_readonly:
+        description: "Set MATCH_READONLY=true to forbid generating new certs/profiles"
+        required: false
+        default: "false"
+
+concurrency:
+  group: testflight-ios
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Archive & upload to TestFlight
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      MATCH_READONLY: ${{ github.event.inputs.match_readonly || 'false' }}
+      TF_GROUP_ID: 6162d862-da50-4650-b96d-8f55ea851ef5
+      FASTLANE_HIDE_CHANGELOG: "1"
+      FASTLANE_SKIP_UPDATE_CHECK: "1"
+      LC_ALL: en_US.UTF-8
+      LANG: en_US.UTF-8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 15.4
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+          working-directory: mobile/ios
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install JS deps
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+
+      - name: Expo prebuild (skip dependencies)
+        working-directory: mobile
+        run: npx expo prebuild --platform ios --no-install --non-interactive || echo "prebuild skipped (project already prebuilt)"
+
+      - name: Install CocoaPods
+        working-directory: mobile/ios
+        run: bundle exec pod install --repo-update
+
+      - name: Decode ASC API key
+        run: |
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          echo "$ASC_KEY_BASE64" | base64 -d > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+
+      - name: fastlane beta
+        working-directory: mobile/ios
+        run: bundle exec fastlane beta
+
+      - name: Assign latest build to TestFlight group "BOOMER AI V1"
+        if: success()
+        working-directory: mobile/ios
+        env:
+          APP_ID_NUMERIC: "6755741429"
+        run: |
+          set -euo pipefail
+          # Mint a short-lived JWT for App Store Connect.
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          NOW=$(date +%s)
+          EXP=$((NOW + 600))
+          HEADER=$(printf '{"alg":"ES256","kid":"%s","typ":"JWT"}' "$ASC_KEY_ID" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          PAYLOAD=$(printf '{"iss":"%s","iat":%d,"exp":%d,"aud":"appstoreconnect-v1"}' "$ASC_ISSUER_ID" "$NOW" "$EXP" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          SIG=$(printf '%s' "${HEADER}.${PAYLOAD}" | openssl dgst -sha256 -sign "$KEY_PATH" -binary | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          JWT="${HEADER}.${PAYLOAD}.${SIG}"
+
+          # Find the newest build for this app and bundle ID.
+          BUILD_ID=$(curl -sS -H "Authorization: Bearer $JWT" \
+            "https://api.appstoreconnect.apple.com/v1/builds?filter[app]=${APP_ID_NUMERIC}&sort=-uploadedDate&limit=1" \
+            | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data'][0]['id'] if d.get('data') else '')")
+          if [ -z "$BUILD_ID" ]; then
+            echo "::warning::No build found in ASC yet — group assignment skipped (build still processing)."
+            exit 0
+          fi
+          echo "Latest build id: $BUILD_ID"
+
+          # POST the build into the internal group.
+          HTTP=$(curl -sS -o /tmp/assign.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer $JWT" \
+            -H "Content-Type: application/json" \
+            "https://api.appstoreconnect.apple.com/v1/betaGroups/${TF_GROUP_ID}/relationships/builds" \
+            -d "{\"data\":[{\"type\":\"builds\",\"id\":\"${BUILD_ID}\"}]}")
+          echo "ASC response: $HTTP"
+          cat /tmp/assign.json || true
+          case "$HTTP" in
+            2*) echo "Build assigned to TestFlight group." ;;
+            *)  echo "::warning::Group assignment returned $HTTP — may need manual nudge in ASC."; exit 0 ;;
+          esac
+
+      - name: Upload IPA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: BoomerAI-ipa
+          path: mobile/ios/build/*.ipa
+          if-no-files-found: ignore
+          retention-days: 14

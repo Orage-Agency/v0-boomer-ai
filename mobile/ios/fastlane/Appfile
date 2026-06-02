@@ -1,0 +1,2 @@
+app_identifier("boomerai.orage.agency")
+# itc_team_id / team_id resolved automatically from ASC API key (set via env in Fastfile).

@@ -1,0 +1,95 @@
+default_platform(:ios)
+
+# Resolve repo paths off the Fastfile location so the lane works regardless of cwd.
+FASTLANE_DIR  = File.expand_path(__dir__)
+IOS_DIR       = File.expand_path("..", FASTLANE_DIR)
+WORKSPACE     = File.join(IOS_DIR, "BoomerAI.xcworkspace")
+PROJECT       = File.join(IOS_DIR, "BoomerAI.xcodeproj")
+SCHEME        = "BoomerAI"
+APP_ID        = "boomerai.orage.agency"
+TF_GROUP_ID   = "6162d862-da50-4650-b96d-8f55ea851ef5"
+TF_GROUP_NAME = "BOOMER AI V1"
+
+platform :ios do
+  desc "Generate ASC API key hash from env (ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_BASE64)."
+  private_lane :asc_api_key do
+    key_id      = ENV.fetch("ASC_KEY_ID")
+    issuer_id   = ENV.fetch("ASC_ISSUER_ID")
+    key_b64     = ENV.fetch("ASC_KEY_BASE64")
+    app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_content: key_b64,
+      is_key_content_base64: true,
+      in_house: false
+    )
+  end
+
+  desc "Bump build number to the GitHub Actions run number when available."
+  private_lane :bump_build do
+    if ENV["GITHUB_RUN_NUMBER"]
+      build = ENV["GITHUB_RUN_NUMBER"].to_i
+      increment_build_number(
+        xcodeproj: PROJECT,
+        build_number: build
+      )
+      UI.message("Set build number to #{build}")
+    end
+  end
+
+  desc "Sync code-signing assets via match (App Store distribution)."
+  lane :sync_certs do
+    api_key = asc_api_key
+    match(
+      type: "appstore",
+      app_identifier: [APP_ID],
+      readonly: ENV["MATCH_READONLY"] == "true",
+      api_key: api_key,
+      git_basic_authorization: ENV["MATCH_GIT_BASIC_AUTHORIZATION"]
+    )
+  end
+
+  desc "Build a release IPA and upload to TestFlight."
+  lane :beta do
+    api_key = asc_api_key
+
+    # 1. Code signing via match (writeable on first run, readonly afterwards).
+    match(
+      type: "appstore",
+      app_identifier: [APP_ID],
+      readonly: ENV["MATCH_READONLY"] == "true",
+      api_key: api_key,
+      git_basic_authorization: ENV["MATCH_GIT_BASIC_AUTHORIZATION"]
+    )
+
+    # 2. Build number (CI run number for monotonic increase).
+    bump_build
+
+    # 3. Archive.
+    build_app(
+      workspace: WORKSPACE,
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "app-store",
+      clean: true,
+      output_directory: File.join(IOS_DIR, "build"),
+      output_name: "BoomerAI.ipa",
+      export_options: {
+        method: "app-store",
+        provisioningProfiles: {
+          APP_ID => "match AppStore #{APP_ID}"
+        }
+      }
+    )
+
+    # 4. Upload to TestFlight, do NOT block on Apple processing
+    #    (group assignment happens via a follow-up REST call from CI).
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: APP_ID,
+      ipa: File.join(IOS_DIR, "build", "BoomerAI.ipa"),
+      skip_waiting_for_build_processing: true,
+      skip_submission: true
+    )
+  end
+end
