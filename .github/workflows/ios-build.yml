@@ -1,0 +1,217 @@
+name: iOS Build & TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: "Override CFBundleVersion (build number). Leave blank to use ${{ github.run_number }}."
+        required: false
+        default: ""
+  push:
+    branches: [mobile-native]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/ios-build.yml"
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Archive + Upload to TestFlight
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    env:
+      APP_IDENTIFIER: boomerai.orage.agency
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      MATCH_KEYCHAIN_NAME: boomer-build.keychain
+      MATCH_KEYCHAIN_PASSWORD: ci-temp-${{ github.run_id }}
+      REVENUECAT_IOS_KEY: ${{ secrets.REVENUECAT_IOS_KEY }}
+      API_BASE_URL: ${{ secrets.API_BASE_URL }}
+      FASTLANE_HIDE_CHANGELOG: "true"
+      FASTLANE_DISABLE_COLORS: "1"
+      LC_ALL: en_US.UTF-8
+      LANG: en_US.UTF-8
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 15.4
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer || sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Ruby 3.2 (for fastlane)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+
+      - name: Install fastlane
+        run: gem install fastlane -NV --no-document
+
+      - name: Install JS deps
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+
+      - name: Patch app.json with runtime config
+        working-directory: mobile
+        run: |
+          BUILD_NUMBER="${{ github.event.inputs.build_number }}"
+          if [ -z "$BUILD_NUMBER" ]; then BUILD_NUMBER="${{ github.run_number }}"; fi
+          node -e "
+            const fs=require('fs');
+            const p='./app.json';
+            const j=JSON.parse(fs.readFileSync(p,'utf8'));
+            j.expo.ios = j.expo.ios || {};
+            j.expo.ios.bundleIdentifier='${APP_IDENTIFIER}';
+            j.expo.ios.buildNumber='${BUILD_NUMBER}';
+            j.expo.extra = j.expo.extra || {};
+            if (process.env.API_BASE_URL) j.expo.extra.apiBaseUrl = process.env.API_BASE_URL;
+            if (process.env.REVENUECAT_IOS_KEY) j.expo.extra.revenueCatApiKeyIos = process.env.REVENUECAT_IOS_KEY;
+            fs.writeFileSync(p, JSON.stringify(j, null, 2));
+            console.log('Patched buildNumber=' + j.expo.ios.buildNumber + ' bundle=' + j.expo.ios.bundleIdentifier + ' api=' + j.expo.extra.apiBaseUrl);
+          "
+
+      - name: Expo prebuild (generate native ios/)
+        working-directory: mobile
+        run: |
+          npx expo prebuild --platform ios --no-install --non-interactive --clean
+          ls -la ios/
+
+      - name: Install CocoaPods
+        working-directory: mobile/ios
+        run: |
+          gem install cocoapods -NV --no-document
+          pod install --repo-update
+
+      - name: Write ASC API key to disk
+        run: |
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "${{ secrets.ASC_KEY_BASE64 }}" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+          cat > "$HOME/asc_key.json" <<EOF
+          {
+            "key_id": "${ASC_KEY_ID}",
+            "issuer_id": "${ASC_ISSUER_ID}",
+            "key": $(python3 -c "import json,sys; print(json.dumps(open(sys.argv[1]).read()))" "$KEY_PATH"),
+            "in_house": false
+          }
+          EOF
+          chmod 600 "$HOME/asc_key.json"
+          echo "ASC_KEY_JSON=$HOME/asc_key.json" >> "$GITHUB_ENV"
+
+      - name: Configure git for fastlane match
+        run: |
+          git config --global user.email "ci@orage.agency"
+          git config --global user.name "Orage CI"
+
+      - name: Run fastlane match (appstore)
+        working-directory: mobile/ios
+        run: |
+          fastlane match appstore \
+            --git_url "$MATCH_GIT_URL" \
+            --app_identifier "$APP_IDENTIFIER" \
+            --team_id "$APPLE_TEAM_ID" \
+            --api_key_path "$ASC_KEY_JSON" \
+            --keychain_name "$MATCH_KEYCHAIN_NAME" \
+            --keychain_password "$MATCH_KEYCHAIN_PASSWORD" \
+            --readonly false \
+            --verbose
+
+      - name: Resolve provisioning profile
+        working-directory: mobile/ios
+        run: |
+          PROFILE_NAME="match AppStore ${APP_IDENTIFIER}"
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          PROFILE_FILE=$(grep -lrI "$PROFILE_NAME" "$PROFILE_DIR" || true)
+          if [ -z "$PROFILE_FILE" ]; then
+            PROFILE_FILE=$(ls -t "$PROFILE_DIR"/*.mobileprovision | head -n1)
+          fi
+          UUID=$(security cms -D -i "$PROFILE_FILE" | plutil -extract UUID raw -)
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "PROFILE_UUID=$UUID"        >> "$GITHUB_ENV"
+          echo "Using profile $PROFILE_NAME ($UUID)"
+
+      - name: Xcode archive
+        working-directory: mobile/ios
+        run: |
+          WORKSPACE=$(ls -d *.xcworkspace | head -n1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          echo "WORKSPACE=$WORKSPACE" >> "$GITHUB_ENV"
+          echo "SCHEME=$SCHEME"       >> "$GITHUB_ENV"
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/BoomerAI.xcarchive" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $MATCH_KEYCHAIN_NAME" \
+            -allowProvisioningUpdates \
+            archive
+
+      - name: Write ExportOptions.plist
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>stripSwiftSymbols</key><true/>
+            <key>uploadSymbols</key><true/>
+            <key>destination</key><string>export</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${APP_IDENTIFIER}</key><string>${PROFILE_NAME}</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+          cat "$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/BoomerAI.xcarchive" \
+            -exportPath  "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates
+          ls -la "$RUNNER_TEMP/export"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BoomerAI-ipa-${{ github.run_number }}
+          path: ${{ runner.temp }}/export/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build to TestFlight (xcrun altool)
+        run: |
+          IPA=$(ls "$RUNNER_TEMP"/export/*.ipa | head -n1)
+          xcrun altool --upload-app \
+            -f "$IPA" \
+            --type ios \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID"
