@@ -45,8 +45,8 @@
       "expo-asset"
     ],
     "extra": {
-      "apiBaseUrl": "https://CHANGE-ME.vercel.app",
-      "revenueCatApiKeyIos": "__REPLACE_ME__",
+      "apiBaseUrl": "https://boomerai.orage.agency",
+      "revenueCatApiKeyIos": "appl_gfKZNVBQtIXGZkABPKGPtfasgZz",
       "revenueCatApiKeyAndroid": "__REPLACE_ME__",
       "eas": {
         "projectId": "00000000-0000-0000-0000-000000000000"
