@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>boomerai</string>
-          <string>agency.orage.boomerai</string>
+          <string>boomerai.orage.agency</string>
         </array>
       </dict>
     </array>

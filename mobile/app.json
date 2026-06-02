@@ -18,7 +18,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "agency.orage.boomerai",
+      "bundleIdentifier": "boomerai.orage.agency",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -26,7 +26,7 @@
       }
     },
     "android": {
-      "package": "agency.orage.boomerai",
+      "package": "boomerai.orage.agency",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"

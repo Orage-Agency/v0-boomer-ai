@@ -2,7 +2,7 @@
 
 Native iOS + Android client (Expo 52 / React Native 0.76 / expo-router).
 
-Bundle identifier: **`agency.orage.boomerai`** (iOS + Android).
+Bundle identifier: **`boomerai.orage.agency`** (iOS + Android).
 
 ---
 
@@ -62,7 +62,7 @@ Connect or the paywall will show no packages.
 1. Sign in to https://app.revenuecat.com and create / open the project
    named `Boomer AI`.
 2. **Apps → Add app → iOS** (Android later). Bundle ID:
-   **`agency.orage.boomerai`**. Upload the App-Specific Shared Secret from
+   **`boomerai.orage.agency`**. Upload the App-Specific Shared Secret from
    ASC (Users and Access → Integrations → App-Specific Shared Secret).
 3. Copy the **public iOS SDK API key** (starts with `appl_`). This is the
    value that must be supplied as `EXPO_PUBLIC_RC_IOS_KEY` (see step 3).
