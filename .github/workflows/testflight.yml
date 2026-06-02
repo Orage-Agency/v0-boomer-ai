@@ -51,15 +51,8 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.2"
-          bundler-cache: false
+          bundler-cache: true
           working-directory: mobile/ios
-
-      - name: Install gems (openssl gem built against Homebrew libssl)
-        working-directory: mobile/ios
-        run: |
-          brew install openssl@3
-          bundle config build.openssl --with-openssl-dir=$(brew --prefix openssl@3)
-          bundle install --jobs 4 --retry 3
 
       - name: Set up Node 22
         uses: actions/setup-node@v4
