@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "boomerai.orage.agency",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "Boomer AI uses the microphone for voice chat so you can talk to your AI guide hands-free."
@@ -46,8 +46,8 @@
     ],
     "extra": {
       "apiBaseUrl": "https://CHANGE-ME.vercel.app",
-      "revenueCatApiKeyIos": "appl_gfKZNVBQtIXGZkABPKGPtfasgZz",
-      "revenueCatApiKeyAndroid": "goog_PLACEHOLDER",
+      "revenueCatApiKeyIos": "__REPLACE_ME__",
+      "revenueCatApiKeyAndroid": "__REPLACE_ME__",
       "eas": {
         "projectId": "00000000-0000-0000-0000-000000000000"
       }

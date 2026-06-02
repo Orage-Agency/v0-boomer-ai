@@ -1,21 +1,27 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useProfile } from '@/context/ProfileContext';
+import { useEntitlement } from '@/context/EntitlementContext';
 import { colors, fontSize, spacing } from '@/theme/theme';
 
 /**
- * Entry route. Redirects to the correct flow based on the resolved app view.
- * Shows a branded splash while the profile bootstraps.
+ * Entry route. Decides splash / onboarding / paywall / app.
+ *
+ * Gating policy (J-025):
+ *  - `loading` profile  -> splash
+ *  - onboarding         -> /onboarding (soft, paywall NOT forced)
+ *  - app view, no Pro   -> /paywall?mode=hard (no close button)
+ *  - app view, Pro      -> /(tabs)
+ *
+ * When RevenueCat is not configured (placeholder key in dev / Expo Go),
+ * `entitled` is forced true so the gate never traps developers.
  */
 export default function Index() {
   const { view } = useProfile();
+  const { entitled, loading: entLoading } = useEntitlement();
 
-  useEffect(() => {
-    // no-op; redirect handled in render
-  }, [view]);
-
-  if (view === 'loading') {
+  if (view === 'loading' || entLoading) {
     return (
       <View style={styles.splash}>
         <Text style={styles.logo}>Boomer AI</Text>
@@ -26,6 +32,7 @@ export default function Index() {
   }
 
   if (view === 'onboarding') return <Redirect href="/onboarding" />;
+  if (!entitled) return <Redirect href="/paywall?mode=hard" />;
   return <Redirect href="/(tabs)" />;
 }
 

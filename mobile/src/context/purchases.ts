@@ -27,10 +27,15 @@ import { env, isRevenueCatConfigured } from '@/config/env';
  * Product IDs are PLACEHOLDERS — replace with real store product identifiers.
  */
 
-// TODO(owner): replace with real store product identifiers.
+/**
+ * Store product identifiers. These MUST match what is created in App Store
+ * Connect (Apple) / Google Play Console verbatim.
+ *  - boomerai.pro.yearly   -> $97/yr, 7-day free trial
+ *  - boomerai.pro.monthly  -> $10/mo, no trial
+ */
 export const PRODUCT_IDS = {
-  monthly: 'boomerai_pro_monthly',
-  annual: 'boomerai_pro_annual',
+  annual: 'boomerai.pro.yearly',
+  monthly: 'boomerai.pro.monthly',
 } as const;
 
 // The RevenueCat entitlement that unlocks "Pro" features.
@@ -127,3 +132,37 @@ export async function isProActive(): Promise<boolean> {
 function isPro(info: CustomerInfo): boolean {
   return info.entitlements.active[PRO_ENTITLEMENT] !== undefined;
 }
+
+/**
+ * Subscribe to RevenueCat customerInfo updates. Returns an unsubscribe fn.
+ * No-ops (returns a noop unsub) when purchases are not configured.
+ */
+export function addCustomerInfoListener(
+  cb: (info: CustomerInfo) => void,
+): () => void {
+  if (!configured) return () => undefined;
+  try {
+    Purchases.addCustomerInfoUpdateListener(cb);
+    return () => {
+      try {
+        Purchases.removeCustomerInfoUpdateListener(cb);
+      } catch {
+        /* ignore */
+      }
+    };
+  } catch {
+    return () => undefined;
+  }
+}
+
+/** Fetch latest customer info; returns null when not configured. */
+export async function fetchCustomerInfo(): Promise<CustomerInfo | null> {
+  if (!configured) return null;
+  try {
+    return await Purchases.getCustomerInfo();
+  } catch {
+    return null;
+  }
+}
+
+export { isPro };

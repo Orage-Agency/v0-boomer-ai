@@ -1,0 +1,189 @@
+name: TestFlight (iOS)
+
+on:
+  push:
+    branches:
+      - release/testflight-001
+  workflow_dispatch:
+    inputs:
+      match_readonly:
+        description: "Set MATCH_READONLY=true to forbid generating new certs/profiles"
+        required: false
+        default: "false"
+
+concurrency:
+  group: testflight-ios
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Archive & upload to TestFlight
+    runs-on: macos-15
+    timeout-minutes: 75
+
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+      FASTLANE_HIDE_CHANGELOG: "1"
+      FASTLANE_SKIP_UPDATE_CHECK: "1"
+      FASTLANE_DISABLE_COLORS: "1"
+      TF_GROUP_ID: 6162d862-da50-4650-b96d-8f55ea851ef5
+      MATCH_READONLY: ${{ github.event.inputs.match_readonly || 'false' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: |
+          for v in 26.3 26.2 26.1.1 26.0.1 26; do
+            if [ -d "/Applications/Xcode_${v}.app" ]; then
+              sudo xcode-select -s "/Applications/Xcode_${v}.app"
+              echo "Selected /Applications/Xcode_${v}.app"
+              xcodebuild -version
+              exit 0
+            fi
+          done
+          echo "::warning::No Xcode 26.x found, using default"
+          xcodebuild -version
+
+      - name: Set up Ruby 3.2
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+          working-directory: mobile/ios
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install JS deps
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+
+      - name: Expo prebuild (skip dependencies)
+        working-directory: mobile
+        run: npx expo prebuild --platform ios --no-install --non-interactive || echo "prebuild skipped (project already prebuilt)"
+
+      - name: Install CocoaPods
+        working-directory: mobile/ios
+        run: bundle exec pod install --repo-update
+
+      - name: Materialize ASC API key on disk
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_KEY_BASE64" | base64 -d > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "ASC_KEY_FILEPATH=$KEY_PATH" >> "$GITHUB_ENV"
+          head -1 "$KEY_PATH" | grep -q "BEGIN" || { echo "::error::Decoded ASC key is not a PEM"; exit 1; }
+          BYTES=$(wc -c < "$KEY_PATH")
+          HASH=$(shasum -a 256 "$KEY_PATH" | awk '{print $1}')
+          echo "ASC key on disk: $BYTES bytes, sha256: $HASH"
+          echo "Header: $(head -1 "$KEY_PATH"); Footer: $(tail -1 "$KEY_PATH")"
+          echo "Expected local sha256: 85a4fc542b583ee7c8ede26f0b57153b7706d71d8bf50d7c913a4da84975dbcd"
+
+      - name: ASC API preflight (catches corrupted secrets before fastlane)
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/asc-venv"
+          # shellcheck disable=SC1091
+          source "$RUNNER_TEMP/asc-venv/bin/activate"
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet pyjwt cryptography
+          python3 - <<'PY'
+          import jwt, time, os, sys, urllib.request
+          kid = os.environ["ASC_KEY_ID"]
+          iss = os.environ["ASC_ISSUER_ID"]
+          with open(os.environ["ASC_KEY_FILEPATH"]) as f: key = f.read()
+          now = int(time.time())
+          tok = jwt.encode({"iss": iss, "iat": now, "exp": now + 600, "aud": "appstoreconnect-v1"},
+                           key, algorithm="ES256", headers={"kid": kid, "typ": "JWT"})
+          req = urllib.request.Request("https://api.appstoreconnect.apple.com/v1/apps?limit=1",
+                                       headers={"Authorization": f"Bearer {tok}"})
+          try:
+              with urllib.request.urlopen(req) as r:
+                  print(f"ASC API preflight: HTTP {r.status}")
+                  if r.status != 200:
+                      print("::error::ASC API preflight rejected"); sys.exit(1)
+          except urllib.error.HTTPError as e:
+              print(f"::error::ASC API preflight HTTP {e.code}: {e.read().decode()[:200]}")
+              sys.exit(1)
+          PY
+
+      - name: fastlane beta
+        working-directory: mobile/ios
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_FILEPATH: ${{ env.ASC_KEY_FILEPATH }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+        run: bundle exec fastlane beta
+
+      - name: Assign build to TestFlight group "BOOMER AI V1"
+        if: success()
+        working-directory: mobile/ios
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+          APP_ID_NUMERIC: "6755741429"
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          echo "$ASC_KEY_BASE64" | base64 -d > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+
+          NOW=$(date +%s)
+          EXP=$((NOW + 600))
+          HEADER=$(printf '{"alg":"ES256","kid":"%s","typ":"JWT"}' "$ASC_KEY_ID" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          PAYLOAD=$(printf '{"iss":"%s","iat":%d,"exp":%d,"aud":"appstoreconnect-v1"}' "$ASC_ISSUER_ID" "$NOW" "$EXP" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          SIG=$(printf '%s' "${HEADER}.${PAYLOAD}" | openssl dgst -sha256 -sign "$KEY_PATH" -binary | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          JWT="${HEADER}.${PAYLOAD}.${SIG}"
+
+          BUILD_ID=$(curl -gsS -H "Authorization: Bearer $JWT" \
+            "https://api.appstoreconnect.apple.com/v1/builds?filter%5Bapp%5D=${APP_ID_NUMERIC}&sort=-uploadedDate&limit=1" \
+            | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data'][0]['id'] if d.get('data') else '')")
+          if [ -z "$BUILD_ID" ]; then
+            echo "::warning::No build found in ASC yet."
+            exit 0
+          fi
+          echo "Latest build id: $BUILD_ID"
+
+          HTTP=$(curl -gsS -o /tmp/assign.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer $JWT" \
+            -H "Content-Type: application/json" \
+            "https://api.appstoreconnect.apple.com/v1/betaGroups/${TF_GROUP_ID}/relationships/builds" \
+            -d "{\"data\":[{\"type\":\"builds\",\"id\":\"${BUILD_ID}\"}]}")
+          echo "ASC response: $HTTP"
+          cat /tmp/assign.json || true
+          case "$HTTP" in
+            2*) echo "Build assigned to TestFlight group." ;;
+            *)  echo "::warning::Group assignment returned $HTTP — may need manual nudge."; exit 0 ;;
+          esac
+
+      - name: Upload IPA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: BoomerAI-ipa
+          path: mobile/ios/build/*.ipa
+          if-no-files-found: ignore
+          retention-days: 14
