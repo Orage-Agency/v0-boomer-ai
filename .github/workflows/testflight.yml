@@ -14,7 +14,7 @@ concurrency:
 jobs:
   ios:
     name: Build & upload BoomerAI to TestFlight
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 75
     env:
       LANG: en_US.UTF-8
@@ -30,8 +30,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode 15.4
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+      - name: Select Xcode 26
+        run: |
+          # Prefer the newest Xcode 26 (iOS 26 SDK required by ASC since spring 2026).
+          for v in 26.3 26.2 26.1.1 26.0.1; do
+            if [ -d "/Applications/Xcode_${v}.app" ]; then
+              sudo xcode-select -s "/Applications/Xcode_${v}.app"
+              echo "Selected /Applications/Xcode_${v}.app"
+              exit 0
+            fi
+          done
+          echo "::error::No Xcode 26.x found on runner"
+          ls /Applications | grep -i Xcode
+          exit 1
         working-directory: .
 
       - name: Show toolchain
