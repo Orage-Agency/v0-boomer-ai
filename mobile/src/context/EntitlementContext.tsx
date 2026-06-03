@@ -12,15 +12,19 @@ import {
   fetchCustomerInfo,
   isPro,
 } from './purchases';
+import { useAuth } from './AuthContext';
 
 /**
- * Tracks the user's "pro" entitlement using RevenueCat's customerInfo.
+ * Tracks the user's "pro" entitlement.
  *
- * Behavior:
- *  - When RevenueCat is not configured (placeholder key), `entitled` is `true`
- *    so dev / preview builds are not locked out.
- *  - When configured, `entitled` reflects `customerInfo.entitlements.active.pro`
- *    and updates live via RC's listener (covers purchase + restore + renewal).
+ * Entitled === (RevenueCat Pro) OR (account.isPro from server).
+ *
+ *  - RC Pro covers normal App-Store purchases (annual/monthly).
+ *  - account.isPro covers off-store paying customers and George dev codes
+ *    redeemed via /api/redeem.
+ *
+ * When RevenueCat is not configured (dev / preview), the RC half short-circuits
+ * to `true` so devs aren't locked out — production builds always set a real key.
  */
 
 type EntitlementContextValue = {
@@ -33,25 +37,30 @@ type EntitlementContextValue = {
 const EntitlementContext = createContext<EntitlementContextValue | null>(null);
 
 export function EntitlementProvider({ children }: { children: React.ReactNode }) {
-  const [entitled, setEntitled] = useState<boolean>(!isRevenueCatConfigured);
+  const { user, refresh: refreshAccount } = useAuth();
+  const [rcEntitled, setRcEntitled] = useState<boolean>(!isRevenueCatConfigured);
   const [loading, setLoading] = useState<boolean>(isRevenueCatConfigured);
 
   const refresh = useCallback(async () => {
+    await refreshAccount();
     if (!isRevenueCatConfigured) {
-      setEntitled(true);
+      setRcEntitled(true);
       setLoading(false);
       return;
     }
     const info = await fetchCustomerInfo();
-    setEntitled(info ? isPro(info) : false);
+    setRcEntitled(info ? isPro(info) : false);
     setLoading(false);
-  }, []);
+  }, [refreshAccount]);
 
   useEffect(() => {
     void refresh();
-    const unsub = addCustomerInfoListener((info) => setEntitled(isPro(info)));
+    const unsub = addCustomerInfoListener((info) => setRcEntitled(isPro(info)));
     return unsub;
   }, [refresh]);
+
+  const accountEntitled = !!user?.isPro;
+  const entitled = rcEntitled || accountEntitled;
 
   const value = useMemo<EntitlementContextValue>(
     () => ({

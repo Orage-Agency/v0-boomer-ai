@@ -369,6 +369,19 @@ export default function PaywallScreen() {
           </Pressable>
         )}
 
+        {/* "I already have an account" — opens the login / access-code modal. */}
+        <Pressable
+          onPress={() => router.push('/login')}
+          accessibilityRole="button"
+          accessibilityLabel="I already have an account"
+          style={styles.haveAccount}
+        >
+          <Text style={styles.haveAccountText}>I already have an account</Text>
+          <Text style={styles.haveAccountSub}>
+            Sign in or enter your access code
+          </Text>
+        </Pressable>
+
         {/* Restore Purchases — explicit "already a subscriber" affordance. */}
         <Pressable
           onPress={restore}
@@ -585,6 +598,27 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     fontWeight: fontWeight.black,
     color: colors.textPrimary,
+  },
+  haveAccount: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    minHeight: 56,
+    justifyContent: 'center',
+  },
+  haveAccountText: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
+  haveAccountSub: {
+    marginTop: 2,
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
   },
   restore: { alignItems: 'center', paddingVertical: spacing.sm },
   restoreText: {
