@@ -1,16 +1,20 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import Purchases from 'react-native-purchases';
 import type { PurchasesPackage } from 'react-native-purchases';
+import Constants from 'expo-constants';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { InfoBanner } from '@/components/InfoBanner';
@@ -37,6 +41,15 @@ import {
  * Two SKUs (annual default + monthly), 7-day free trial CTA, restore link,
  * legal links. `?mode=hard` removes the close button (used post-trial when
  * the user MUST subscribe to continue using the app).
+ *
+ * Free tier (on close / dismiss):
+ *   - 5 AI chat messages per day
+ *   - No voice chat
+ *   - No image generation
+ *   - 3 lessons (intro only)
+ *   - Tips tab available
+ *
+ * Dev bypass: tap the version number 7 times to skip the paywall entirely.
  */
 
 const PRO_FEATURES = [
@@ -47,8 +60,18 @@ const PRO_FEATURES = [
   'New features first, priority support',
 ];
 
+/** Features available on the free tier — shown beneath the close button. */
+const FREE_FEATURES = [
+  '5 AI chat messages per day',
+  '3 intro lessons',
+  'Daily tips',
+];
+
 const TERMS_URL = 'https://boomer.ai/terms';
 const PRIVACY_URL = 'https://boomer.ai/privacy';
+
+/** Number of times the version label must be tapped to bypass the paywall. */
+const DEV_BYPASS_TAPS = 7;
 
 type PaywallMode = 'soft' | 'hard';
 
@@ -65,6 +88,16 @@ export default function PaywallScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  // Promo code state
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [showPromo, setShowPromo] = useState(false);
+
+  // Dev bypass: tap version N times
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const appVersion = Constants.expoConfig?.version ?? '1.0.0';
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -72,7 +105,6 @@ export default function PaywallScreen() {
       if (cancelled) return;
       const pkgs = offering?.availablePackages ?? [];
       setPackages(pkgs);
-      // Default-highlight the annual package.
       const annual = pkgs.find((p) =>
         p.product.identifier.includes(PRODUCT_IDS.annual),
       );
@@ -81,6 +113,13 @@ export default function PaywallScreen() {
     })();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
     };
   }, []);
 
@@ -95,6 +134,24 @@ export default function PaywallScreen() {
     else router.replace('/(tabs)');
   }, [hardGate, router]);
 
+  /**
+   * Dev bypass: tap version label DEV_BYPASS_TAPS times within 3 seconds.
+   * Resets counter if the timer expires between taps.
+   */
+  const handleVersionTap = useCallback(() => {
+    tapCountRef.current += 1;
+    // Reset after 3 seconds of inactivity
+    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    tapTimerRef.current = setTimeout(() => {
+      tapCountRef.current = 0;
+    }, 3000);
+    if (tapCountRef.current >= DEV_BYPASS_TAPS) {
+      tapCountRef.current = 0;
+      if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+      router.replace('/(tabs)');
+    }
+  }, [router]);
+
   const buy = useCallback(
     async (pkg: PurchasesPackage | null) => {
       if (!pkg) return;
@@ -105,7 +162,6 @@ export default function PaywallScreen() {
       if (res.ok) {
         await refresh();
         setMessage('You are now Pro! Enjoy everything Boomer AI offers. 🎉');
-        // After a successful purchase, exit the paywall.
         setTimeout(() => router.replace('/(tabs)'), 600);
       } else if (res.cancelled) {
         // Silent — user backed out.
@@ -130,6 +186,43 @@ export default function PaywallScreen() {
     }
   }, [refresh, router]);
 
+  /**
+   * Promo / offer code redemption.
+   *
+   * On iOS: RevenueCat's `presentCodeRedemptionSheet()` opens the native App
+   * Store offer-code sheet — the user enters their code in Apple's own UI.
+   * The `promoCode` text field is used as a fallback label only on Android
+   * (Google Play Promo Codes are redeemed in Play Store, not in-app).
+   *
+   * TODO(owner): If you need server-side promo validation before the RC sheet
+   * opens, add your logic here. RC API key is read from env automatically.
+   */
+  const applyPromoCode = useCallback(async () => {
+    if (!isRevenueCatConfigured) {
+      setMessage('Purchases are not configured yet.');
+      return;
+    }
+    setPromoLoading(true);
+    setMessage(null);
+    try {
+      if (Platform.OS === 'ios') {
+        // Opens Apple's native offer-code redemption sheet.
+        await Purchases.presentCodeRedemptionSheet();
+        // After the sheet closes, check if entitlement was granted.
+        await refresh();
+        setMessage('Check your subscription status — if unlocked you are all set!');
+      } else {
+        // Android: direct the user to Play Store promo code redemption.
+        const playStoreUrl = `https://play.google.com/redeem?code=${encodeURIComponent(promoCode.trim())}`;
+        await Linking.openURL(playStoreUrl);
+      }
+    } catch (e) {
+      setMessage('Could not open the code redemption screen. Please try again.');
+    } finally {
+      setPromoLoading(false);
+    }
+  }, [promoCode, refresh]);
+
   const isAnnual = (pkg: PurchasesPackage) =>
     pkg.product.identifier.includes(PRODUCT_IDS.annual);
 
@@ -139,16 +232,22 @@ export default function PaywallScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
+        {/* Close / dismiss row — only shown in soft-gate mode */}
         {!hardGate && (
-          <Pressable
-            onPress={close}
-            style={styles.close}
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            hitSlop={16}
-          >
-            <Text style={styles.closeText}>✕</Text>
-          </Pressable>
+          <View style={styles.closeRow}>
+            <Pressable
+              onPress={close}
+              style={styles.close}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss paywall and use free version"
+              hitSlop={16}
+            >
+              <Text style={styles.closeText}>✕</Text>
+            </Pressable>
+            <Text style={styles.freeTierHint}>
+              Continue free ({FREE_FEATURES.join(' · ')})
+            </Text>
+          </View>
         )}
 
         <LinearGradient colors={gradients.brand} style={styles.hero}>
@@ -194,7 +293,6 @@ export default function PaywallScreen() {
         ) : (
           <View style={styles.packages}>
             {packages
-              // Annual first so the highlighted default appears on top.
               .slice()
               .sort((a) => (isAnnual(a) ? -1 : 1))
               .map((pkg) => {
@@ -255,6 +353,7 @@ export default function PaywallScreen() {
           disabled={!selected || !isRevenueCatConfigured}
         />
 
+        {/* Restore Purchases */}
         <Pressable
           onPress={restore}
           disabled={busy || !isRevenueCatConfigured}
@@ -264,6 +363,50 @@ export default function PaywallScreen() {
         >
           <Text style={styles.restoreText}>Restore purchases</Text>
         </Pressable>
+
+        {/* Promo / Offer Code */}
+        <Pressable
+          onPress={() => setShowPromo((v) => !v)}
+          accessibilityRole="button"
+          style={styles.promoToggle}
+        >
+          <Text style={styles.promoToggleText}>Have a promo code?</Text>
+        </Pressable>
+        {showPromo && (
+          <View style={styles.promoRow}>
+            {Platform.OS === 'android' && (
+              <TextInput
+                style={styles.promoInput}
+                placeholder="Enter promo code"
+                placeholderTextColor={colors.textMuted}
+                value={promoCode}
+                onChangeText={setPromoCode}
+                autoCapitalize="characters"
+                returnKeyType="done"
+                editable={!promoLoading}
+              />
+            )}
+            <Pressable
+              onPress={applyPromoCode}
+              disabled={promoLoading || (Platform.OS === 'android' && promoCode.trim().length === 0)}
+              style={[
+                styles.promoApply,
+                (promoLoading || (Platform.OS === 'android' && promoCode.trim().length === 0)) &&
+                  styles.promoApplyDisabled,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Apply promo code"
+            >
+              {promoLoading ? (
+                <ActivityIndicator color={colors.textOnDark} size="small" />
+              ) : (
+                <Text style={styles.promoApplyText}>
+                  {Platform.OS === 'ios' ? 'Redeem Code' : 'Apply'}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        )}
 
         <Text style={styles.legal}>
           Subscriptions renew automatically unless cancelled at least 24 hours
@@ -286,6 +429,17 @@ export default function PaywallScreen() {
             <Text style={styles.link}>Privacy</Text>
           </Pressable>
         </View>
+
+        {/* Hidden dev bypass — tap version number 7 times to skip paywall */}
+        <Pressable
+          onPress={handleVersionTap}
+          hitSlop={8}
+          accessibilityLabel={undefined}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <Text style={styles.versionLabel}>v{appVersion}</Text>
+        </Pressable>
       </ScrollView>
     </Screen>
   );
@@ -293,14 +447,25 @@ export default function PaywallScreen() {
 
 const styles = StyleSheet.create({
   scroll: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl },
+  closeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   close: {
-    alignSelf: 'flex-end',
     minWidth: 44,
     minHeight: 44,
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     justifyContent: 'center',
   },
   closeText: { fontSize: fontSize.xl, color: colors.textMuted },
+  freeTierHint: {
+    flex: 1,
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    textAlign: 'right',
+    paddingLeft: spacing.sm,
+  },
   hero: {
     borderRadius: radius.xl,
     padding: spacing.xl,
@@ -396,6 +561,44 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: fontWeight.semibold,
   },
+  promoToggle: { alignItems: 'center', paddingVertical: spacing.xs },
+  promoToggleText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    textDecorationLine: 'underline',
+  },
+  promoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  promoInput: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
+  },
+  promoApply: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  promoApplyDisabled: { opacity: 0.4 },
+  promoApplyText: {
+    color: colors.textOnDark,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+  },
   legal: {
     fontSize: fontSize.xs,
     color: colors.textMuted,
@@ -414,4 +617,10 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
   },
   linkSep: { fontSize: fontSize.xs, color: colors.textMuted },
+  versionLabel: {
+    fontSize: fontSize.xs,
+    color: 'transparent', // invisible but tappable
+    textAlign: 'center',
+    paddingVertical: spacing.xs,
+  },
 });
