@@ -9,12 +9,19 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { InfoBanner } from '@/components/InfoBanner';
 import { useChatSession } from '@/screens/useChat';
 import { consumePendingPrompt, subscribePendingPrompt } from '@/screens/pendingPrompt';
 import { useProfile } from '@/context/ProfileContext';
+import { useEntitlement } from '@/context/EntitlementContext';
+import {
+  FREE_FEATURES,
+  chatCounterStorageKey,
+  todayKey,
+} from '@/lib/freeTier';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 import type { ChatMessage } from '@/types';
 
@@ -32,10 +39,16 @@ const STARTER_PROMPTS = [
 ];
 
 export default function Chat() {
+  const router = useRouter();
   const { messages, status, error, send } = useChatSession();
   const { profile, updateProfile, apiConfigured } = useProfile();
+  const { entitled } = useEntitlement();
   const [input, setInput] = useState('');
   const listRef = useRef<FlatList<ChatMessage>>(null);
+
+  // Keep latest entitled inside callbacks without re-creating subscriptions.
+  const entitledRef = useRef(entitled);
+  entitledRef.current = entitled;
 
   const awardStars = useCallback(() => {
     if (messages.length === 0 && !profile.badges.includes('First Chat')) {
@@ -48,16 +61,55 @@ export default function Chat() {
     }
   }, [messages.length, profile, updateProfile]);
 
+  /**
+   * Reads today's counter fresh from storage (handles app-open-across-midnight
+   * by re-keying on the current local date), and either bumps it or routes to
+   * the paywall when the cap is reached.
+   *
+   * Returns true when the message is allowed to send.
+   */
+  const consumeFreeQuota = useCallback(async (): Promise<boolean> => {
+    const key = chatCounterStorageKey(todayKey());
+    let used = 0;
+    try {
+      const raw = await AsyncStorage.getItem(key);
+      used = raw ? Number.parseInt(raw, 10) || 0 : 0;
+    } catch {
+      used = 0;
+    }
+    if (used >= FREE_FEATURES.CHAT_DAILY_CAP) {
+      router.push('/paywall?reason=chat_quota');
+      return false;
+    }
+    try {
+      await AsyncStorage.setItem(key, String(used + 1));
+    } catch {
+      // Swallow — counter is best-effort. Allowing the send is safer than
+      // false-positive gating on a transient storage error.
+    }
+    return true;
+  }, [router]);
+
   const handleSend = useCallback(
     (text: string) => {
       const trimmed = text.trim();
       if (!trimmed) return;
-      awardStars();
-      void send(trimmed);
-      setInput('');
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+      const runSend = () => {
+        awardStars();
+        void send(trimmed);
+        setInput('');
+        setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+      };
+      if (entitledRef.current) {
+        runSend();
+        return;
+      }
+      void (async () => {
+        const ok = await consumeFreeQuota();
+        if (ok) runSend();
+      })();
     },
-    [awardStars, send],
+    [awardStars, consumeFreeQuota, send],
   );
 
   // Keep a stable ref so focus/subscription handlers always call the latest
