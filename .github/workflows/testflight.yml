@@ -14,6 +14,10 @@ on:
         description: "Set MATCH_READONLY=true to forbid generating new certs/profiles"
         required: false
         default: "false"
+      assign_only:
+        description: "Skip build/upload; only assign the latest ASC build to BOOMER AI V1."
+        required: false
+        default: "false"
 
 concurrency:
   group: testflight-ios
@@ -33,12 +37,14 @@ jobs:
       FASTLANE_DISABLE_COLORS: "1"
       TF_GROUP_ID: 6162d862-da50-4650-b96d-8f55ea851ef5
       MATCH_READONLY: ${{ github.event.inputs.match_readonly || 'false' }}
+      ASSIGN_ONLY: ${{ github.event.inputs.assign_only || 'false' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Select Xcode 26
+        if: env.ASSIGN_ONLY != 'true'
         run: |
           for v in 26.3 26.2 26.1.1 26.0.1 26; do
             if [ -d "/Applications/Xcode_${v}.app" ]; then
@@ -52,6 +58,7 @@ jobs:
           xcodebuild -version
 
       - name: Set up Ruby 3.2
+        if: env.ASSIGN_ONLY != 'true'
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.2"
@@ -59,6 +66,7 @@ jobs:
           working-directory: mobile/ios
 
       - name: Set up Node 22
+        if: env.ASSIGN_ONLY != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -66,14 +74,17 @@ jobs:
           cache-dependency-path: mobile/package-lock.json
 
       - name: Install JS deps
+        if: env.ASSIGN_ONLY != 'true'
         working-directory: mobile
         run: npm ci --no-audit --no-fund
 
       - name: Expo prebuild (skip dependencies)
+        if: env.ASSIGN_ONLY != 'true'
         working-directory: mobile
         run: npx expo prebuild --platform ios --no-install --non-interactive || echo "prebuild skipped (project already prebuilt)"
 
       - name: Install CocoaPods
+        if: env.ASSIGN_ONLY != 'true'
         working-directory: mobile/ios
         run: bundle exec pod install --repo-update
 
@@ -128,6 +139,7 @@ jobs:
           PY
 
       - name: fastlane beta
+        if: env.ASSIGN_ONLY != 'true'
         working-directory: mobile/ios
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -154,37 +166,63 @@ jobs:
           echo "$ASC_KEY_BASE64" | base64 -d > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
 
-          NOW=$(date +%s)
-          EXP=$((NOW + 600))
-          HEADER=$(printf '{"alg":"ES256","kid":"%s","typ":"JWT"}' "$ASC_KEY_ID" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-          PAYLOAD=$(printf '{"iss":"%s","iat":%d,"exp":%d,"aud":"appstoreconnect-v1"}' "$ASC_ISSUER_ID" "$NOW" "$EXP" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-          SIG=$(printf '%s' "${HEADER}.${PAYLOAD}" | openssl dgst -sha256 -sign "$KEY_PATH" -binary | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-          JWT="${HEADER}.${PAYLOAD}.${SIG}"
+          mint_jwt() {
+            local NOW EXP HEADER PAYLOAD SIG
+            NOW=$(date +%s)
+            EXP=$((NOW + 600))
+            HEADER=$(printf '{"alg":"ES256","kid":"%s","typ":"JWT"}' "$ASC_KEY_ID" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+            PAYLOAD=$(printf '{"iss":"%s","iat":%d,"exp":%d,"aud":"appstoreconnect-v1"}' "$ASC_ISSUER_ID" "$NOW" "$EXP" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+            SIG=$(printf '%s' "${HEADER}.${PAYLOAD}" | openssl dgst -sha256 -sign "$KEY_PATH" -binary | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+            printf '%s.%s.%s' "$HEADER" "$PAYLOAD" "$SIG"
+          }
 
-          BUILD_ID=$(curl -gsS -H "Authorization: Bearer $JWT" \
-            "https://api.appstoreconnect.apple.com/v1/builds?filter%5Bapp%5D=${APP_ID_NUMERIC}&sort=-uploadedDate&limit=1" \
-            | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data'][0]['id'] if d.get('data') else '')")
+          # Poll for newest build in ASC; ASC indexing can lag the fastlane upload by several minutes.
+          BUILD_ID=""
+          BUILD_VERSION=""
+          BUILD_STATE=""
+          MAX_ATTEMPTS=30   # 30 * 20s = 10 minutes
+          for i in $(seq 1 "$MAX_ATTEMPTS"); do
+            JWT=$(mint_jwt)
+            RESP=$(curl -gsS -H "Authorization: Bearer $JWT" \
+              "https://api.appstoreconnect.apple.com/v1/builds?filter%5Bapp%5D=${APP_ID_NUMERIC}&sort=-uploadedDate&limit=1")
+            BUILD_ID=$(printf '%s' "$RESP" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data'][0]['id'] if d.get('data') else '')")
+            BUILD_VERSION=$(printf '%s' "$RESP" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data'][0]['attributes']['version'] if d.get('data') else '')")
+            BUILD_STATE=$(printf '%s' "$RESP" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data'][0]['attributes']['processingState'] if d.get('data') else '')")
+            if [ -n "$BUILD_ID" ]; then
+              echo "Found build #${BUILD_VERSION} (id=${BUILD_ID}, state=${BUILD_STATE}) on attempt ${i}"
+              break
+            fi
+            echo "Attempt ${i}/${MAX_ATTEMPTS}: ASC has no build yet, waiting 20s..."
+            sleep 20
+          done
           if [ -z "$BUILD_ID" ]; then
-            echo "::warning::No build found in ASC yet."
-            exit 0
+            echo "::error::No build appeared in ASC after ${MAX_ATTEMPTS} attempts."
+            exit 1
           fi
-          echo "Latest build id: $BUILD_ID"
 
+          JWT=$(mint_jwt)
           HTTP=$(curl -gsS -o /tmp/assign.json -w "%{http_code}" \
             -X POST \
             -H "Authorization: Bearer $JWT" \
             -H "Content-Type: application/json" \
             "https://api.appstoreconnect.apple.com/v1/betaGroups/${TF_GROUP_ID}/relationships/builds" \
             -d "{\"data\":[{\"type\":\"builds\",\"id\":\"${BUILD_ID}\"}]}")
-          echo "ASC response: $HTTP"
+          echo "ASC assignment response: $HTTP"
           cat /tmp/assign.json || true
           case "$HTTP" in
-            2*) echo "Build assigned to TestFlight group." ;;
-            *)  echo "::warning::Group assignment returned $HTTP — may need manual nudge."; exit 0 ;;
+            2*) echo "Build #${BUILD_VERSION} assigned to TestFlight group BOOMER AI V1." ;;
+            *)  echo "::error::Group assignment returned $HTTP"; exit 1 ;;
           esac
 
+          # Best-effort: report processing state. Don't fail the job if still processing — ASC will finish on its own.
+          JWT=$(mint_jwt)
+          PROC=$(curl -gsS -H "Authorization: Bearer $JWT" \
+            "https://api.appstoreconnect.apple.com/v1/builds/${BUILD_ID}" \
+            | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data']['attributes']['processingState'])" 2>/dev/null || echo "UNKNOWN")
+          echo "Build #${BUILD_VERSION} processing state: ${PROC}"
+
       - name: Upload IPA artifact
-        if: always()
+        if: always() && env.ASSIGN_ONLY != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: BoomerAI-ipa
