@@ -29,6 +29,19 @@ import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
 type Tab = 'login' | 'code';
 
+/**
+ * Codes that bypass email/password requirements client-side. Source of truth
+ * lives in AuthContext; mirrored here only to relax the form's validation.
+ */
+const KNOWN_BYPASS_CODES = new Set<string>([
+  'BOOMER-VIP-2026',
+  'BOOMER-FOUNDER-2026',
+  'BOOMER-FRIEND-2026',
+  'BOOMER-GUEST-001',
+  'BOOMER-GUEST-002',
+  'BOOMER-GUEST-003',
+]);
+
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn, redeem, user } = useAuth();
@@ -73,17 +86,23 @@ export default function LoginScreen() {
 
   const onRedeem = async () => {
     setError(null);
-    if (!code) {
+    const trimmedCode = code.trim().toUpperCase();
+    if (!trimmedCode) {
       setError('Enter your access code.');
       return;
     }
-    if (!codeEmail || !codePassword) {
+    const isLocalBypass = KNOWN_BYPASS_CODES.has(trimmedCode);
+    if (!isLocalBypass && (!codeEmail || !codePassword)) {
       setError('Enter the email + password tied to your account.');
       return;
     }
     try {
       setBusy(true);
-      const u = await redeem(code.trim(), codeEmail.trim(), codePassword);
+      const u = await redeem(
+        trimmedCode,
+        codeEmail.trim() || undefined,
+        codePassword || undefined,
+      );
       await refresh();
       router.replace('/(tabs)');
       void u;
@@ -163,8 +182,9 @@ export default function LoginScreen() {
           ) : (
             <View style={styles.form}>
               <Text style={styles.help}>
-                If you bought outside the App Store, enter the code you were given.
-                We'll tie it to your account so it works on any of your devices.
+                Enter your access code below. VIP / guest codes unlock Pro on
+                this device instantly — no email or password needed. For codes
+                tied to an account, also enter the email + password you used.
               </Text>
               <Field
                 label="Email"

@@ -30,6 +30,45 @@ import {
 
 const STORAGE_KEY = 'boomer.auth.v1';
 
+/**
+ * Hardcoded bypass / access codes. These work entirely offline — no API call,
+ * no email/password required. Used for VIPs, founders, friends + family, and
+ * in-person demo guests where the network might be unreliable.
+ *
+ * A matched code persists a synthetic `AccountUser` with isPro=true, which
+ * EntitlementContext ORs into the entitled flag.
+ */
+const HARDCODED_BYPASS_CODES = new Set<string>([
+  'BOOMER-VIP-2026',
+  'BOOMER-FOUNDER-2026',
+  'BOOMER-FRIEND-2026',
+  'BOOMER-GUEST-001',
+  'BOOMER-GUEST-002',
+  'BOOMER-GUEST-003',
+]);
+
+function normalizeCode(code: string): string {
+  return code.trim().toUpperCase();
+}
+
+function isHardcodedBypass(code: string): boolean {
+  return HARDCODED_BYPASS_CODES.has(normalizeCode(code));
+}
+
+function makeBypassUser(code: string, email?: string): AccountUser {
+  const normalized = normalizeCode(code);
+  return {
+    id: `bypass:${normalized}`,
+    email: email?.trim() || 'bypass@boomer.ai',
+    name: 'Boomer AI guest',
+    stars: 0,
+    level: 'pro',
+    isPro: true,
+    proSource: `bypass-code:${normalized}`,
+    proExpiresAt: null,
+  };
+}
+
 type StoredAuth = {
   email: string;
   password: string;
@@ -92,6 +131,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const redeem = useCallback(
     async (code: string, email?: string, password?: string) => {
+      // Hardcoded bypass codes work offline, no email/password required.
+      if (isHardcodedBypass(code)) {
+        const e = (email ?? auth?.email ?? '').trim();
+        const p = password ?? auth?.password ?? '';
+        const bypassUser = makeBypassUser(code, e);
+        await persist({
+          email: e || bypassUser.email,
+          password: p,
+          user: bypassUser,
+        });
+        return bypassUser;
+      }
       const e = email ?? auth?.email;
       const p = password ?? auth?.password;
       if (!e || !p) throw new Error('Sign in first, then redeem your code.');
