@@ -7,14 +7,12 @@ export async function POST(request: Request) {
   try {
     const { email, password } = await request.json()
 
-    // Validate input
     if (!email || !password) {
       return NextResponse.json({ success: false, error: "Email and password are required" }, { status: 400 })
     }
 
-    // Find user by email
     const users = await sql`
-      SELECT id, email, password_hash, name, stars, level, created_at, updated_at
+      SELECT id, email, password_hash, name, stars, level, is_pro, pro_source, pro_expires_at, created_at, updated_at
       FROM boomer_users
       WHERE email = ${email.toLowerCase()}
     `
@@ -25,10 +23,12 @@ export async function POST(request: Request) {
 
     const user = users[0]
 
-    // Verify password (in production use bcrypt.compare)
     if (user.password_hash !== password) {
       return NextResponse.json({ success: false, error: "Incorrect password" }, { status: 401 })
     }
+
+    const expired = user.pro_expires_at && new Date(user.pro_expires_at) < new Date()
+    const isPro = !!user.is_pro && !expired
 
     return NextResponse.json({
       success: true,
@@ -38,6 +38,9 @@ export async function POST(request: Request) {
         name: user.name,
         stars: user.stars,
         level: user.level,
+        isPro,
+        proSource: isPro ? user.pro_source : null,
+        proExpiresAt: user.pro_expires_at,
         createdAt: user.created_at,
         updatedAt: user.updated_at,
       },
