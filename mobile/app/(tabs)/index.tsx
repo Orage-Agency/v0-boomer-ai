@@ -5,6 +5,7 @@ import { Screen } from '@/components/Screen';
 import { GradientTile } from '@/components/GradientTile';
 import { StarBadge } from '@/components/StarBadge';
 import { useProfile } from '@/context/ProfileContext';
+import { useEntitlement } from '@/context/EntitlementContext';
 import { colors, fontSize, fontWeight, gradients, spacing } from '@/theme/theme';
 
 /**
@@ -15,7 +16,24 @@ import { colors, fontSize, fontWeight, gradients, spacing } from '@/theme/theme'
 export default function Home() {
   const router = useRouter();
   const { profile } = useProfile();
+  const { entitled } = useEntitlement();
   const displayName = profile.name || profile.userName || 'Friend';
+
+  const openVoice = () => {
+    if (!entitled) {
+      router.push('/paywall?reason=voice');
+      return;
+    }
+    router.push('/voice');
+  };
+
+  const openImageGen = () => {
+    if (!entitled) {
+      router.push('/paywall?reason=image_gen');
+      return;
+    }
+    router.push('/image-gen');
+  };
 
   return (
     <Screen centered edges={['top']}>
@@ -45,7 +63,7 @@ export default function Home() {
             title="Voice"
             subtitle="Talk to me"
             gradient={gradients.voice}
-            onPress={() => router.push('/voice')}
+            onPress={openVoice}
           />
           <GradientTile
             emoji="📚"
@@ -69,7 +87,7 @@ export default function Home() {
             title="AI Art"
             subtitle="Create images"
             gradient={gradients.art}
-            onPress={() => router.push('/image-gen')}
+            onPress={openImageGen}
           />
         </View>
 
