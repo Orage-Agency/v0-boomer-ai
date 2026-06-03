@@ -30,12 +30,12 @@ import { env, isRevenueCatConfigured } from '@/config/env';
 /**
  * Store product identifiers. These MUST match what is created in App Store
  * Connect (Apple) / Google Play Console verbatim.
- *  - boomerai.pro.yearly   -> $97/yr, 7-day free trial
- *  - boomerai.pro.monthly  -> $10/mo, no trial
+ *  - boomer_pro_yearly   -> $97/yr, 7-day free trial
+ *  - boomer_pro_monthly  -> $9.99/mo, no trial
  */
 export const PRODUCT_IDS = {
-  annual: 'boomerai.pro.yearly',
-  monthly: 'boomerai.pro.monthly',
+  annual: 'boomer_pro_yearly',
+  monthly: 'boomer_pro_monthly',
 } as const;
 
 // The RevenueCat entitlement that unlocks "Pro" features.

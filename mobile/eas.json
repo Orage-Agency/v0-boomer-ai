@@ -11,7 +11,7 @@
       "ios": { "simulator": true }
     },
     "preview": {
-      "distribution": "internal",
+      "distribution": "store",
       "channel": "preview",
       "ios": {
         "resourceClass": "m-medium"
@@ -29,13 +29,13 @@
     "production": {
       "ios": {
         "ascAppId": "6755741429",
-        "appleTeamId": "95ZNZYMM7U"
+        "appleTeamId": "HU749X2FPS"
       }
     },
     "preview": {
       "ios": {
         "ascAppId": "6755741429",
-        "appleTeamId": "95ZNZYMM7U"
+        "appleTeamId": "HU749X2FPS"
       }
     }
   }
