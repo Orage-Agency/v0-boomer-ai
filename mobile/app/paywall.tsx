@@ -369,24 +369,25 @@ export default function PaywallScreen() {
           </Pressable>
         )}
 
-        {/* Restore Purchases */}
+        {/* Restore Purchases — explicit "already a subscriber" affordance. */}
         <Pressable
           onPress={restore}
           disabled={busy || !isRevenueCatConfigured}
           accessibilityRole="button"
-          accessibilityLabel="Restore purchases"
+          accessibilityLabel="Already subscribed, restore purchases"
           style={styles.restore}
         >
-          <Text style={styles.restoreText}>Restore purchases</Text>
+          <Text style={styles.restoreText}>Already subscribed? Restore</Text>
         </Pressable>
 
         {/* Promo / Offer Code */}
         <Pressable
           onPress={() => setShowPromo((v) => !v)}
           accessibilityRole="button"
+          accessibilityLabel="Have a code"
           style={styles.promoToggle}
         >
-          <Text style={styles.promoToggleText}>Have a promo code?</Text>
+          <Text style={styles.promoToggleText}>Have a code?</Text>
         </Pressable>
         {showPromo && (
           <View style={styles.promoRow}>
