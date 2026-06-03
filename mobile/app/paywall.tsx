@@ -232,21 +232,19 @@ export default function PaywallScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* Close / dismiss row — only shown in soft-gate mode */}
+        {/* Close (X) — soft gate only. The full "Continue free" CTA lives
+            below the purchase buttons so it is impossible to miss. */}
         {!hardGate && (
           <View style={styles.closeRow}>
             <Pressable
               onPress={close}
               style={styles.close}
               accessibilityRole="button"
-              accessibilityLabel="Dismiss paywall and use free version"
+              accessibilityLabel="Close paywall"
               hitSlop={16}
             >
               <Text style={styles.closeText}>✕</Text>
             </Pressable>
-            <Text style={styles.freeTierHint}>
-              Continue free ({FREE_FEATURES.join(' · ')})
-            </Text>
           </View>
         )}
 
@@ -352,6 +350,24 @@ export default function PaywallScreen() {
           loading={busy}
           disabled={!selected || !isRevenueCatConfigured}
         />
+
+        {/* Continue with limited free version — soft-gate only. */}
+        {!hardGate && (
+          <Pressable
+            onPress={close}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel="Continue with limited free version"
+            style={styles.freeTierBtn}
+          >
+            <Text style={styles.freeTierBtnTitle}>
+              Continue with limited free version
+            </Text>
+            <Text style={styles.freeTierBtnSub}>
+              {FREE_FEATURES.join(' · ')}
+            </Text>
+          </Pressable>
+        )}
 
         {/* Restore Purchases */}
         <Pressable
@@ -459,12 +475,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   closeText: { fontSize: fontSize.xl, color: colors.textMuted },
-  freeTierHint: {
-    flex: 1,
+  freeTierBtn: {
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    minHeight: 56,
+    backgroundColor: colors.surface,
+  },
+  freeTierBtnTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
+  freeTierBtnSub: {
+    marginTop: 2,
     fontSize: fontSize.xs,
-    color: colors.textMuted,
-    textAlign: 'right',
-    paddingLeft: spacing.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   hero: {
     borderRadius: radius.xl,
@@ -618,8 +648,9 @@ const styles = StyleSheet.create({
   },
   linkSep: { fontSize: fontSize.xs, color: colors.textMuted },
   versionLabel: {
-    fontSize: fontSize.xs,
-    color: 'transparent', // invisible but tappable
+    fontSize: 10,
+    // Faint but visible so the owner can locate the 7-tap dev bypass target.
+    color: 'rgba(0,0,0,0.18)',
     textAlign: 'center',
     paddingVertical: spacing.xs,
   },

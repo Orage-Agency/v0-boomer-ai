@@ -11,7 +11,7 @@ import { colors, fontSize, spacing } from '@/theme/theme';
  * Gating policy (J-025):
  *  - `loading` profile  -> splash
  *  - onboarding         -> /onboarding (soft, paywall NOT forced)
- *  - app view, no Pro   -> /paywall?mode=hard (no close button)
+ *  - app view, no Pro   -> /paywall (soft, user can dismiss into limited free tier)
  *  - app view, Pro      -> /(tabs)
  *
  * When RevenueCat is not configured (placeholder key in dev / Expo Go),
@@ -32,7 +32,7 @@ export default function Index() {
   }
 
   if (view === 'onboarding') return <Redirect href="/onboarding" />;
-  if (!entitled) return <Redirect href="/paywall?mode=hard" />;
+  if (!entitled) return <Redirect href="/paywall" />;
   return <Redirect href="/(tabs)" />;
 }
 
