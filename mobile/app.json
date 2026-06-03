@@ -48,9 +48,13 @@
       "apiBaseUrl": "https://boomerai.orage.agency",
       "revenueCatApiKeyIos": "appl_gfKZNVBQtIXGZkABPKGPtfasgZz",
       "revenueCatApiKeyAndroid": "__REPLACE_ME__",
+      "router": {
+        "origin": false
+      },
       "eas": {
-        "projectId": "00000000-0000-0000-0000-000000000000"
+        "projectId": "d4787287-e1e1-4a82-ab06-b2f2c3299d25"
       }
-    }
+    },
+    "owner": "orage-agency"
   }
 }
