@@ -163,63 +163,88 @@ jobs:
           set -euo pipefail
           mkdir -p "$HOME/.appstoreconnect/private_keys"
           KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
-          echo "$ASC_KEY_BASE64" | base64 -d > "$KEY_PATH"
+          printf '%s' "$ASC_KEY_BASE64" | base64 -d > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
+          export ASC_KEY_FILEPATH="$KEY_PATH"
 
-          mint_jwt() {
-            local NOW EXP HEADER PAYLOAD SIG
-            NOW=$(date +%s)
-            EXP=$((NOW + 600))
-            HEADER=$(printf '{"alg":"ES256","kid":"%s","typ":"JWT"}' "$ASC_KEY_ID" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-            PAYLOAD=$(printf '{"iss":"%s","iat":%d,"exp":%d,"aud":"appstoreconnect-v1"}' "$ASC_ISSUER_ID" "$NOW" "$EXP" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-            SIG=$(printf '%s' "${HEADER}.${PAYLOAD}" | openssl dgst -sha256 -sign "$KEY_PATH" -binary | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-            printf '%s.%s.%s' "$HEADER" "$PAYLOAD" "$SIG"
-          }
-
-          # Poll for newest build in ASC; ASC indexing can lag the fastlane upload by several minutes.
-          BUILD_ID=""
-          BUILD_VERSION=""
-          BUILD_STATE=""
-          MAX_ATTEMPTS=30   # 30 * 20s = 10 minutes
-          for i in $(seq 1 "$MAX_ATTEMPTS"); do
-            JWT=$(mint_jwt)
-            RESP=$(curl -gsS -H "Authorization: Bearer $JWT" \
-              "https://api.appstoreconnect.apple.com/v1/builds?filter%5Bapp%5D=${APP_ID_NUMERIC}&sort=-uploadedDate&limit=1")
-            BUILD_ID=$(printf '%s' "$RESP" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data'][0]['id'] if d.get('data') else '')")
-            BUILD_VERSION=$(printf '%s' "$RESP" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data'][0]['attributes']['version'] if d.get('data') else '')")
-            BUILD_STATE=$(printf '%s' "$RESP" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data'][0]['attributes']['processingState'] if d.get('data') else '')")
-            if [ -n "$BUILD_ID" ]; then
-              echo "Found build #${BUILD_VERSION} (id=${BUILD_ID}, state=${BUILD_STATE}) on attempt ${i}"
-              break
-            fi
-            echo "Attempt ${i}/${MAX_ATTEMPTS}: ASC has no build yet, waiting 20s..."
-            sleep 20
-          done
-          if [ -z "$BUILD_ID" ]; then
-            echo "::error::No build appeared in ASC after ${MAX_ATTEMPTS} attempts."
-            exit 1
+          # Reuse preflight venv if present, else create one.
+          VENV_DIR="$RUNNER_TEMP/asc-venv"
+          if [ ! -x "$VENV_DIR/bin/python3" ]; then
+            python3 -m venv "$VENV_DIR"
+            "$VENV_DIR/bin/python3" -m pip install --quiet --upgrade pip
+            "$VENV_DIR/bin/python3" -m pip install --quiet pyjwt cryptography
           fi
 
-          JWT=$(mint_jwt)
-          HTTP=$(curl -gsS -o /tmp/assign.json -w "%{http_code}" \
-            -X POST \
-            -H "Authorization: Bearer $JWT" \
-            -H "Content-Type: application/json" \
-            "https://api.appstoreconnect.apple.com/v1/betaGroups/${TF_GROUP_ID}/relationships/builds" \
-            -d "{\"data\":[{\"type\":\"builds\",\"id\":\"${BUILD_ID}\"}]}")
-          echo "ASC assignment response: $HTTP"
-          cat /tmp/assign.json || true
-          case "$HTTP" in
-            2*) echo "Build #${BUILD_VERSION} assigned to TestFlight group BOOMER AI V1." ;;
-            *)  echo "::error::Group assignment returned $HTTP"; exit 1 ;;
-          esac
+          "$VENV_DIR/bin/python3" - <<'PY'
+          import jwt, json, os, sys, time, urllib.request, urllib.error
+          KEY_ID = os.environ["ASC_KEY_ID"]
+          ISS = os.environ["ASC_ISSUER_ID"]
+          APP_ID = os.environ["APP_ID_NUMERIC"]
+          GROUP_ID = os.environ["TF_GROUP_ID"]
+          KEY = open(os.environ["ASC_KEY_FILEPATH"]).read()
 
-          # Best-effort: report processing state. Don't fail the job if still processing — ASC will finish on its own.
-          JWT=$(mint_jwt)
-          PROC=$(curl -gsS -H "Authorization: Bearer $JWT" \
-            "https://api.appstoreconnect.apple.com/v1/builds/${BUILD_ID}" \
-            | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data']['attributes']['processingState'])" 2>/dev/null || echo "UNKNOWN")
-          echo "Build #${BUILD_VERSION} processing state: ${PROC}"
+          def mint():
+              now = int(time.time())
+              return jwt.encode({"iss": ISS, "iat": now, "exp": now + 600, "aud": "appstoreconnect-v1"},
+                                KEY, algorithm="ES256", headers={"kid": KEY_ID, "typ": "JWT"})
+
+          def call(method, path, body=None):
+              url = f"https://api.appstoreconnect.apple.com{path}"
+              data = json.dumps(body).encode() if body is not None else None
+              req = urllib.request.Request(url, data=data, method=method,
+                                           headers={"Authorization": f"Bearer {mint()}",
+                                                    "Content-Type": "application/json"})
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return r.status, json.loads(r.read() or b"{}")
+              except urllib.error.HTTPError as e:
+                  return e.code, json.loads(e.read() or b"{}")
+
+          # 1) Poll for newest build (up to 10 min).
+          build = None
+          for i in range(1, 31):
+              s, body = call("GET", f"/v1/builds?filter[app]={APP_ID}&sort=-uploadedDate&limit=1")
+              if s == 200 and body.get("data"):
+                  build = body["data"][0]
+                  print(f"Found build #{build['attributes']['version']} (id={build['id']}, state={build['attributes']['processingState']}) on attempt {i}")
+                  break
+              print(f"Attempt {i}/30 (HTTP {s}): no build yet, waiting 20s")
+              if s >= 400:
+                  print(" response:", json.dumps(body)[:300])
+              time.sleep(20)
+          if not build:
+              print("::error::No build appeared in ASC after 30 attempts.")
+              sys.exit(1)
+
+          BUILD_ID = build["id"]
+          BUILD_VERSION = build["attributes"]["version"]
+
+          # 2) Assign to TF group; internal groups auto-assign so 422 with "internal group" → verify membership.
+          s, body = call("POST", f"/v1/betaGroups/{GROUP_ID}/relationships/builds",
+                         {"data": [{"type": "builds", "id": BUILD_ID}]})
+          print("Assignment response:", s, json.dumps(body)[:300])
+          assigned = False
+          if 200 <= s < 300:
+              assigned = True
+          elif s == 422 and "internal group" in json.dumps(body).lower():
+              # Verify membership
+              s2, b2 = call("GET", f"/v1/betaGroups/{GROUP_ID}/builds?limit=200")
+              ids = [b["id"] for b in (b2.get("data") or [])] if s2 == 200 else []
+              if BUILD_ID in ids:
+                  print(f"Build #{BUILD_VERSION} is in TF group BOOMER AI V1 (auto-assigned).")
+                  assigned = True
+              else:
+                  print(f"::error::Build {BUILD_ID} not in group after auto-assign check.")
+          if not assigned:
+              print(f"::error::Group assignment returned {s}")
+              sys.exit(1)
+          print(f"Build #{BUILD_VERSION} assigned to TestFlight group BOOMER AI V1.")
+
+          # 3) Best-effort processing state.
+          s, body = call("GET", f"/v1/builds/{BUILD_ID}")
+          proc = body.get("data", {}).get("attributes", {}).get("processingState", "UNKNOWN")
+          print(f"Build #{BUILD_VERSION} processing state: {proc}")
+          PY
 
       - name: Upload IPA artifact
         if: always() && env.ASSIGN_ONLY != 'true'
