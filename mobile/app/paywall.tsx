@@ -98,6 +98,11 @@ export default function PaywallScreen() {
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
 
+  const annualPackage = useMemo(
+    () => packages.find((p) => p.product.identifier.includes(PRODUCT_IDS.annual)) ?? null,
+    [packages],
+  );
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -252,7 +257,9 @@ export default function PaywallScreen() {
           <Text style={styles.heroEmoji}>⭐</Text>
           <Text style={styles.heroTitle}>Boomer AI Pro</Text>
           <Text style={styles.heroSub}>
-            7 days free, then $97 a year. Cancel anytime.
+            {annualPackage
+              ? `7 days free, then ${annualPackage.product.priceString} a year. Cancel anytime.`
+              : '7 days free, then cancel anytime.'}
           </Text>
         </LinearGradient>
 
