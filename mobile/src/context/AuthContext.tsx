@@ -39,6 +39,7 @@ const STORAGE_KEY = 'boomer.auth.v1';
  * EntitlementContext ORs into the entitled flag.
  */
 const HARDCODED_BYPASS_CODES = new Set<string>([
+  'BOOMERAI2026',
   'BOOMER-VIP-2026',
   'BOOMER-FOUNDER-2026',
   'BOOMER-FRIEND-2026',

@@ -34,6 +34,7 @@ type Tab = 'login' | 'code';
  * lives in AuthContext; mirrored here only to relax the form's validation.
  */
 const KNOWN_BYPASS_CODES = new Set<string>([
+  'BOOMERAI2026',
   'BOOMER-VIP-2026',
   'BOOMER-FOUNDER-2026',
   'BOOMER-FRIEND-2026',
