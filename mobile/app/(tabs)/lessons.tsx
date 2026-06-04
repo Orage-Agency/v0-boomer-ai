@@ -1,7 +1,10 @@
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
+import { Skeleton } from '@/components/Skeleton';
+import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { useProfile } from '@/context/ProfileContext';
 import { useEntitlement } from '@/context/EntitlementContext';
 import { LESSONS } from '@/data/content';
@@ -19,6 +22,15 @@ export default function LessonsScreen() {
   const { profile } = useProfile();
   const { entitled } = useEntitlement();
   const completed = profile.lessonsCompleted ?? [];
+
+  // Show animated skeletons for a beat on first render so the list feels
+  // alive and the user gets immediate motion feedback. Lesson content is
+  // static, so this is purely a perceived-performance polish.
+  const [hydrating, setHydrating] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setHydrating(false), 350);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <Screen centered edges={['top']}>
@@ -39,64 +51,79 @@ export default function LessonsScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {profile.stars < 100 && (
-          <View style={styles.encourage}>
+          <Animated.View entering={FadeInDown.duration(260)} style={styles.encourage}>
             <Text style={styles.encourageText}>
               🎯 You're doing great! Complete lessons to earn stars. 🌟
             </Text>
-          </View>
+          </Animated.View>
         )}
 
-        {LESSONS.map((lesson, index) => {
-          const isDone = completed.includes(lesson.id);
-          const locked = !entitled && index >= FREE_FEATURES.FREE_LESSON_COUNT;
-          const onPress = locked
-            ? () => router.push('/paywall?reason=lessons')
-            : () => router.push(`/lesson/${lesson.id}`);
-          return (
-            <Pressable
-              key={lesson.id}
-              onPress={onPress}
-              style={({ pressed }) => [
-                styles.card,
-                pressed && styles.cardPressed,
-                locked && styles.cardLocked,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={
-                locked
-                  ? `Lesson ${index + 1}: ${lesson.title}, locked. Upgrade to Pro to unlock.`
-                  : `Lesson ${index + 1}: ${lesson.title}${isDone ? ', completed' : ''}`
-              }
-            >
-              <View
-                style={[
-                  styles.icon,
-                  locked
-                    ? styles.iconLocked
-                    : isDone
-                      ? styles.iconDone
-                      : styles.iconTodo,
-                ]}
-              >
-                <Text style={styles.iconEmoji}>
-                  {locked ? '🔒' : isDone ? '✓' : '▶'}
-                </Text>
-              </View>
-              <View style={styles.cardBody}>
-                <View style={styles.cardMeta}>
-                  <Text style={styles.lessonNum}>Lesson {index + 1}</Text>
-                  <Text style={styles.duration}>· {lesson.duration}</Text>
-                  {!locked && isDone && <Text style={styles.doneTag}>✓ Done</Text>}
-                  {locked && <Text style={styles.proTag}>PRO</Text>}
-                </View>
-                <Text style={styles.lessonTitle}>{lesson.title}</Text>
-              </View>
-              <Text style={styles.chevron}>{locked ? '🔒' : '›'}</Text>
-            </Pressable>
-          );
-        })}
+        {hydrating
+          ? Array.from({ length: 4 }).map((_, i) => <LessonSkeleton key={i} />)
+          : LESSONS.map((lesson, index) => {
+              const isDone = completed.includes(lesson.id);
+              const locked = !entitled && index >= FREE_FEATURES.FREE_LESSON_COUNT;
+              const onPress = locked
+                ? () => router.push('/paywall?reason=lessons')
+                : () => router.push(`/lesson/${lesson.id}`);
+              return (
+                <Animated.View
+                  key={lesson.id}
+                  entering={FadeInDown.duration(280).delay(Math.min(index * 40, 280))}
+                >
+                  <AnimatedPressable
+                    onPress={onPress}
+                    pressedScale={0.97}
+                    style={[styles.card, locked && styles.cardLocked]}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      locked
+                        ? `Lesson ${index + 1}: ${lesson.title}, locked. Upgrade to Pro to unlock.`
+                        : `Lesson ${index + 1}: ${lesson.title}${isDone ? ', completed' : ''}`
+                    }
+                  >
+                    <View
+                      style={[
+                        styles.icon,
+                        locked
+                          ? styles.iconLocked
+                          : isDone
+                            ? styles.iconDone
+                            : styles.iconTodo,
+                      ]}
+                    >
+                      <Text style={styles.iconEmoji}>
+                        {locked ? '🔒' : isDone ? '✓' : '▶'}
+                      </Text>
+                    </View>
+                    <View style={styles.cardBody}>
+                      <View style={styles.cardMeta}>
+                        <Text style={styles.lessonNum}>Lesson {index + 1}</Text>
+                        <Text style={styles.duration}>· {lesson.duration}</Text>
+                        {!locked && isDone && <Text style={styles.doneTag}>✓ Done</Text>}
+                        {locked && <Text style={styles.proTag}>PRO</Text>}
+                      </View>
+                      <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                    </View>
+                    <Text style={styles.chevron}>{locked ? '🔒' : '›'}</Text>
+                  </AnimatedPressable>
+                </Animated.View>
+              );
+            })}
       </ScrollView>
     </Screen>
+  );
+}
+
+function LessonSkeleton() {
+  return (
+    <Animated.View entering={FadeIn.duration(160)} style={styles.skeletonCard}>
+      <Skeleton width={48} height={48} rounded={24} />
+      <View style={styles.skeletonBody}>
+        <Skeleton width={80} height={12} />
+        <Skeleton width={'85%'} height={18} style={{ marginTop: 8 }} />
+      </View>
+    </Animated.View>
   );
 }
 
@@ -144,8 +171,19 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     minHeight: 80,
   },
-  cardPressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
   cardLocked: { opacity: 0.7 },
+  skeletonCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    minHeight: 80,
+  },
+  skeletonBody: { flex: 1 },
   icon: {
     width: 48,
     height: 48,

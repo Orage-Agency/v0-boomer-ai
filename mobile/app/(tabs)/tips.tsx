@@ -1,7 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
+import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { useProfile } from '@/context/ProfileContext';
 import { setPendingPrompt } from '@/screens/pendingPrompt';
 import { TIP_CATEGORIES, type Tip } from '@/data/content';
@@ -44,10 +46,14 @@ export default function TipsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {TIP_CATEGORIES.map((category) => {
+        {TIP_CATEGORIES.map((category, idx) => {
           const isOpen = expanded.includes(category.id);
           return (
-            <View key={category.id} style={styles.category}>
+            <Animated.View
+              key={category.id}
+              entering={FadeInDown.duration(280).delay(Math.min(idx * 50, 200))}
+              style={styles.category}
+            >
               <Pressable
                 onPress={() => toggle(category.id)}
                 style={styles.categoryHeader}
@@ -67,10 +73,11 @@ export default function TipsScreen() {
               {isOpen && (
                 <View style={styles.tipList}>
                   {category.tips.map((tip) => (
-                    <Pressable
+                    <AnimatedPressable
                       key={tip.title}
                       onPress={() => tryTip(tip)}
-                      style={({ pressed }) => [styles.tip, pressed && styles.tipPressed]}
+                      pressedScale={0.97}
+                      style={styles.tip}
                       accessibilityRole="button"
                       accessibilityLabel={`${tip.title}. ${tip.description}. Try in chat.`}
                     >
@@ -79,11 +86,11 @@ export default function TipsScreen() {
                         <Text style={styles.tipTitle}>{tip.title}</Text>
                         <Text style={styles.tipDesc}>{tip.description}</Text>
                       </View>
-                    </Pressable>
+                    </AnimatedPressable>
                   ))}
                 </View>
               )}
-            </View>
+            </Animated.View>
           );
         })}
       </ScrollView>

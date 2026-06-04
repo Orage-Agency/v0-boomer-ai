@@ -9,10 +9,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { InfoBanner } from '@/components/InfoBanner';
+import { TypingDots } from '@/components/Skeleton';
+import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { useChatSession } from '@/screens/useChat';
 import { consumePendingPrompt, subscribePendingPrompt } from '@/screens/pendingPrompt';
 import { useProfile } from '@/context/ProfileContext';
@@ -156,23 +159,28 @@ export default function Chat() {
         )}
 
         {messages.length === 0 ? (
-          <View style={styles.empty}>
+          <Animated.View entering={FadeInUp.duration(300)} style={styles.empty}>
             <Text style={styles.emptyEmoji}>✨</Text>
             <Text style={styles.emptyTitle}>Let's Chat!</Text>
             <Text style={styles.emptySub}>What can I help you with today?</Text>
             <View style={styles.starters}>
-              {STARTER_PROMPTS.map((p) => (
-                <Pressable
+              {STARTER_PROMPTS.map((p, i) => (
+                <Animated.View
                   key={p}
-                  style={styles.starter}
-                  onPress={() => handleSend(p)}
-                  accessibilityRole="button"
+                  entering={FadeInDown.duration(280).delay(80 + i * 50)}
                 >
-                  <Text style={styles.starterText}>{p}</Text>
-                </Pressable>
+                  <AnimatedPressable
+                    pressedScale={0.97}
+                    style={styles.starter}
+                    onPress={() => handleSend(p)}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.starterText}>{p}</Text>
+                  </AnimatedPressable>
+                </Animated.View>
               ))}
             </View>
-          </View>
+          </Animated.View>
         ) : (
           <FlatList
             ref={listRef}
@@ -181,9 +189,7 @@ export default function Chat() {
             contentContainerStyle={styles.list}
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
             renderItem={({ item }) => <Bubble message={item} />}
-            ListFooterComponent={
-              busy ? <Text style={styles.thinking}>Thinking…</Text> : null
-            }
+            ListFooterComponent={busy ? <ThinkingBubble /> : null}
           />
         )}
 
@@ -204,15 +210,16 @@ export default function Chat() {
             editable={!busy}
             accessibilityLabel="Message input"
           />
-          <Pressable
+          <AnimatedPressable
             onPress={() => handleSend(input)}
             disabled={busy || !input.trim()}
+            pressedScale={0.93}
             style={[styles.sendBtn, (busy || !input.trim()) && styles.sendDisabled]}
             accessibilityRole="button"
             accessibilityLabel="Send message"
           >
             <Text style={styles.sendText}>Send</Text>
-          </Pressable>
+          </AnimatedPressable>
         </View>
       </KeyboardAvoidingView>
     </Screen>
@@ -223,13 +230,27 @@ function Bubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
   const text = message.parts.map((p) => p.text).join('');
   return (
-    <View style={[styles.bubbleRow, isUser ? styles.rowEnd : styles.rowStart]}>
+    <Animated.View
+      entering={FadeInUp.duration(220)}
+      style={[styles.bubbleRow, isUser ? styles.rowEnd : styles.rowStart]}
+    >
       <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
         <Text style={[styles.bubbleText, isUser && styles.userText]}>
           {text || ' '}
         </Text>
       </View>
-    </View>
+    </Animated.View>
+  );
+}
+
+/** "AI is thinking" skeleton — replaces the plain "Thinking…" text. */
+function ThinkingBubble() {
+  return (
+    <Animated.View entering={FadeIn.duration(180)} style={[styles.bubbleRow, styles.rowStart]}>
+      <View style={[styles.bubble, styles.aiBubble, styles.thinkingBubble]}>
+        <TypingDots />
+      </View>
+    </Animated.View>
   );
 }
 
@@ -276,6 +297,7 @@ const styles = StyleSheet.create({
   bubbleText: { fontSize: fontSize.md, lineHeight: 24, color: colors.textPrimary },
   userText: { color: colors.textOnDark },
   thinking: { fontSize: fontSize.sm, color: colors.textMuted, paddingTop: spacing.sm },
+  thinkingBubble: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, minHeight: 36 },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',

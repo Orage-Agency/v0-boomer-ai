@@ -1,5 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { GradientTile } from '@/components/GradientTile';
@@ -43,21 +44,23 @@ export default function Home() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.greeting}>
+        <Animated.View entering={FadeInDown.duration(280).delay(0)} style={styles.greeting}>
           <Text style={styles.hello}>Hello, {displayName}!</Text>
           <Text style={styles.prompt}>What would you like to explore today?</Text>
-        </View>
+        </Animated.View>
 
         {/* Primary action — full width */}
-        <GradientTile
-          large
-          title="Chat with AI"
-          subtitle="Ask me anything, anytime"
-          gradient={gradients.chat}
-          onPress={() => router.push('/(tabs)/chat')}
-        />
+        <Animated.View entering={FadeInDown.duration(320).delay(60)}>
+          <GradientTile
+            large
+            title="Chat with AI"
+            subtitle="Ask me anything, anytime"
+            gradient={gradients.chat}
+            onPress={() => router.push('/(tabs)/chat')}
+          />
+        </Animated.View>
 
-        <View style={styles.row}>
+        <Animated.View entering={FadeInDown.duration(320).delay(120)} style={styles.row}>
           <GradientTile
             emoji="🎙️"
             title="Voice"
@@ -72,9 +75,9 @@ export default function Home() {
             gradient={gradients.lessons}
             onPress={() => router.push('/(tabs)/lessons')}
           />
-        </View>
+        </Animated.View>
 
-        <View style={styles.row}>
+        <Animated.View entering={FadeInDown.duration(320).delay(180)} style={styles.row}>
           <GradientTile
             emoji="💡"
             title="Tips"
@@ -89,9 +92,9 @@ export default function Home() {
             gradient={gradients.art}
             onPress={openImageGen}
           />
-        </View>
+        </Animated.View>
 
-        <View style={styles.row}>
+        <Animated.View entering={FadeInDown.duration(320).delay(240)} style={styles.row}>
           <GradientTile
             emoji="❓"
             title="Questions"
@@ -106,9 +109,9 @@ export default function Home() {
             gradient={gradients.brand}
             onPress={() => router.push('/paywall')}
           />
-        </View>
+        </Animated.View>
 
-        <View style={styles.row}>
+        <Animated.View entering={FadeInDown.duration(320).delay(300)} style={styles.row}>
           <GradientTile
             emoji="👤"
             title="Profile"
@@ -123,7 +126,7 @@ export default function Home() {
             gradient={gradients.lessons}
             onPress={() => router.push('/(tabs)/lessons')}
           />
-        </View>
+        </Animated.View>
       </ScrollView>
     </Screen>
   );

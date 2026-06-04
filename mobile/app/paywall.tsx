@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { BYPASS_PRO_KEY } from '@/context/storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,8 @@ import Constants from 'expo-constants';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { InfoBanner } from '@/components/InfoBanner';
+import { SuccessCelebration } from '@/components/SuccessCelebration';
+import { AnimatedPressable } from '@/components/AnimatedPressable';
 import {
   getOffering,
   purchasePackage,
@@ -98,6 +101,9 @@ export default function PaywallScreen() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
 
+  // Reanimated success celebration after a confirmed purchase / restore.
+  const [celebrating, setCelebrating] = useState(false);
+
   // Dev bypass: tap version N times
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -172,7 +178,10 @@ export default function PaywallScreen() {
       if (res.ok) {
         await refresh();
         setMessage('You are now Pro! Enjoy everything Boomer AI offers. 🎉');
-        setTimeout(() => router.replace('/(tabs)'), 600);
+        setCelebrating(true);
+        // Celebration auto-fades after ~2s — route home a beat later so the
+        // user gets visual confirmation before the screen swaps.
+        setTimeout(() => router.replace('/(tabs)'), 2100);
       } else if (res.cancelled) {
         // Silent — user backed out.
       } else {
@@ -190,7 +199,8 @@ export default function PaywallScreen() {
     if (ok) {
       await refresh();
       setMessage('Your Pro access has been restored. 🎉');
-      setTimeout(() => router.replace('/(tabs)'), 600);
+      setCelebrating(true);
+      setTimeout(() => router.replace('/(tabs)'), 2100);
     } else {
       setMessage('No previous purchases were found.');
     }
@@ -255,6 +265,11 @@ export default function PaywallScreen() {
 
   return (
     <Screen edges={['top', 'bottom']} centered>
+      <SuccessCelebration
+        visible={celebrating}
+        title="You are Pro!"
+        subtitle="Enjoy everything Boomer AI offers."
+      />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -275,22 +290,28 @@ export default function PaywallScreen() {
           </View>
         )}
 
-        <LinearGradient colors={gradients.brand} style={styles.hero}>
-          <Text style={styles.heroEmoji}>⭐</Text>
-          <Text style={styles.heroTitle}>Boomer AI Pro</Text>
-          <Text style={styles.heroSub}>
-            {annualPackage
-              ? `7 days free, then ${annualPackage.product.priceString} a year. Cancel anytime.`
-              : '7 days free, then cancel anytime.'}
-          </Text>
-        </LinearGradient>
+        <Animated.View entering={FadeInDown.duration(320)}>
+          <LinearGradient colors={gradients.brand} style={styles.hero}>
+            <Text style={styles.heroEmoji}>⭐</Text>
+            <Text style={styles.heroTitle}>Boomer AI Pro</Text>
+            <Text style={styles.heroSub}>
+              {annualPackage
+                ? `7 days free, then ${annualPackage.product.priceString} a year. Cancel anytime.`
+                : '7 days free, then cancel anytime.'}
+            </Text>
+          </LinearGradient>
+        </Animated.View>
 
         <View style={styles.features}>
-          {PRO_FEATURES.map((f) => (
-            <View key={f} style={styles.featureRow}>
+          {PRO_FEATURES.map((f, i) => (
+            <Animated.View
+              key={f}
+              entering={FadeInDown.duration(280).delay(80 + i * 50)}
+              style={styles.featureRow}
+            >
               <Text style={styles.featureCheck}>✓</Text>
               <Text style={styles.featureText}>{f}</Text>
-            </View>
+            </Animated.View>
           ))}
         </View>
 
@@ -326,10 +347,11 @@ export default function PaywallScreen() {
                 const annual = isAnnual(pkg);
                 const isSelected = pkg.identifier === selectedId;
                 return (
-                  <Pressable
+                  <AnimatedPressable
                     key={pkg.identifier}
                     onPress={() => setSelectedId(pkg.identifier)}
                     disabled={busy}
+                    pressedScale={0.98}
                     style={[
                       styles.pkg,
                       isSelected && styles.pkgSelected,
@@ -360,7 +382,7 @@ export default function PaywallScreen() {
                       </Text>
                     </View>
                     <Text style={styles.pkgPrice}>{pkg.product.priceString}</Text>
-                  </Pressable>
+                  </AnimatedPressable>
                 );
               })}
           </View>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -7,7 +7,14 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { colors, fontSize, fontWeight, layout, radius, spacing } from '@/theme/theme';
+
+const AnimatedPressableBase = Animated.createAnimatedComponent(Pressable);
 
 type Variant = 'primary' | 'secondary' | 'ink' | 'danger';
 
@@ -45,18 +52,34 @@ export function Button({
           : colors.surfaceMuted;
   const fg = variant === 'secondary' ? colors.textPrimary : colors.textOnDark;
 
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const onPressIn = useCallback(() => {
+    if (isDisabled) return;
+    scale.value = withSpring(0.95, { mass: 0.4, damping: 14, stiffness: 320 });
+  }, [isDisabled, scale]);
+
+  const onPressOut = useCallback(() => {
+    scale.value = withSpring(1, { mass: 0.4, damping: 12, stiffness: 280 });
+  }, [scale]);
+
   return (
-    <Pressable
+    <AnimatedPressableBase
       onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
       disabled={isDisabled}
       accessibilityRole="button"
       accessibilityState={{ disabled: !!isDisabled }}
       accessibilityHint={accessibilityHint}
-      style={({ pressed }) => [
+      style={[
         styles.base,
         { backgroundColor: bg },
-        pressed && !isDisabled && styles.pressed,
         isDisabled && styles.disabled,
+        animatedStyle,
         style,
       ]}
     >
@@ -65,7 +88,7 @@ export function Button({
       ) : (
         <Text style={[styles.label, { color: fg }]}>{title}</Text>
       )}
-    </Pressable>
+    </AnimatedPressableBase>
   );
 }
 
@@ -78,7 +101,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
   disabled: { opacity: 0.4 },
   label: {
     fontSize: fontSize.md,
