@@ -10,6 +10,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BYPASS_PRO_KEY } from '@/context/storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Purchases from 'react-native-purchases';
@@ -72,6 +74,9 @@ const PRIVACY_URL = 'https://boomer.ai/privacy';
 
 /** Number of times the version label must be tapped to bypass the paywall. */
 const DEV_BYPASS_TAPS = 7;
+
+/** Hardcoded bypass codes that grant local Pro access via AsyncStorage. */
+const BYPASS_CODES = ['BOOMERAI2026'] as const;
 
 type PaywallMode = 'soft' | 'hard';
 
@@ -194,21 +199,38 @@ export default function PaywallScreen() {
   /**
    * Promo / offer code redemption.
    *
-   * On iOS: RevenueCat's `presentCodeRedemptionSheet()` opens the native App
-   * Store offer-code sheet — the user enters their code in Apple's own UI.
-   * The `promoCode` text field is used as a fallback label only on Android
-   * (Google Play Promo Codes are redeemed in Play Store, not in-app).
-   *
-   * TODO(owner): If you need server-side promo validation before the RC sheet
-   * opens, add your logic here. RC API key is read from env automatically.
+   * Checks against hardcoded BYPASS_CODES first — if matched, sets a local
+   * AsyncStorage flag and dismisses the paywall without any network call.
+   * Otherwise falls through to the platform-specific redemption flow:
+   *   iOS → Apple's native offer-code sheet via RevenueCat
+   *   Android → Play Store promo redemption URL
    */
   const applyPromoCode = useCallback(async () => {
-    if (!isRevenueCatConfigured) {
-      setMessage('Purchases are not configured yet.');
-      return;
-    }
     setPromoLoading(true);
     setMessage(null);
+    const normalized = promoCode.trim().toUpperCase();
+
+    // Local bypass: grant pro immediately without touching Apple/Google.
+    if ((BYPASS_CODES as readonly string[]).includes(normalized)) {
+      try {
+        await AsyncStorage.setItem(BYPASS_PRO_KEY, 'true');
+        await refresh();
+        setMessage('Access granted! Welcome to Boomer AI Pro. 🎉');
+        setTimeout(() => router.replace('/(tabs)'), 600);
+      } catch {
+        setMessage('Could not apply the code. Please try again.');
+      } finally {
+        setPromoLoading(false);
+      }
+      return;
+    }
+
+    if (!isRevenueCatConfigured) {
+      setMessage('Purchases are not configured yet.');
+      setPromoLoading(false);
+      return;
+    }
+
     try {
       if (Platform.OS === 'ios') {
         // Opens Apple's native offer-code redemption sheet.
@@ -226,7 +248,7 @@ export default function PaywallScreen() {
     } finally {
       setPromoLoading(false);
     }
-  }, [promoCode, refresh]);
+  }, [promoCode, refresh, router]);
 
   const isAnnual = (pkg: PurchasesPackage) =>
     pkg.product.identifier.includes(PRODUCT_IDS.annual);
@@ -411,25 +433,22 @@ export default function PaywallScreen() {
         </Pressable>
         {showPromo && (
           <View style={styles.promoRow}>
-            {Platform.OS === 'android' && (
-              <TextInput
-                style={styles.promoInput}
-                placeholder="Enter promo code"
-                placeholderTextColor={colors.textMuted}
-                value={promoCode}
-                onChangeText={setPromoCode}
-                autoCapitalize="characters"
-                returnKeyType="done"
-                editable={!promoLoading}
-              />
-            )}
+            <TextInput
+              style={styles.promoInput}
+              placeholder="Enter promo or bypass code"
+              placeholderTextColor={colors.textMuted}
+              value={promoCode}
+              onChangeText={setPromoCode}
+              autoCapitalize="characters"
+              returnKeyType="done"
+              editable={!promoLoading}
+            />
             <Pressable
               onPress={applyPromoCode}
-              disabled={promoLoading || (Platform.OS === 'android' && promoCode.trim().length === 0)}
+              disabled={promoLoading || promoCode.trim().length === 0}
               style={[
                 styles.promoApply,
-                (promoLoading || (Platform.OS === 'android' && promoCode.trim().length === 0)) &&
-                  styles.promoApplyDisabled,
+                (promoLoading || promoCode.trim().length === 0) && styles.promoApplyDisabled,
               ]}
               accessibilityRole="button"
               accessibilityLabel="Apply promo code"
@@ -437,9 +456,7 @@ export default function PaywallScreen() {
               {promoLoading ? (
                 <ActivityIndicator color={colors.textOnDark} size="small" />
               ) : (
-                <Text style={styles.promoApplyText}>
-                  {Platform.OS === 'ios' ? 'Redeem Code' : 'Apply'}
-                </Text>
+                <Text style={styles.promoApplyText}>Apply</Text>
               )}
             </Pressable>
           </View>

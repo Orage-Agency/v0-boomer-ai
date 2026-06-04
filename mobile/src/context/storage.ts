@@ -6,6 +6,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * since native storage is separate from the browser).
  */
 
+/** AsyncStorage key that stores the local bypass/promo-code Pro flag. */
+export const BYPASS_PRO_KEY = 'boomer_pro_bypass';
+
 const KEYS = {
   deviceId: 'boomer-device-id',
   profile: (id: string) => `boomer_profile_${id}`,

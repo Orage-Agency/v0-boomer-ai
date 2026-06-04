@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isRevenueCatConfigured } from '@/config/env';
 import {
   addCustomerInfoListener,
@@ -13,6 +14,7 @@ import {
   isPro,
 } from './purchases';
 import { useAuth } from './AuthContext';
+import { BYPASS_PRO_KEY } from './storage';
 
 /**
  * Tracks the user's "pro" entitlement.
@@ -39,10 +41,14 @@ const EntitlementContext = createContext<EntitlementContextValue | null>(null);
 export function EntitlementProvider({ children }: { children: React.ReactNode }) {
   const { user, refresh: refreshAccount } = useAuth();
   const [rcEntitled, setRcEntitled] = useState<boolean>(!isRevenueCatConfigured);
+  const [bypassEntitled, setBypassEntitled] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(isRevenueCatConfigured);
 
   const refresh = useCallback(async () => {
     await refreshAccount();
+    // Check local bypass code flag.
+    const bypass = await AsyncStorage.getItem(BYPASS_PRO_KEY);
+    setBypassEntitled(bypass === 'true');
     if (!isRevenueCatConfigured) {
       setRcEntitled(true);
       setLoading(false);
@@ -60,7 +66,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   }, [refresh]);
 
   const accountEntitled = !!user?.isPro;
-  const entitled = rcEntitled || accountEntitled;
+  const entitled = rcEntitled || accountEntitled || bypassEntitled;
 
   const value = useMemo<EntitlementContextValue>(
     () => ({
