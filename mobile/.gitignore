@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+*.orig.*
+android/
+# ios/ committed for Xcode Cloud (Pods/ ignored inside ios/.gitignore)
+
+# Metro
+.metro-health-check*
+
+# Env
+.env*.local
+.env
+
+# Misc
+*.log
+.DS_Store

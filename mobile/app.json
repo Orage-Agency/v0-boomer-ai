@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "Boomer AI",
+    "slug": "boomer-ai",
+    "version": "1.0.4",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "boomerai",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "boomerai.orage.agency",
+      "buildNumber": "4",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "Boomer AI uses the microphone for voice chat so you can talk to your AI guide hands-free."
+      }
+    },
+    "android": {
+      "package": "boomerai.orage.agency",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-asset"
+    ],
+    "extra": {
+      "apiBaseUrl": "https://boomerai.orage.agency",
+      "revenueCatApiKeyIos": "appl_gfKZNVBQtIXGZkABPKGPtfasgZz",
+      "revenueCatApiKeyAndroid": "__REPLACE_ME__",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "d4787287-e1e1-4a82-ab06-b2f2c3299d25"
+      }
+    },
+    "owner": "orage-agency"
+  }
+}

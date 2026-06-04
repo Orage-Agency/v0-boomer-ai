@@ -1,0 +1,159 @@
+import React from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
+import { Screen } from '@/components/Screen';
+import { GradientTile } from '@/components/GradientTile';
+import { StarBadge } from '@/components/StarBadge';
+import { useProfile } from '@/context/ProfileContext';
+import { useEntitlement } from '@/context/EntitlementContext';
+import { colors, fontSize, fontWeight, gradients, spacing } from '@/theme/theme';
+
+/**
+ * Home / dashboard — FULLY IMPLEMENTED.
+ * Greeting + star badge header and the colorful feature grid from the web
+ * home-tab. Tiles route to the working Chat tab and to scaffolded sections.
+ */
+export default function Home() {
+  const router = useRouter();
+  const { profile } = useProfile();
+  const { entitled } = useEntitlement();
+  const displayName = profile.name || profile.userName || 'Friend';
+
+  const openVoice = () => {
+    if (!entitled) {
+      router.push('/paywall?reason=voice');
+      return;
+    }
+    router.push('/voice');
+  };
+
+  const openImageGen = () => {
+    if (!entitled) {
+      router.push('/paywall?reason=image_gen');
+      return;
+    }
+    router.push('/image-gen');
+  };
+
+  return (
+    <Screen centered edges={['top']}>
+      <View style={styles.header}>
+        <Text style={styles.brand}>Boomer AI</Text>
+        <StarBadge stars={profile.stars} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Animated.View entering={FadeInDown.duration(280).delay(0)} style={styles.greeting}>
+          <Text style={styles.hello}>Hello, {displayName}!</Text>
+          <Text style={styles.prompt}>What would you like to explore today?</Text>
+        </Animated.View>
+
+        {/* Primary action — full width */}
+        <Animated.View entering={FadeInDown.duration(320).delay(60)}>
+          <GradientTile
+            large
+            title="Chat with AI"
+            subtitle="Ask me anything, anytime"
+            gradient={gradients.chat}
+            onPress={() => router.push('/(tabs)/chat')}
+          />
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.duration(320).delay(120)} style={styles.row}>
+          <GradientTile
+            emoji="🎙️"
+            title="Voice"
+            subtitle="Talk to me"
+            gradient={gradients.voice}
+            onPress={openVoice}
+          />
+          <GradientTile
+            emoji="📚"
+            title="Lessons"
+            subtitle="Learn step by step"
+            gradient={gradients.lessons}
+            onPress={() => router.push('/(tabs)/lessons')}
+          />
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.duration(320).delay(180)} style={styles.row}>
+          <GradientTile
+            emoji="💡"
+            title="Tips"
+            subtitle="Quick wins"
+            gradient={gradients.tips}
+            onPress={() => router.push('/(tabs)/tips')}
+          />
+          <GradientTile
+            emoji="🎨"
+            title="AI Art"
+            subtitle="Create images"
+            gradient={gradients.art}
+            onPress={openImageGen}
+          />
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.duration(320).delay(240)} style={styles.row}>
+          <GradientTile
+            emoji="❓"
+            title="Questions"
+            subtitle="50 quick ideas"
+            gradient={gradients.games}
+            onPress={() => router.push('/quick-questions')}
+          />
+          <GradientTile
+            emoji="⭐"
+            title="Go Pro"
+            subtitle="Unlock everything"
+            gradient={gradients.brand}
+            onPress={() => router.push('/paywall')}
+          />
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.duration(320).delay(300)} style={styles.row}>
+          <GradientTile
+            emoji="👤"
+            title="Profile"
+            subtitle="Your progress"
+            gradient={gradients.chat}
+            onPress={() => router.push('/(tabs)/profile')}
+          />
+          <GradientTile
+            emoji="📚"
+            title="Learn"
+            subtitle="Video lessons"
+            gradient={gradients.lessons}
+            onPress={() => router.push('/(tabs)/lessons')}
+          />
+        </Animated.View>
+      </ScrollView>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  brand: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.black,
+    color: colors.textPrimary,
+  },
+  scroll: { padding: spacing.lg, gap: spacing.md },
+  greeting: { marginBottom: spacing.sm },
+  hello: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.black,
+    color: colors.textPrimary,
+  },
+  prompt: { fontSize: fontSize.sm, color: colors.textSecondary, marginTop: 2 },
+  row: { flexDirection: 'row', gap: spacing.md },
+});
