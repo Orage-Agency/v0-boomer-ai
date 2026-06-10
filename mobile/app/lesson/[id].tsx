@@ -1,22 +1,21 @@
-import React, { useCallback } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Video, ResizeMode } from 'expo-av';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
 import { setPendingPrompt } from '@/screens/pendingPrompt';
 import { LESSONS } from '@/data/content';
-import { colors, fontSize, fontWeight, gradients, radius, spacing } from '@/theme/theme';
-import { LinearGradient } from 'expo-linear-gradient';
+import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
 /**
- * Lesson detail. Shows the lesson, a button to play the video (opens the MP4 in
- * the device's native player via Linking — avoids a heavy native video
- * dependency in the Expo managed workflow), a "Try in chat" action that hands
- * the suggested prompt to the Chat tab, and a "Mark complete" reward action.
+ * Lesson detail. Plays the lesson video INLINE using expo-av's Video component
+ * (native controls), a "Try in chat" action that hands the suggested prompt to
+ * the Chat tab, and a "Mark complete" reward action.
  *
- * TODO(owner): For inline in-app playback, add `expo-video` (SDK 52) and a
- * config plugin, then render <VideoView> here instead of the open-in-player CTA.
+ * 2026-06-09 (J-BOOMER-B22-FULL-WIRE): replaced the open-in-native-player CTA
+ * with inline expo-av playback so boomers never leave the app for a lesson.
  */
 export default function LessonDetail() {
   const router = useRouter();
@@ -25,10 +24,7 @@ export default function LessonDetail() {
 
   const lesson = LESSONS.find((l) => l.id === id);
   const isDone = !!lesson && (profile.lessonsCompleted ?? []).includes(lesson.id);
-
-  const handlePlay = useCallback(() => {
-    if (lesson) void Linking.openURL(lesson.url);
-  }, [lesson]);
+  const videoRef = useRef<Video>(null);
 
   const handleTryInChat = useCallback(() => {
     if (!lesson) return;
@@ -78,17 +74,17 @@ export default function LessonDetail() {
         <Text style={styles.title}>{lesson.title}</Text>
         <Text style={styles.duration}>🎬 {lesson.duration} video</Text>
 
-        <Pressable
-          onPress={handlePlay}
-          accessibilityRole="button"
-          accessibilityLabel="Play lesson video"
-          style={styles.videoWrap}
-        >
-          <LinearGradient colors={gradients.lessons} style={styles.video}>
-            <Text style={styles.playIcon}>▶</Text>
-            <Text style={styles.playText}>Watch the Video</Text>
-          </LinearGradient>
-        </Pressable>
+        <View style={styles.videoWrap}>
+          <Video
+            ref={videoRef}
+            source={{ uri: lesson.url }}
+            style={styles.video}
+            useNativeControls
+            resizeMode={ResizeMode.CONTAIN}
+            shouldPlay={false}
+            accessibilityLabel={`Lesson video: ${lesson.title}`}
+          />
+        </View>
 
         <View style={styles.tryCard}>
           <Text style={styles.tryTitle}>Try This in Chat!</Text>
@@ -123,15 +119,17 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing.lg, gap: spacing.lg },
   title: { fontSize: fontSize.xl, fontWeight: fontWeight.black, color: colors.textPrimary, lineHeight: 30 },
   duration: { fontSize: fontSize.sm, color: colors.textSecondary },
-  videoWrap: { borderRadius: radius.lg, overflow: 'hidden' },
-  video: {
-    minHeight: 160,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
+  videoWrap: {
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+    aspectRatio: 16 / 9,
+    width: '100%',
   },
-  playIcon: { fontSize: 40, color: colors.textOnDark },
-  playText: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textOnDark },
+  video: {
+    width: '100%',
+    height: '100%',
+  },
   tryCard: {
     backgroundColor: colors.primarySoft,
     borderRadius: radius.lg,

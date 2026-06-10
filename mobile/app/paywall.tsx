@@ -369,16 +369,16 @@ export default function PaywallScreen() {
                         <Text style={styles.pkgTitle}>
                           {annual ? 'Yearly' : 'Monthly'}
                         </Text>
-                        {annual && (
-                          <View style={styles.badge}>
-                            <Text style={styles.badgeText}>7-DAY FREE TRIAL</Text>
-                          </View>
-                        )}
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>
+                            {annual ? '7-DAY FREE TRIAL' : '3-DAY FREE TRIAL'}
+                          </Text>
+                        </View>
                       </View>
                       <Text style={styles.pkgDesc}>
                         {annual
-                          ? `7 days free, then ${pkg.product.priceString}/year`
-                          : `${pkg.product.priceString}/month, billed monthly`}
+                          ? `7 days free, then ${pkg.product.priceString}/year. Cancel anytime.`
+                          : `3 days free, then ${pkg.product.priceString}/month. Cancel anytime.`}
                       </Text>
                     </View>
                     <Text style={styles.pkgPrice}>{pkg.product.priceString}</Text>
@@ -393,7 +393,7 @@ export default function PaywallScreen() {
             selected
               ? selected.product.identifier.includes(PRODUCT_IDS.annual)
                 ? `Start 7-day free trial · ${selected.product.priceString}/yr`
-                : `Subscribe · ${selected.product.priceString}/mo`
+                : `Start 3-day free trial · ${selected.product.priceString}/mo`
               : 'Continue'
           }
           onPress={() => buy(selected)}

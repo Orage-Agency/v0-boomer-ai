@@ -53,14 +53,16 @@ export const gradients = {
 } as const;
 
 // Font sizes tuned for older adults — larger than typical mobile defaults.
+// 2026-06-09: bumped ~17% globally (J-BOOMER-B22-FULL-WIRE) — George feedback
+// "boomers need bigger type." All tokens scaled together to preserve hierarchy.
 export const fontSize = {
-  xs: 14,
-  sm: 16, // floor for body text
-  md: 18,
-  lg: 20,
-  xl: 24,
-  xxl: 30,
-  display: 36,
+  xs: 16,
+  sm: 18, // floor for body text
+  md: 20,
+  lg: 24,
+  xl: 28,
+  xxl: 34,
+  display: 42,
 } as const;
 
 export const fontWeight = {

@@ -226,9 +226,48 @@ export default function Chat() {
   );
 }
 
+/**
+ * Strip markdown to plain text for chat bubbles.
+ *
+ * The backend streams markdown (bold/italic/code/links/headers/lists), but the
+ * native bubble is a single <Text> with no markdown renderer — without this,
+ * users see literal asterisks/underscores/backticks (the "**bold**" leak George
+ * reported on 2026-06-09). We keep the words and drop the syntax.
+ */
+function stripMarkdown(input: string): string {
+  let s = input;
+  // Code fences and inline code -> keep inner text.
+  s = s.replace(/```[\w-]*\n?([\s\S]*?)```/g, '$1');
+  s = s.replace(/`([^`]+)`/g, '$1');
+  // Images / links: ![alt](url) and [text](url) -> keep alt/text.
+  s = s.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');
+  s = s.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+  // Bold / italic (***, **, *, ___, __, _).
+  s = s.replace(/\*\*\*([^*]+)\*\*\*/g, '$1');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '$1');
+  s = s.replace(/(?<!\w)\*([^*\n]+)\*(?!\w)/g, '$1');
+  s = s.replace(/___([^_]+)___/g, '$1');
+  s = s.replace(/__([^_]+)__/g, '$1');
+  s = s.replace(/(?<!\w)_([^_\n]+)_(?!\w)/g, '$1');
+  // Strikethrough.
+  s = s.replace(/~~([^~]+)~~/g, '$1');
+  // Headings (## Title -> Title).
+  s = s.replace(/^\s{0,3}#{1,6}\s+/gm, '');
+  // Blockquote markers.
+  s = s.replace(/^\s{0,3}>\s?/gm, '');
+  // List markers ("- ", "* ", "1. ") -> bullet for readability.
+  s = s.replace(/^\s*[-*+]\s+/gm, '• ');
+  s = s.replace(/^\s*\d+\.\s+/gm, '');
+  // Collapse 3+ blank lines.
+  s = s.replace(/\n{3,}/g, '\n\n');
+  return s.trim();
+}
+
 function Bubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
-  const text = message.parts.map((p) => p.text).join('');
+  const raw = message.parts.map((p) => p.text).join('');
+  // User text is verbatim (they typed it); AI text gets markdown stripped.
+  const text = isUser ? raw : stripMarkdown(raw);
   return (
     <Animated.View
       entering={FadeInUp.duration(220)}
