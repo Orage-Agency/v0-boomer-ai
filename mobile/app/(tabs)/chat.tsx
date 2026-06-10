@@ -226,16 +226,71 @@ export default function Chat() {
   );
 }
 
+/**
+ * Strip every common markdown affordance the model occasionally emits so
+ * assistant replies render as clean, professional plain prose. We keep the
+ * original whitespace structure (paragraphs, lists) but remove the markup
+ * characters themselves.
+ */
+function stripMarkdown(raw: string): string {
+  if (!raw) return '';
+  let s = raw;
+  // Fenced code blocks → just the body
+  s = s.replace(/```[a-zA-Z0-9_-]*\n?([\s\S]*?)```/g, (_m, body) => String(body).trim());
+  // Inline code → strip backticks
+  s = s.replace(/`([^`]+)`/g, '$1');
+  // Bold (**text** / __text__)
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, '$1');
+  s = s.replace(/__([^_\n]+)__/g, '$1');
+  // Italic (*text* / _text_) — avoid eating list-bullet asterisks, handled below
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1$2');
+  s = s.replace(/(^|[^_])_([^_\n]+)_(?!_)/g, '$1$2');
+  // Strikethrough
+  s = s.replace(/~~([^~\n]+)~~/g, '$1');
+  // Headings (#, ##, ### …) at line start
+  s = s.replace(/^\s{0,3}#{1,6}\s+/gm, '');
+  // Blockquote markers
+  s = s.replace(/^\s{0,3}>\s?/gm, '');
+  // Bullet markers (-, *, +, •) at line start → drop the marker
+  s = s.replace(/^\s*[-*+•]\s+/gm, '');
+  // Ordered list markers ("1. ") at line start → drop the marker
+  s = s.replace(/^\s*\d+\.\s+/gm, '');
+  // Markdown links [text](url) → "text (url)"
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
+  // Stray leftover stars/underscores
+  s = s.replace(/\*+/g, '');
+  // Collapse 3+ blank lines into 2
+  s = s.replace(/\n{3,}/g, '\n\n');
+  // Trim trailing whitespace on each line
+  s = s
+    .split('\n')
+    .map((line) => line.replace(/\s+$/g, ''))
+    .join('\n');
+  return s.trim();
+}
+
 function Bubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
-  const text = message.parts.map((p) => p.text).join('');
+  const raw = message.parts.map((p) => p.text).join('');
+  const text = isUser ? raw : stripMarkdown(raw);
   return (
     <Animated.View
       entering={FadeInUp.duration(220)}
       style={[styles.bubbleRow, isUser ? styles.rowEnd : styles.rowStart]}
     >
-      <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-        <Text style={[styles.bubbleText, isUser && styles.userText]}>
+      <View
+        style={[
+          styles.bubble,
+          isUser ? styles.userBubble : styles.aiBubble,
+        ]}
+      >
+        <Text
+          style={[
+            styles.bubbleText,
+            isUser ? styles.userText : styles.aiText,
+          ]}
+          selectable
+        >
           {text || ' '}
         </Text>
       </View>
@@ -283,19 +338,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   starterText: { fontSize: fontSize.sm, color: colors.textPrimary, fontWeight: fontWeight.medium },
-  list: { padding: spacing.lg, gap: spacing.md },
-  bubbleRow: { flexDirection: 'row' },
+  list: { padding: spacing.lg, gap: spacing.sm },
+  bubbleRow: { flexDirection: 'row', marginVertical: 2 },
   rowEnd: { justifyContent: 'flex-end' },
   rowStart: { justifyContent: 'flex-start' },
-  bubble: { maxWidth: '85%', padding: spacing.md, borderRadius: radius.lg },
-  userBubble: { backgroundColor: colors.primary },
+  bubble: {
+    maxWidth: '85%',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 22,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  userBubble: {
+    backgroundColor: colors.primary,
+    borderBottomRightRadius: 6,
+  },
   aiBubble: {
-    backgroundColor: colors.surfaceSubtle,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    borderBottomLeftRadius: 6,
   },
-  bubbleText: { fontSize: fontSize.md, lineHeight: 24, color: colors.textPrimary },
-  userText: { color: colors.textOnDark },
+  bubbleText: {
+    fontSize: fontSize.md,
+    lineHeight: 22,
+    letterSpacing: 0.1,
+  },
+  aiText: { color: colors.textPrimary, fontWeight: fontWeight.medium },
+  userText: { color: colors.textOnDark, fontWeight: fontWeight.medium },
   thinking: { fontSize: fontSize.sm, color: colors.textMuted, paddingTop: spacing.sm },
   thinkingBubble: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, minHeight: 36 },
   inputBar: {

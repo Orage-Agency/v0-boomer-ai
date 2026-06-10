@@ -1,33 +1,58 @@
-import React, { useCallback } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ResizeMode, Video, AVPlaybackStatus } from 'expo-av';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
 import { setPendingPrompt } from '@/screens/pendingPrompt';
 import { LESSONS } from '@/data/content';
-import { colors, fontSize, fontWeight, gradients, radius, spacing } from '@/theme/theme';
-import { LinearGradient } from 'expo-linear-gradient';
+import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
 /**
- * Lesson detail. Shows the lesson, a button to play the video (opens the MP4 in
- * the device's native player via Linking — avoids a heavy native video
- * dependency in the Expo managed workflow), a "Try in chat" action that hands
- * the suggested prompt to the Chat tab, and a "Mark complete" reward action.
- *
- * TODO(owner): For inline in-app playback, add `expo-video` (SDK 52) and a
- * config plugin, then render <VideoView> here instead of the open-in-player CTA.
+ * Lesson detail. Plays the lesson MP4 inline with expo-av's <Video> (native
+ * AVPlayer on iOS), instead of opening Safari. Includes "Try in chat" and
+ * "Mark complete" actions for streak/star rewards.
  */
 export default function LessonDetail() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { profile, updateProfile } = useProfile();
+  const videoRef = useRef<Video>(null);
+  const [videoReady, setVideoReady] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   const lesson = LESSONS.find((l) => l.id === id);
   const isDone = !!lesson && (profile.lessonsCompleted ?? []).includes(lesson.id);
 
-  const handlePlay = useCallback(() => {
-    if (lesson) void Linking.openURL(lesson.url);
+  const handleStatus = useCallback((status: AVPlaybackStatus) => {
+    if (!status.isLoaded) {
+      if (status.error) {
+        setVideoError('Could not load the video. Tap to retry.');
+      }
+      return;
+    }
+    if (!videoReady) setVideoReady(true);
+  }, [videoReady]);
+
+  const handleRetry = useCallback(async () => {
+    setVideoError(null);
+    setVideoReady(false);
+    try {
+      await videoRef.current?.unloadAsync();
+      if (lesson) {
+        await videoRef.current?.loadAsync({ uri: lesson.url }, {}, false);
+      }
+    } catch {
+      setVideoError('Could not load the video. Tap to retry.');
+    }
   }, [lesson]);
 
   const handleTryInChat = useCallback(() => {
@@ -78,17 +103,32 @@ export default function LessonDetail() {
         <Text style={styles.title}>{lesson.title}</Text>
         <Text style={styles.duration}>🎬 {lesson.duration} video</Text>
 
-        <Pressable
-          onPress={handlePlay}
-          accessibilityRole="button"
-          accessibilityLabel="Play lesson video"
-          style={styles.videoWrap}
-        >
-          <LinearGradient colors={gradients.lessons} style={styles.video}>
-            <Text style={styles.playIcon}>▶</Text>
-            <Text style={styles.playText}>Watch the Video</Text>
-          </LinearGradient>
-        </Pressable>
+        <View style={styles.videoWrap} accessibilityLabel="Lesson video">
+          <Video
+            ref={videoRef}
+            source={{ uri: lesson.url }}
+            style={styles.video}
+            useNativeControls
+            resizeMode={ResizeMode.CONTAIN}
+            onPlaybackStatusUpdate={handleStatus}
+            shouldPlay={false}
+          />
+          {!videoReady && !videoError && (
+            <View style={styles.videoOverlay} pointerEvents="none">
+              <ActivityIndicator color={colors.textOnDark} size="large" />
+            </View>
+          )}
+          {videoError && (
+            <Pressable
+              onPress={handleRetry}
+              style={styles.videoOverlay}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading video"
+            >
+              <Text style={styles.videoError}>{videoError}</Text>
+            </Pressable>
+          )}
+        </View>
 
         <View style={styles.tryCard}>
           <Text style={styles.tryTitle}>Try This in Chat!</Text>
@@ -123,15 +163,34 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing.lg, gap: spacing.lg },
   title: { fontSize: fontSize.xl, fontWeight: fontWeight.black, color: colors.textPrimary, lineHeight: 30 },
   duration: { fontSize: fontSize.sm, color: colors.textSecondary },
-  videoWrap: { borderRadius: radius.lg, overflow: 'hidden' },
+  videoWrap: {
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+    aspectRatio: 16 / 9,
+    position: 'relative',
+  },
   video: {
-    minHeight: 160,
+    width: '100%',
+    height: '100%',
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  playIcon: { fontSize: 40, color: colors.textOnDark },
-  playText: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textOnDark },
+  videoError: {
+    color: colors.textOnDark,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    paddingHorizontal: spacing.lg,
+    textAlign: 'center',
+  },
   tryCard: {
     backgroundColor: colors.primarySoft,
     borderRadius: radius.lg,
