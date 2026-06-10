@@ -1,9 +1,11 @@
-import React, { useCallback } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
+import { avatarApi } from '@/api';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
 /**
@@ -27,9 +29,61 @@ function getLevelProgress(stars: number) {
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { profile, resetOnboarding, deleteAccount } = useProfile();
+  const { profile, updateProfile, resetOnboarding, deleteAccount } = useProfile();
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const progress = getLevelProgress(profile.stars);
   const displayName = profile.name || profile.userName || 'Friend';
+
+  const pickAvatar = useCallback(async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission required', 'Enable photo library access in Settings to set a profile picture.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    setUploadingAvatar(true);
+    try {
+      const deviceId = profile.deviceId ?? 'unknown';
+      const url = await avatarApi.uploadAvatar(asset.uri, deviceId);
+      await updateProfile({ avatarSrc: url });
+    } catch (err) {
+      Alert.alert('Upload failed', 'Could not save your profile picture. Try again.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }, [profile.deviceId, updateProfile]);
+
+  const takePhoto = useCallback(async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission required', 'Enable camera access in Settings to take a profile picture.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    setUploadingAvatar(true);
+    try {
+      const deviceId = profile.deviceId ?? 'unknown';
+      const url = await avatarApi.uploadAvatar(asset.uri, deviceId);
+      await updateProfile({ avatarSrc: url });
+    } catch {
+      Alert.alert('Upload failed', 'Could not save your profile picture. Try again.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }, [profile.deviceId, updateProfile]);
 
   const confirmReset = useCallback(() => {
     Alert.alert('Restart Onboarding?', 'This will take you back through the setup quiz.', [
@@ -70,9 +124,27 @@ export default function ProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.identity}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
-          </View>
+          <Pressable
+            onPress={() =>
+              Alert.alert('Profile Photo', 'Choose a source', [
+                { text: 'Photo Library', onPress: () => void pickAvatar() },
+                { text: 'Camera', onPress: () => void takePhoto() },
+                { text: 'Cancel', style: 'cancel' },
+              ])
+            }
+            style={styles.avatarWrapper}
+          >
+            {profile.avatarSrc ? (
+              <Image source={{ uri: profile.avatarSrc }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
+            <View style={styles.avatarBadge}>
+              <Text style={styles.avatarBadgeText}>{uploadingAvatar ? '…' : '📷'}</Text>
+            </View>
+          </Pressable>
           <Text style={styles.name}>{displayName}</Text>
           <View style={styles.levelPill}>
             <Text style={styles.levelText}>🏆 {progress.current}</Text>
@@ -151,6 +223,7 @@ const styles = StyleSheet.create({
   title: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.textPrimary },
   scroll: { padding: spacing.lg, gap: spacing.lg },
   identity: { alignItems: 'center', gap: spacing.sm },
+  avatarWrapper: { position: 'relative', width: 88, height: 88 },
   avatar: {
     width: 88,
     height: 88,
@@ -159,6 +232,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarImage: { width: 88, height: 88, borderRadius: 44 },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarBadgeText: { fontSize: 13 },
   avatarText: { fontSize: fontSize.display, fontWeight: fontWeight.black, color: colors.textOnDark },
   name: { fontSize: fontSize.xl, fontWeight: fontWeight.black, color: colors.textPrimary },
   email: { fontSize: fontSize.sm, color: colors.textSecondary },

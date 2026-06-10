@@ -19,10 +19,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "boomerai.orage.agency",
-      "buildNumber": "4",
+      "buildNumber": "22",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "Boomer AI uses the microphone for voice chat so you can talk to your AI guide hands-free."
+        "NSMicrophoneUsageDescription": "Boomer AI uses the microphone for voice chat so you can talk to your AI guide hands-free.",
+        "NSPhotoLibraryUsageDescription": "Boomer AI uses your photo library to set your profile picture.",
+        "NSCameraUsageDescription": "Boomer AI uses the camera to take your profile picture."
       }
     },
     "android": {
@@ -42,7 +44,15 @@
     },
     "plugins": [
       "expo-router",
-      "expo-asset"
+      "expo-asset",
+      "expo-av",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Boomer AI uses your photo library to set your profile picture.",
+          "cameraPermission": "Boomer AI uses the camera to take your profile picture."
+        }
+      ]
     ],
     "extra": {
       "apiBaseUrl": "https://boomerai.orage.agency",

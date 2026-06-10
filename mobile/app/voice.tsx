@@ -10,12 +10,14 @@ import {
   View,
 } from 'react-native';
 import * as Speech from 'expo-speech';
+import { Audio } from 'expo-av';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { InfoBanner } from '@/components/InfoBanner';
 import { useChatSession } from '@/screens/useChat';
 import { useProfile } from '@/context/ProfileContext';
 import { isApiConfigured } from '@/config/env';
+import { ttsApi } from '@/api';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 import type { ChatMessage } from '@/types';
 
@@ -61,6 +63,8 @@ export default function VoiceScreen() {
   const busy = status === 'streaming' || status === 'submitted';
 
   // Speak the assistant's reply aloud once it finishes streaming.
+  // Primary: backend TTS (OpenAI proxy at /api/tts) played via expo-av.
+  // Fallback: expo-speech device TTS if the backend call fails.
   useEffect(() => {
     if (!ttsEnabled) return;
     if (status !== 'idle' || messages.length === 0) return;
@@ -70,12 +74,31 @@ export default function VoiceScreen() {
     if (!text) return;
     lastSpokenId.current = last.id;
     setSpeaking(true);
-    Speech.speak(text, {
-      rate: 0.95,
-      onDone: () => setSpeaking(false),
-      onStopped: () => setSpeaking(false),
-      onError: () => setSpeaking(false),
-    });
+
+    const playWithBackendTts = async () => {
+      try {
+        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+        const dataUri = await ttsApi.speakText(text);
+        const { sound } = await Audio.Sound.createAsync({ uri: dataUri });
+        await sound.playAsync();
+        sound.setOnPlaybackStatusUpdate((s) => {
+          if (s.isLoaded && s.didJustFinish) {
+            setSpeaking(false);
+            void sound.unloadAsync();
+          }
+        });
+      } catch {
+        // Fallback to device speech if backend TTS fails
+        Speech.speak(text, {
+          rate: 0.95,
+          onDone: () => setSpeaking(false),
+          onStopped: () => setSpeaking(false),
+          onError: () => setSpeaking(false),
+        });
+      }
+    };
+
+    void playWithBackendTts();
   }, [messages, status, ttsEnabled]);
 
   // Stop any speech when leaving the screen.

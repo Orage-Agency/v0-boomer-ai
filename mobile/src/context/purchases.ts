@@ -77,12 +77,40 @@ export async function identifyUser(appUserId: string): Promise<void> {
   }
 }
 
-/** Fetch the offering to display on the paywall. */
+/**
+ * Fetch the offering to display on the paywall.
+ *
+ * Robust fallback order:
+ *   1. offerings.current  (RC dashboard-flagged offering)
+ *   2. offerings.all[ENTITLEMENT_OFFERING]  ("default" by name)
+ *   3. first non-empty offering in offerings.all
+ *
+ * Logs the chosen offering + every package's productId + priceString so the
+ * TestFlight console makes it obvious whether StoreKit returned prices.
+ */
 export async function getOffering(): Promise<PurchasesOffering | null> {
   if (!configured) return null;
   try {
     const offerings = await Purchases.getOfferings();
-    return offerings.current ?? null;
+    const allKeys = Object.keys(offerings.all ?? {});
+    const fallbackByName = offerings.all?.[ENTITLEMENT_OFFERING] ?? null;
+    const firstNonEmpty = allKeys
+      .map((k) => offerings.all[k])
+      .find((o) => (o?.availablePackages?.length ?? 0) > 0);
+    const chosen = offerings.current ?? fallbackByName ?? firstNonEmpty ?? null;
+
+    console.log(
+      `[purchases] getOfferings: current=${offerings.current?.identifier ?? 'null'} ` +
+        `all=[${allKeys.join(',')}] chosen=${chosen?.identifier ?? 'null'} ` +
+        `pkgs=${chosen?.availablePackages?.length ?? 0}`,
+    );
+    chosen?.availablePackages?.forEach((p) => {
+      console.log(
+        `[purchases]  pkg id=${p.identifier} productId=${p.product.identifier} ` +
+          `priceString=${p.product.priceString} price=${p.product.price}`,
+      );
+    });
+    return chosen;
   } catch (e) {
     console.warn('[purchases] getOfferings failed', (e as Error).message);
     return null;

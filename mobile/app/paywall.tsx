@@ -79,7 +79,26 @@ const PRIVACY_URL = 'https://boomer.ai/privacy';
 const DEV_BYPASS_TAPS = 7;
 
 /** Hardcoded bypass codes that grant local Pro access via AsyncStorage. */
-const BYPASS_CODES = ['BOOMERAI2026'] as const;
+const BYPASS_CODES = [
+  'BOOMERAI2026',
+  'BOOMER-VIP-2026',
+  'BOOMER-FOUNDER-2026',
+  'BOOMER-FRIEND-2026',
+  'BOOMER-GUEST-001',
+  'BOOMER-GUEST-002',
+  'BOOMER-GUEST-003',
+  'BOOMER-GEORGE-DEV',
+  'BOOMER-LAUNCH-001',
+] as const;
+
+/**
+ * Static marketing copy for pricing when RC has not yet returned packages.
+ * The actual purchase ALWAYS uses the live `priceString` from RC; these only
+ * appear as visible marketing while the store is being contacted (or if it
+ * fails) so the paywall never looks empty / priceless.
+ */
+const MARKETING_YEARLY = '$97/year';
+const MARKETING_MONTHLY = '$10/month';
 
 type PaywallMode = 'soft' | 'hard';
 
@@ -114,22 +133,46 @@ export default function PaywallScreen() {
     [packages],
   );
 
+  const loadOffering = useCallback(async () => {
+    setLoading(true);
+    const offering = await getOffering();
+    const pkgs = offering?.availablePackages ?? [];
+    setPackages(pkgs);
+    const annual = pkgs.find((p) =>
+      p.product.identifier.includes(PRODUCT_IDS.annual),
+    );
+    setSelectedId((annual ?? pkgs[0])?.identifier ?? null);
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const offering = await getOffering();
-      if (cancelled) return;
-      const pkgs = offering?.availablePackages ?? [];
-      setPackages(pkgs);
-      const annual = pkgs.find((p) =>
-        p.product.identifier.includes(PRODUCT_IDS.annual),
-      );
-      setSelectedId((annual ?? pkgs[0])?.identifier ?? null);
-      setLoading(false);
+      await loadOffering();
+      // RC sometimes returns an empty offering on first cold start while
+      // StoreKit warms up; retry once after 1.5s if we got nothing.
+      if (!cancelled) {
+        setTimeout(async () => {
+          if (cancelled) return;
+          const current = await getOffering();
+          if (cancelled) return;
+          if ((current?.availablePackages?.length ?? 0) > 0) {
+            const pkgs = current!.availablePackages;
+            setPackages(pkgs);
+            if (!selectedId) {
+              const annual = pkgs.find((p) =>
+                p.product.identifier.includes(PRODUCT_IDS.annual),
+              );
+              setSelectedId((annual ?? pkgs[0])?.identifier ?? null);
+            }
+          }
+        }, 1500);
+      }
     })();
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Cleanup timer on unmount
@@ -297,7 +340,7 @@ export default function PaywallScreen() {
             <Text style={styles.heroSub}>
               {annualPackage
                 ? `7 days free, then ${annualPackage.product.priceString} a year. Cancel anytime.`
-                : '7 days free, then cancel anytime.'}
+                : `7 days free, then ${MARKETING_YEARLY}. Cancel anytime.`}
             </Text>
           </LinearGradient>
         </Animated.View>
@@ -334,10 +377,42 @@ export default function PaywallScreen() {
             style={{ marginVertical: spacing.xl }}
           />
         ) : packages.length === 0 ? (
-          <InfoBanner
-            tone="warn"
-            message="No subscription options are available right now. Please try again later."
-          />
+          // RC returned no packages (StoreKit warm-up, network blip, or product
+          // still in ASC "Ready to Submit"). Show marketing pricing so the
+          // paywall is never visually empty, plus a Retry button.
+          <View style={styles.packages}>
+            <View style={[styles.pkg, styles.pkgFallback]}>
+              <View style={styles.pkgBody}>
+                <View style={styles.pkgTitleRow}>
+                  <Text style={styles.pkgTitle}>Yearly</Text>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>7-DAY FREE TRIAL</Text>
+                  </View>
+                </View>
+                <Text style={styles.pkgDesc}>{`7 days free, then ${MARKETING_YEARLY}`}</Text>
+              </View>
+              <Text style={styles.pkgPrice}>{MARKETING_YEARLY}</Text>
+            </View>
+            <View style={[styles.pkg, styles.pkgFallback]}>
+              <View style={styles.pkgBody}>
+                <Text style={styles.pkgTitle}>Monthly</Text>
+                <Text style={styles.pkgDesc}>{`${MARKETING_MONTHLY}, billed monthly`}</Text>
+              </View>
+              <Text style={styles.pkgPrice}>{MARKETING_MONTHLY}</Text>
+            </View>
+            <InfoBanner
+              tone="warn"
+              message="Connecting to the App Store to load live pricing. If this persists, tap Retry."
+            />
+            <Pressable
+              onPress={() => void loadOffering()}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading subscription options"
+              style={styles.retryBtn}
+            >
+              <Text style={styles.retryText}>Retry</Text>
+            </Pressable>
+          </View>
         ) : (
           <View style={styles.packages}>
             {packages
@@ -640,6 +715,20 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   pkgDesc: { fontSize: fontSize.sm, color: colors.textSecondary },
+  pkgFallback: { opacity: 0.85 },
+  retryBtn: {
+    alignSelf: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+  },
+  retryText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+  },
   pkgPrice: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.black,

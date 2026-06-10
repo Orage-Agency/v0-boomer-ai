@@ -40,6 +40,8 @@ const STORAGE_KEY = 'boomer.auth.v1';
  */
 const HARDCODED_BYPASS_CODES = new Set<string>([
   'BOOMERAI2026',
+  'BOOMER-GEORGE-DEV', // unlimited — George's dev/test code
+  'BOOMER-LAUNCH-001', // launch / press code
   'BOOMER-VIP-2026',
   'BOOMER-FOUNDER-2026',
   'BOOMER-FRIEND-2026',
