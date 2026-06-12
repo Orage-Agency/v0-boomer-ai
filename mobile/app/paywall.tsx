@@ -72,8 +72,8 @@ const FREE_FEATURES = [
   'Daily tips',
 ];
 
-const TERMS_URL = 'https://boomer.ai/terms';
-const PRIVACY_URL = 'https://boomer.ai/privacy';
+const TERMS_URL = 'https://www.boomerai.us/terms';
+const PRIVACY_URL = 'https://www.boomerai.us/privacy';
 
 /** Number of times the version label must be tapped to bypass the paywall. */
 const DEV_BYPASS_TAPS = 7;
