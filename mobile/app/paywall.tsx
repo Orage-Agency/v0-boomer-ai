@@ -395,8 +395,13 @@ export default function PaywallScreen() {
             </View>
             <View style={[styles.pkg, styles.pkgFallback]}>
               <View style={styles.pkgBody}>
-                <Text style={styles.pkgTitle}>Monthly</Text>
-                <Text style={styles.pkgDesc}>{`${MARKETING_MONTHLY}, billed monthly`}</Text>
+                <View style={styles.pkgTitleRow}>
+                  <Text style={styles.pkgTitle}>Monthly</Text>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>3-DAY FREE TRIAL</Text>
+                  </View>
+                </View>
+                <Text style={styles.pkgDesc}>{`3 days free, then ${MARKETING_MONTHLY}`}</Text>
               </View>
               <Text style={styles.pkgPrice}>{MARKETING_MONTHLY}</Text>
             </View>
@@ -444,16 +449,16 @@ export default function PaywallScreen() {
                         <Text style={styles.pkgTitle}>
                           {annual ? 'Yearly' : 'Monthly'}
                         </Text>
-                        {annual && (
-                          <View style={styles.badge}>
-                            <Text style={styles.badgeText}>7-DAY FREE TRIAL</Text>
-                          </View>
-                        )}
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>
+                            {annual ? '7-DAY FREE TRIAL' : '3-DAY FREE TRIAL'}
+                          </Text>
+                        </View>
                       </View>
                       <Text style={styles.pkgDesc}>
                         {annual
                           ? `7 days free, then ${pkg.product.priceString}/year`
-                          : `${pkg.product.priceString}/month, billed monthly`}
+                          : `3 days free, then ${pkg.product.priceString}/month`}
                       </Text>
                     </View>
                     <Text style={styles.pkgPrice}>{pkg.product.priceString}</Text>
@@ -468,7 +473,7 @@ export default function PaywallScreen() {
             selected
               ? selected.product.identifier.includes(PRODUCT_IDS.annual)
                 ? `Start 7-day free trial · ${selected.product.priceString}/yr`
-                : `Subscribe · ${selected.product.priceString}/mo`
+                : `Start 3-day free trial · ${selected.product.priceString}/mo`
               : 'Continue'
           }
           onPress={() => buy(selected)}
