@@ -3,5 +3,6 @@ export * as chatApi from './chat';
 export * as conversationsApi from './conversations';
 export * as imagesApi from './images';
 export * as ttsApi from './tts';
+export * as transcribeApi from './transcribe';
 export * as avatarApi from './avatar';
 export { ApiError } from './client';

@@ -17,36 +17,20 @@ import { InfoBanner } from '@/components/InfoBanner';
 import { useChatSession } from '@/screens/useChat';
 import { useProfile } from '@/context/ProfileContext';
 import { isApiConfigured } from '@/config/env';
-import { ttsApi } from '@/api';
+import { ttsApi, transcribeApi } from '@/api';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 import type { ChatMessage } from '@/types';
 
 /**
  * Voice chat screen.
  *
- * Reuses the same `useChatSession` hook as the text Chat tab, so the backend
- * contract (`/api/chat`) is shared. The difference here is the experience:
- *  - The AI's replies are SPOKEN ALOUD via `expo-speech` (TTS), which works in
- *    Expo managed / Expo Go with no native config.
- *  - A large microphone button is the primary affordance, plus a type-to-send
- *    fallback that always works.
- *
- * SPEECH-TO-TEXT (the "speak -> transcribe" half):
- * Expo's managed workflow has no built-in on-device speech recognition, and the
- * hosted backend exposes no STT endpoint (the web app used the browser
- * SpeechRecognition API + ElevenLabs, neither available in React Native). So
- * the mic button currently records intent and prompts the user to type, and the
- * full record->transcribe path is stubbed below.
- *
- * TODO(owner): Wire real speech-to-text. Recommended options, in order:
- *   1. `@react-native-voice/voice` (on-device STT, iOS + Android). Requires a
- *      custom dev client (not Expo Go) and the config plugin. Lowest latency,
- *      free, no backend.
- *   2. `expo-av` recording -> POST the audio to a NEW backend STT endpoint
- *      (e.g. /api/transcribe using OpenAI Whisper). Add the route to
- *      v0-boomer-ai, then a `transcribeAudio()` client in src/api.
- * Until then, TTS output + type-to-send gives a reliable, shippable voice-style
- * experience.
+ * Two-way voice with the AI:
+ *  - Tap the mic to record (expo-av), tap again to stop. Audio is uploaded to
+ *    /api/transcribe (OpenAI Whisper) and the returned text is sent through
+ *    the normal /api/chat pipeline.
+ *  - The AI's reply is spoken aloud via /api/tts (OpenAI TTS, "alloy" voice),
+ *    played by expo-av. Falls back to on-device `expo-speech` if the backend
+ *    TTS proxy is unavailable.
  */
 
 export default function VoiceScreen() {
@@ -56,6 +40,9 @@ export default function VoiceScreen() {
   const [input, setInput] = useState('');
   const [speaking, setSpeaking] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [transcribing, setTranscribing] = useState(false);
+  const [micError, setMicError] = useState<string | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const lastSpokenId = useRef<string | null>(null);
   const awardedStar = useRef(false);
@@ -134,11 +121,71 @@ export default function VoiceScreen() {
     });
   }, []);
 
-  const handleMicPress = useCallback(() => {
-    // TODO(owner): replace with real STT (see file header). For now, focus the
-    // text field so the experience stays usable without speech recognition.
-    void Speech.stop();
+  const startRecording = useCallback(async () => {
+    setMicError(null);
+    try {
+      void Speech.stop();
+      setSpeaking(false);
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) {
+        setMicError('Microphone permission was not granted. Open Settings to enable it.');
+        return;
+      }
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+      const { recording: rec } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+      );
+      setRecording(rec);
+    } catch (e) {
+      setMicError('Could not start recording. Please try again.');
+    }
   }, []);
+
+  const stopAndTranscribe = useCallback(async () => {
+    if (!recording) return;
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecording(null);
+      if (!uri) {
+        setMicError('Recording did not save. Please try again.');
+        return;
+      }
+      setTranscribing(true);
+      const text = await transcribeApi.transcribeAudio(uri);
+      setTranscribing(false);
+      if (text) {
+        handleSend(text);
+      } else {
+        setMicError("I didn't catch that. Please try again.");
+      }
+    } catch (e) {
+      setTranscribing(false);
+      setRecording(null);
+      setMicError('Could not transcribe your audio. Please try again.');
+    }
+  }, [recording, handleSend]);
+
+  const handleMicPress = useCallback(() => {
+    if (busy || transcribing) return;
+    if (recording) {
+      void stopAndTranscribe();
+    } else {
+      void startRecording();
+    }
+  }, [busy, transcribing, recording, startRecording, stopAndTranscribe]);
+
+  // Stop any in-progress recording when leaving the screen.
+  useEffect(() => {
+    return () => {
+      if (recording) {
+        void recording.stopAndUnloadAsync().catch(() => undefined);
+      }
+    };
+  }, [recording]);
 
   return (
     <Screen centered edges={['top', 'bottom']}>
@@ -208,18 +255,39 @@ export default function VoiceScreen() {
           </View>
         )}
 
-        {/* Big mic button (STT stub) */}
+        {micError && (
+          <View style={styles.bannerWrap}>
+            <InfoBanner tone="danger" message={micError} />
+          </View>
+        )}
+
         <View style={styles.micWrap}>
           <Pressable
             onPress={handleMicPress}
-            disabled={busy}
-            style={[styles.mic, busy && styles.micDisabled]}
+            disabled={busy || transcribing}
+            style={[
+              styles.mic,
+              recording && styles.micRecording,
+              (busy || transcribing) && styles.micDisabled,
+            ]}
             accessibilityRole="button"
-            accessibilityLabel="Hold to speak (type your question below)"
+            accessibilityLabel={
+              recording
+                ? 'Stop recording and send'
+                : transcribing
+                ? 'Transcribing your audio'
+                : 'Tap to speak'
+            }
           >
-            <Text style={styles.micEmoji}>🎤</Text>
+            <Text style={styles.micEmoji}>{recording ? '⏹' : '🎤'}</Text>
           </Pressable>
-          <Text style={styles.micHint}>Type your question below to talk to the AI</Text>
+          <Text style={styles.micHint}>
+            {recording
+              ? 'Listening… tap to stop and send'
+              : transcribing
+              ? 'Transcribing…'
+              : 'Tap the microphone to speak, or type below'}
+          </Text>
         </View>
 
         <View style={styles.inputBar}>
@@ -309,6 +377,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   micDisabled: { opacity: 0.4 },
+  micRecording: { backgroundColor: '#F2C740' },
   micEmoji: { fontSize: 32 },
   micHint: { fontSize: fontSize.xs, color: colors.textMuted, textAlign: 'center', paddingHorizontal: spacing.lg },
   inputBar: {
