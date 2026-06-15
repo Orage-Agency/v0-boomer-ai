@@ -61,8 +61,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  gradientLarge: { minHeight: 96, alignItems: 'flex-start' },
-  gradientSmall: { minHeight: 120, alignItems: 'center' },
+  gradientLarge: { minHeight: 88, alignItems: 'flex-start' },
+  gradientSmall: { minHeight: 88, alignItems: 'center' },
   blob: {
     position: 'absolute',
     top: -30,
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  emoji: { fontSize: 30, marginBottom: spacing.xs },
+  emoji: { fontSize: 26, marginBottom: 2 },
   title: {
     color: colors.textOnDark,
     fontSize: fontSize.md,

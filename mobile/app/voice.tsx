@@ -124,23 +124,37 @@ export default function VoiceScreen() {
   const startRecording = useCallback(async () => {
     setMicError(null);
     try {
-      void Speech.stop();
+      await Speech.stop();
       setSpeaking(false);
-      const perm = await Audio.requestPermissionsAsync();
+
+      // Ensure mic permission. getPermissions first so we only prompt when
+      // genuinely undetermined; guide the user to Settings if it's denied.
+      let perm = await Audio.getPermissionsAsync();
+      if (!perm.granted && perm.canAskAgain) {
+        perm = await Audio.requestPermissionsAsync();
+      }
       if (!perm.granted) {
-        setMicError('Microphone permission was not granted. Open Settings to enable it.');
+        setMicError(
+          'Microphone access is off. Turn it on in Settings → Boomer AI → Microphone, then try again.',
+        );
         return;
       }
+
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
-      const { recording: rec } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      );
+
+      // Explicit prepare + start is more reliable than createAsync, especially
+      // right after audio playback (TTS) held the session.
+      const rec = new Audio.Recording();
+      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await rec.startAsync();
       setRecording(rec);
     } catch (e) {
-      setMicError('Could not start recording. Please try again.');
+      // Surface the real reason so failures are diagnosable instead of generic.
+      const msg = e instanceof Error ? e.message : 'unknown error';
+      setMicError(`Could not start recording: ${msg}`);
     }
   }, []);
 
@@ -148,6 +162,11 @@ export default function VoiceScreen() {
     if (!recording) return;
     try {
       await recording.stopAndUnloadAsync();
+      // Hand the audio session back to playback so the spoken reply works.
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+      });
       const uri = recording.getURI();
       setRecording(null);
       if (!uri) {
@@ -165,7 +184,8 @@ export default function VoiceScreen() {
     } catch (e) {
       setTranscribing(false);
       setRecording(null);
-      setMicError('Could not transcribe your audio. Please try again.');
+      const msg = e instanceof Error ? e.message : 'unknown error';
+      setMicError(`Could not transcribe your audio: ${msg}`);
     }
   }, [recording, handleSend]);
 

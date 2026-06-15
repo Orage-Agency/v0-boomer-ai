@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   cardWrap: { width: CARD_W, borderRadius: radius.xl, overflow: 'hidden' },
   pressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
   card: {
-    minHeight: 120,
+    minHeight: 96,
     padding: spacing.lg,
     borderRadius: radius.xl,
     justifyContent: 'center',
@@ -164,10 +164,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  emoji: { fontSize: 30, marginBottom: spacing.xs },
+  emoji: { fontSize: 26, marginBottom: 2 },
   title: {
     color: colors.textOnDark,
-    fontSize: fontSize.xl,
+    fontSize: fontSize.lg,
     fontWeight: fontWeight.black,
   },
   subtitle: {
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 6,
-    marginTop: spacing.sm,
+    marginTop: 6,
   },
   dot: {
     width: 7,

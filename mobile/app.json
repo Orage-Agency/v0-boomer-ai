@@ -45,7 +45,12 @@
     "plugins": [
       "expo-router",
       "expo-asset",
-      "expo-av",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Boomer AI uses the microphone for voice chat so you can talk to your AI guide hands-free."
+        }
+      ],
       [
         "expo-image-picker",
         {

@@ -40,7 +40,17 @@ export default function Home() {
   return (
     <Screen centered edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.brand}>Boomer AI</Text>
+        {entitled ? (
+          <View style={styles.brandRow}>
+            <Text style={styles.brand}>Boomer</Text>
+            <View style={styles.proPill}>
+              <Text style={styles.proPillText}>Pro</Text>
+            </View>
+            <Text style={styles.brand}>AI</Text>
+          </View>
+        ) : (
+          <Text style={styles.brand}>Boomer AI</Text>
+        )}
         <StarBadge stars={profile.stars} />
       </View>
 
@@ -152,13 +162,27 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.black,
     color: colors.textPrimary,
   },
-  scroll: { padding: spacing.lg, gap: spacing.md },
-  greeting: { marginBottom: spacing.sm },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  proPill: {
+    backgroundColor: '#F2C740', // gold = premium
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  proPillText: {
+    color: '#1A1A1A',
+    fontSize: 12,
+    fontWeight: fontWeight.black,
+    letterSpacing: 0.3,
+  },
+  // Tighter spacing so the full grid fits a standard screen without scrolling.
+  scroll: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: spacing.sm },
+  greeting: { marginBottom: 2 },
   hello: {
-    fontSize: fontSize.xl,
+    fontSize: fontSize.lg,
     fontWeight: fontWeight.black,
     color: colors.textPrimary,
   },
   prompt: { fontSize: fontSize.sm, color: colors.textSecondary, marginTop: 2 },
-  row: { flexDirection: 'row', gap: spacing.md },
+  row: { flexDirection: 'row', gap: spacing.sm },
 });
