@@ -21,7 +21,6 @@ import Constants from 'expo-constants';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { InfoBanner } from '@/components/InfoBanner';
-import { SuccessCelebration } from '@/components/SuccessCelebration';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import {
   getOffering,
@@ -129,9 +128,6 @@ export default function PaywallScreen() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
 
-  // Reanimated success celebration after a confirmed purchase / restore.
-  const [celebrating, setCelebrating] = useState(false);
-
   // Dev bypass: tap version N times
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -228,12 +224,9 @@ export default function PaywallScreen() {
       const res = await purchasePackage(pkg);
       setBusy(false);
       if (res.ok) {
+        // Entitlement flips true → the global ProUnlockOverlay celebrates and
+        // the entitled effect collapses the paywall. Nothing to do here.
         await refresh();
-        setMessage('You are now Pro! Enjoy everything Boomer AI offers. 🎉');
-        setCelebrating(true);
-        // Celebration auto-fades after ~2s — route home a beat later so the
-        // user gets visual confirmation before the screen swaps.
-        setTimeout(() => router.replace('/(tabs)'), 2100);
       } else if (res.cancelled) {
         // Silent — user backed out.
       } else {
@@ -249,10 +242,8 @@ export default function PaywallScreen() {
     const ok = await restorePurchases();
     setBusy(false);
     if (ok) {
+      // Global overlay celebrates + entitled effect dismisses the paywall.
       await refresh();
-      setMessage('Your Pro access has been restored. 🎉');
-      setCelebrating(true);
-      setTimeout(() => router.replace('/(tabs)'), 2100);
     } else {
       setMessage('No previous purchases were found.');
     }
@@ -317,11 +308,6 @@ export default function PaywallScreen() {
 
   return (
     <Screen edges={['top', 'bottom']} centered>
-      <SuccessCelebration
-        visible={celebrating}
-        title="You are Pro!"
-        subtitle="Enjoy everything Boomer AI offers."
-      />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}

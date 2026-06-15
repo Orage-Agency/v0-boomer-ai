@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -34,6 +35,10 @@ type EntitlementContextValue = {
   loading: boolean;
   configured: boolean;
   refresh: () => Promise<void>;
+  /** True for one moment right after entitlement flips false -> true. */
+  justUnlocked: boolean;
+  /** Dismiss the just-unlocked celebration. */
+  clearJustUnlocked: () => void;
 };
 
 const EntitlementContext = createContext<EntitlementContextValue | null>(null);
@@ -68,14 +73,28 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const accountEntitled = !!user?.isPro;
   const entitled = rcEntitled || accountEntitled || bypassEntitled;
 
+  // Detect the false -> true transition so any screen can celebrate the unlock,
+  // no matter how it happened (purchase, restore, account login, or code).
+  const [justUnlocked, setJustUnlocked] = useState(false);
+  const prevEntitled = useRef(entitled);
+  useEffect(() => {
+    if (!prevEntitled.current && entitled && !loading) {
+      setJustUnlocked(true);
+    }
+    prevEntitled.current = entitled;
+  }, [entitled, loading]);
+  const clearJustUnlocked = useCallback(() => setJustUnlocked(false), []);
+
   const value = useMemo<EntitlementContextValue>(
     () => ({
       entitled,
       loading,
       configured: isRevenueCatConfigured,
       refresh,
+      justUnlocked,
+      clearJustUnlocked,
     }),
-    [entitled, loading, refresh],
+    [entitled, loading, refresh, justUnlocked, clearJustUnlocked],
   );
 
   return (

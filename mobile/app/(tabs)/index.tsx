@@ -4,6 +4,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { GradientTile } from '@/components/GradientTile';
+import { HomeCarousel } from '@/components/HomeCarousel';
 import { StarBadge } from '@/components/StarBadge';
 import { useProfile } from '@/context/ProfileContext';
 import { useEntitlement } from '@/context/EntitlementContext';
@@ -49,18 +50,19 @@ export default function Home() {
           <Text style={styles.prompt}>What would you like to explore today?</Text>
         </Animated.View>
 
-        {/* Primary action — full width */}
+        {/* Interactive carousel of things you can do with AI */}
         <Animated.View entering={FadeInDown.duration(320).delay(60)}>
-          <GradientTile
-            large
-            title="Chat with AI"
-            subtitle="Ask me anything, anytime"
-            gradient={gradients.chat}
-            onPress={() => router.push('/(tabs)/chat')}
-          />
+          <HomeCarousel />
         </Animated.View>
 
         <Animated.View entering={FadeInDown.duration(320).delay(120)} style={styles.row}>
+          <GradientTile
+            emoji="💬"
+            title="Chat with AI"
+            subtitle="Ask me anything"
+            gradient={gradients.chat}
+            onPress={() => router.push('/(tabs)/chat')}
+          />
           <GradientTile
             emoji="🎙️"
             title="Voice"
@@ -68,6 +70,9 @@ export default function Home() {
             gradient={gradients.voice}
             onPress={openVoice}
           />
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.duration(320).delay(180)} style={styles.row}>
           <GradientTile
             emoji="📚"
             title="Lessons"
@@ -75,9 +80,6 @@ export default function Home() {
             gradient={gradients.lessons}
             onPress={() => router.push('/(tabs)/lessons')}
           />
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.duration(320).delay(180)} style={styles.row}>
           <GradientTile
             emoji="💡"
             title="Tips"
@@ -85,6 +87,9 @@ export default function Home() {
             gradient={gradients.tips}
             onPress={() => router.push('/(tabs)/tips')}
           />
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.duration(320).delay(240)} style={styles.row}>
           <GradientTile
             emoji="🎨"
             title="AI Art"
@@ -92,15 +97,22 @@ export default function Home() {
             gradient={gradients.art}
             onPress={openImageGen}
           />
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.duration(320).delay(240)} style={styles.row}>
           <GradientTile
             emoji="❓"
             title="Questions"
             subtitle="50 quick ideas"
             gradient={gradients.games}
             onPress={() => router.push('/quick-questions')}
+          />
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.duration(320).delay(300)} style={styles.row}>
+          <GradientTile
+            emoji="👤"
+            title="Profile"
+            subtitle="Your progress"
+            gradient={gradients.chat}
+            onPress={() => router.push('/(tabs)/profile')}
           />
           {entitled ? (
             <GradientTile
@@ -119,23 +131,6 @@ export default function Home() {
               onPress={() => router.push('/paywall')}
             />
           )}
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.duration(320).delay(300)} style={styles.row}>
-          <GradientTile
-            emoji="👤"
-            title="Profile"
-            subtitle="Your progress"
-            gradient={gradients.chat}
-            onPress={() => router.push('/(tabs)/profile')}
-          />
-          <GradientTile
-            emoji="📚"
-            title="Learn"
-            subtitle="Video lessons"
-            gradient={gradients.lessons}
-            onPress={() => router.push('/(tabs)/lessons')}
-          />
         </Animated.View>
       </ScrollView>
     </Screen>

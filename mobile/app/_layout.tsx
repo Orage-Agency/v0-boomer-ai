@@ -6,6 +6,7 @@ import { ProfileProvider } from '@/context/ProfileContext';
 import { EntitlementProvider } from '@/context/EntitlementContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { initPurchases } from '@/context/purchases';
+import { ProUnlockOverlay } from '@/components/ProUnlockOverlay';
 
 /**
  * Root layout. Wraps the whole app in providers and declares the top-level
@@ -53,6 +54,7 @@ export default function RootLayout() {
                 options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
               />
             </Stack>
+            <ProUnlockOverlay />
           </EntitlementProvider>
         </AuthProvider>
       </ProfileProvider>

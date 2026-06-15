@@ -1,12 +1,17 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { Tabs } from 'expo-router';
+import { BottomTabBar, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { GlobalChatBar } from '@/components/GlobalChatBar';
 import { colors, fontSize, fontWeight } from '@/theme/theme';
 
 /**
  * Bottom tab navigator. Mirrors the web app's bottom nav:
  * Home · Chat · Learn · Tips · Profile.
  * Emoji icons keep the foundation dependency-free (swap for vector icons later).
+ *
+ * A persistent "chat from anywhere" bar is stacked above the tab icons on every
+ * screen except the Chat tab itself (which already has its own input).
  */
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return (
@@ -14,9 +19,21 @@ function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   );
 }
 
+function TabBarWithChat(props: BottomTabBarProps) {
+  const route = props.state.routes[props.state.index];
+  const onChatTab = route?.name === 'chat';
+  return (
+    <View>
+      {!onChatTab && <GlobalChatBar />}
+      <BottomTabBar {...props} />
+    </View>
+  );
+}
+
 export default function TabsLayout() {
   return (
     <Tabs
+      tabBar={(props) => <TabBarWithChat {...props} />}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
