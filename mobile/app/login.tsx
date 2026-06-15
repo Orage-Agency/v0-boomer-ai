@@ -15,6 +15,7 @@ import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useAuth } from '@/context/AuthContext';
 import { useEntitlement } from '@/context/EntitlementContext';
+import { isBypassCode } from '@/lib/bypassCodes';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
 /**
@@ -28,20 +29,6 @@ import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
  */
 
 type Tab = 'login' | 'code';
-
-/**
- * Codes that bypass email/password requirements client-side. Source of truth
- * lives in AuthContext; mirrored here only to relax the form's validation.
- */
-const KNOWN_BYPASS_CODES = new Set<string>([
-  'BOOMERAI2026',
-  'BOOMER-VIP-2026',
-  'BOOMER-FOUNDER-2026',
-  'BOOMER-FRIEND-2026',
-  'BOOMER-GUEST-001',
-  'BOOMER-GUEST-002',
-  'BOOMER-GUEST-003',
-]);
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -98,7 +85,7 @@ export default function LoginScreen() {
       setError('Enter your access code.');
       return;
     }
-    const isLocalBypass = KNOWN_BYPASS_CODES.has(trimmedCode);
+    const isLocalBypass = isBypassCode(trimmedCode);
     if (!isLocalBypass && (!codeEmail || !codePassword)) {
       setError('Enter the email + password tied to your account.');
       return;

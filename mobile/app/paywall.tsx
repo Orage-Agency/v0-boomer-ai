@@ -13,6 +13,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { BYPASS_PRO_KEY } from '@/context/storage';
+import { isBypassCode } from '@/lib/bypassCodes';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Purchases from 'react-native-purchases';
@@ -76,19 +77,6 @@ const PRIVACY_URL = 'https://www.boomerai.us/privacy';
 
 /** Number of times the version label must be tapped to bypass the paywall. */
 const DEV_BYPASS_TAPS = 7;
-
-/** Hardcoded bypass codes that grant local Pro access via AsyncStorage. */
-const BYPASS_CODES = [
-  'BOOMERAI2026',
-  'BOOMER-VIP-2026',
-  'BOOMER-FOUNDER-2026',
-  'BOOMER-FRIEND-2026',
-  'BOOMER-GUEST-001',
-  'BOOMER-GUEST-002',
-  'BOOMER-GUEST-003',
-  'BOOMER-GEORGE-DEV',
-  'BOOMER-LAUNCH-001',
-] as const;
 
 /**
  * Static marketing copy for pricing when RC has not yet returned packages.
@@ -252,7 +240,7 @@ export default function PaywallScreen() {
   /**
    * Promo / offer code redemption.
    *
-   * Checks against hardcoded BYPASS_CODES first — if matched, sets a local
+   * Checks the shared offline bypass codes first — if matched, sets a local
    * AsyncStorage flag and dismisses the paywall without any network call.
    * Otherwise falls through to the platform-specific redemption flow:
    *   iOS → Apple's native offer-code sheet via RevenueCat
@@ -263,13 +251,12 @@ export default function PaywallScreen() {
     setMessage(null);
     const normalized = promoCode.trim().toUpperCase();
 
-    // Local bypass: grant pro immediately without touching Apple/Google.
-    if ((BYPASS_CODES as readonly string[]).includes(normalized)) {
+    // Local bypass: grant pro immediately without touching Apple/Google. The
+    // entitled effect dismisses the paywall and the global overlay celebrates.
+    if (isBypassCode(normalized)) {
       try {
         await AsyncStorage.setItem(BYPASS_PRO_KEY, 'true');
         await refresh();
-        setMessage('Access granted! Welcome to Boomer AI Pro. 🎉');
-        setTimeout(() => router.replace('/(tabs)'), 600);
       } catch {
         setMessage('Could not apply the code. Please try again.');
       } finally {

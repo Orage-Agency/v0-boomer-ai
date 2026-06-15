@@ -43,8 +43,8 @@ const styles = StyleSheet.create({
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceMuted ?? '#F1F1F4',
-    borderRadius: radius.pill ?? 24,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.pill,
     paddingLeft: spacing.lg,
     paddingRight: spacing.xs,
     paddingVertical: spacing.xs,

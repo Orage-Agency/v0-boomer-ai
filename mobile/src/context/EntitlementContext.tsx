@@ -73,12 +73,19 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const accountEntitled = !!user?.isPro;
   const entitled = rcEntitled || accountEntitled || bypassEntitled;
 
-  // Detect the false -> true transition so any screen can celebrate the unlock,
-  // no matter how it happened (purchase, restore, account login, or code).
+  // Celebrate the unlock — but only a genuine in-session false -> true flip
+  // (purchase, restore, login, or code), never the initial load settling for a
+  // user who was already Pro. We establish a baseline once loading completes
+  // and only fire on transitions after that.
   const [justUnlocked, setJustUnlocked] = useState(false);
   const prevEntitled = useRef(entitled);
+  const hasSettled = useRef(false);
   useEffect(() => {
-    if (!prevEntitled.current && entitled && !loading) {
+    if (loading) return; // wait for the first entitlement load to finish
+    if (!hasSettled.current) {
+      // First settle: record the baseline, no celebration.
+      hasSettled.current = true;
+    } else if (!prevEntitled.current && entitled) {
       setJustUnlocked(true);
     }
     prevEntitled.current = entitled;

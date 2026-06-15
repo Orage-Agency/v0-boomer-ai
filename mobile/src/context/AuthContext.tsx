@@ -15,6 +15,7 @@ import {
   refreshMe as apiMe,
 } from '@/api/auth';
 import { BYPASS_PRO_KEY } from './storage';
+import { isBypassCode, normalizeCode } from '@/lib/bypassCodes';
 
 /**
  * Tracks the (optional) signed-in account.
@@ -30,34 +31,6 @@ import { BYPASS_PRO_KEY } from './storage';
  */
 
 const STORAGE_KEY = 'boomer.auth.v1';
-
-/**
- * Hardcoded bypass / access codes. These work entirely offline — no API call,
- * no email/password required. Used for VIPs, founders, friends + family, and
- * in-person demo guests where the network might be unreliable.
- *
- * A matched code persists a synthetic `AccountUser` with isPro=true, which
- * EntitlementContext ORs into the entitled flag.
- */
-const HARDCODED_BYPASS_CODES = new Set<string>([
-  'BOOMERAI2026',
-  'BOOMER-GEORGE-DEV', // unlimited — George's dev/test code
-  'BOOMER-LAUNCH-001', // launch / press code
-  'BOOMER-VIP-2026',
-  'BOOMER-FOUNDER-2026',
-  'BOOMER-FRIEND-2026',
-  'BOOMER-GUEST-001',
-  'BOOMER-GUEST-002',
-  'BOOMER-GUEST-003',
-]);
-
-function normalizeCode(code: string): string {
-  return code.trim().toUpperCase();
-}
-
-function isHardcodedBypass(code: string): boolean {
-  return HARDCODED_BYPASS_CODES.has(normalizeCode(code));
-}
 
 /** A synthetic bypass user never round-trips to the server. */
 function isBypassUser(user: AccountUser | undefined | null): boolean {
@@ -141,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const redeem = useCallback(
     async (code: string, email?: string, password?: string) => {
       // Hardcoded bypass codes work offline, no email/password required.
-      if (isHardcodedBypass(code)) {
+      if (isBypassCode(code)) {
         const e = (email ?? auth?.email ?? '').trim();
         const p = password ?? auth?.password ?? '';
         const bypassUser = makeBypassUser(code, e);
