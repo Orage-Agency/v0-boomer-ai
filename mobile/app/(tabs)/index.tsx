@@ -102,13 +102,23 @@ export default function Home() {
             gradient={gradients.games}
             onPress={() => router.push('/quick-questions')}
           />
-          <GradientTile
-            emoji="⭐"
-            title="Go Pro"
-            subtitle="Unlock everything"
-            gradient={gradients.brand}
-            onPress={() => router.push('/paywall')}
-          />
+          {entitled ? (
+            <GradientTile
+              emoji="⭐"
+              title="Pro Member"
+              subtitle="You're all set"
+              gradient={gradients.brand}
+              onPress={() => router.push('/(tabs)/profile')}
+            />
+          ) : (
+            <GradientTile
+              emoji="⭐"
+              title="Go Pro"
+              subtitle="Unlock everything"
+              gradient={gradients.brand}
+              onPress={() => router.push('/paywall')}
+            />
+          )}
         </Animated.View>
 
         <Animated.View entering={FadeInDown.duration(320).delay(300)} style={styles.row}>

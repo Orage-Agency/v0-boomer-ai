@@ -105,9 +105,18 @@ type PaywallMode = 'soft' | 'hard';
 export default function PaywallScreen() {
   const router = useRouter();
   const { mode } = useLocalSearchParams<{ mode?: PaywallMode }>();
-  const { refresh } = useEntitlement();
+  const { entitled, refresh } = useEntitlement();
 
   const hardGate = mode === 'hard';
+
+  // A Pro user must never be stuck on the paywall. The moment entitlement
+  // flips true — a purchase, a restore, or a code redeemed in the nested
+  // login sheet — collapse every modal in the stack and drop into the app.
+  useEffect(() => {
+    if (!entitled) return;
+    if (router.canDismiss()) router.dismissAll();
+    else router.replace('/(tabs)');
+  }, [entitled, router]);
 
   const [loading, setLoading] = useState(true);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);

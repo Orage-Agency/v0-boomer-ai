@@ -66,6 +66,13 @@ export default function LoginScreen() {
     else router.replace('/');
   };
 
+  // Collapse the login (and the paywall it was opened from) modal stack so the
+  // user lands directly in the app instead of a half-dismissed sheet.
+  const dismissToApp = () => {
+    if (router.canDismiss()) router.dismissAll();
+    else router.replace('/(tabs)');
+  };
+
   const onLogin = async () => {
     setError(null);
     if (!email || !password) {
@@ -74,10 +81,9 @@ export default function LoginScreen() {
     }
     try {
       setBusy(true);
-      const u = await signIn(email.trim(), password);
+      await signIn(email.trim(), password);
       await refresh();
-      // Either way we let them into the app; if Pro, paywall stays out of the way.
-      router.replace(u.isPro ? '/(tabs)' : '/(tabs)');
+      dismissToApp();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Sign-in failed');
     } finally {
@@ -99,14 +105,13 @@ export default function LoginScreen() {
     }
     try {
       setBusy(true);
-      const u = await redeem(
+      await redeem(
         trimmedCode,
         codeEmail.trim() || undefined,
         codePassword || undefined,
       );
       await refresh();
-      router.replace('/(tabs)');
-      void u;
+      dismissToApp();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Code redemption failed');
     } finally {
