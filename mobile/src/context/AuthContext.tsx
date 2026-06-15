@@ -14,6 +14,7 @@ import {
   redeemCode as apiRedeem,
   refreshMe as apiMe,
 } from '@/api/auth';
+import { BYPASS_PRO_KEY } from './storage';
 
 /**
  * Tracks the (optional) signed-in account.
@@ -56,6 +57,11 @@ function normalizeCode(code: string): string {
 
 function isHardcodedBypass(code: string): boolean {
   return HARDCODED_BYPASS_CODES.has(normalizeCode(code));
+}
+
+/** A synthetic bypass user never round-trips to the server. */
+function isBypassUser(user: AccountUser | undefined | null): boolean {
+  return !!user && (user.id.startsWith('bypass:') || !!user.proSource?.startsWith('bypass-code:'));
 }
 
 function makeBypassUser(code: string, email?: string): AccountUser {
@@ -139,6 +145,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const e = (email ?? auth?.email ?? '').trim();
         const p = password ?? auth?.password ?? '';
         const bypassUser = makeBypassUser(code, e);
+        // Durable flag so the unlock survives even if a server refresh later
+        // returns a non-Pro profile for the same email.
+        await AsyncStorage.setItem(BYPASS_PRO_KEY, 'true');
         await persist({
           email: e || bypassUser.email,
           password: p,
@@ -158,6 +167,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     if (!auth) return;
+    // Never round-trip a bypass user to the server — apiMe would return a
+    // non-Pro profile and silently wipe the local unlock.
+    if (isBypassUser(auth.user)) return;
     try {
       const user = await apiMe(auth.email, auth.password);
       await persist({ ...auth, user });
@@ -167,6 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [auth, persist]);
 
   const signOut = useCallback(async () => {
+    await AsyncStorage.removeItem(BYPASS_PRO_KEY);
     await persist(null);
   }, [persist]);
 
