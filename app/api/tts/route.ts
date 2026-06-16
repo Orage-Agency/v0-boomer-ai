@@ -51,7 +51,7 @@ async function tryElevenLabs(text: string, voiceId: string): Promise<Response | 
   }
 }
 
-async function tryOpenAi(text: string, voice: string): Promise<Response | null> {
+async function tryOpenAi(text: string, voice: string, speed: number): Promise<Response | null> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) return null
   try {
@@ -62,10 +62,13 @@ async function tryOpenAi(text: string, voice: string): Promise<Response | null> 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "tts-1",
+        // tts-1-hd = noticeably cleaner audio; worth the small latency for a
+        // senior audience listening to full sentences.
+        model: "tts-1-hd",
         input: text.slice(0, 4096),
         voice,
         response_format: "mp3",
+        speed: Math.min(4, Math.max(0.25, speed)),
       }),
     })
     if (res.ok) return res
@@ -80,7 +83,7 @@ async function tryOpenAi(text: string, voice: string): Promise<Response | null> 
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, voice = "alloy" } = await request.json()
+    const { text, voice = "nova", speed = 0.95 } = await request.json()
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return NextResponse.json({ error: "text is required" }, { status: 400 })
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. OpenAI fallback.
-    const oaiRes = await tryOpenAi(text, voice)
+    const oaiRes = await tryOpenAi(text, voice, speed)
     if (oaiRes) {
       const audio = await oaiRes.arrayBuffer()
       return new NextResponse(audio, {

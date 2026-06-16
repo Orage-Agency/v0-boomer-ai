@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import * as Speech from 'expo-speech';
-import { Audio } from 'expo-av';
+import { Audio, InterruptionModeIOS } from 'expo-av';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { InfoBanner } from '@/components/InfoBanner';
@@ -46,8 +46,36 @@ export default function VoiceScreen() {
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const lastSpokenId = useRef<string | null>(null);
   const awardedStar = useRef(false);
+  const soundRef = useRef<Audio.Sound | null>(null);
 
   const busy = status === 'streaming' || status === 'submitted';
+
+  // Stop ALL audio output — both the backend-TTS Sound and the device-speech
+  // fallback. Previously only device speech was stopped, so the AI kept talking
+  // over the user when they started recording, and the live Sound held the
+  // audio session, which made the next recording fail to start.
+  const stopSpeaking = useCallback(async () => {
+    try {
+      await Speech.stop();
+    } catch {
+      /* ignore */
+    }
+    const s = soundRef.current;
+    soundRef.current = null;
+    if (s) {
+      try {
+        await s.stopAsync();
+      } catch {
+        /* ignore */
+      }
+      try {
+        await s.unloadAsync();
+      } catch {
+        /* ignore */
+      }
+    }
+    setSpeaking(false);
+  }, []);
 
   // Speak the assistant's reply aloud once it finishes streaming.
   // Primary: backend TTS (OpenAI proxy at /api/tts) played via expo-av.
@@ -64,14 +92,20 @@ export default function VoiceScreen() {
 
     const playWithBackendTts = async () => {
       try {
-        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        });
         const dataUri = await ttsApi.speakText(text);
         const { sound } = await Audio.Sound.createAsync({ uri: dataUri });
+        soundRef.current = sound;
         await sound.playAsync();
         sound.setOnPlaybackStatusUpdate((s) => {
           if (s.isLoaded && s.didJustFinish) {
             setSpeaking(false);
             void sound.unloadAsync();
+            if (soundRef.current === sound) soundRef.current = null;
           }
         });
       } catch {
@@ -88,19 +122,18 @@ export default function VoiceScreen() {
     void playWithBackendTts();
   }, [messages, status, ttsEnabled]);
 
-  // Stop any speech when leaving the screen.
+  // Stop all audio when leaving the screen.
   useEffect(() => {
     return () => {
-      void Speech.stop();
+      void stopSpeaking();
     };
-  }, []);
+  }, [stopSpeaking]);
 
   const handleSend = useCallback(
     (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || busy) return;
-      void Speech.stop();
-      setSpeaking(false);
+      void stopSpeaking();
       // Award +2 stars on the first voice interaction (matches web reward).
       if (!awardedStar.current) {
         awardedStar.current = true;
@@ -110,22 +143,23 @@ export default function VoiceScreen() {
       setInput('');
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     },
-    [busy, send, profile.stars, updateProfile],
+    [busy, send, profile.stars, updateProfile, stopSpeaking],
   );
 
   const toggleTts = useCallback(() => {
     setTtsEnabled((prev) => {
       const next = !prev;
-      if (!next) void Speech.stop();
+      if (!next) void stopSpeaking();
       return next;
     });
-  }, []);
+  }, [stopSpeaking]);
 
   const startRecording = useCallback(async () => {
     setMicError(null);
     try {
-      await Speech.stop();
-      setSpeaking(false);
+      // Free the audio session from any TTS playback first — a live Sound keeps
+      // the session in playback-only mode and makes prepareToRecord fail.
+      await stopSpeaking();
 
       // Ensure mic permission. getPermissions first so we only prompt when
       // genuinely undetermined; guide the user to Settings if it's denied.
@@ -140,13 +174,15 @@ export default function VoiceScreen() {
         return;
       }
 
+      // Switch the session into record mode (must include interruptionModeIOS).
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
       });
 
       // Explicit prepare + start is more reliable than createAsync, especially
-      // right after audio playback (TTS) held the session.
+      // right after audio playback held the session.
       const rec = new Audio.Recording();
       await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       await rec.startAsync();
@@ -156,7 +192,7 @@ export default function VoiceScreen() {
       const msg = e instanceof Error ? e.message : 'unknown error';
       setMicError(`Could not start recording: ${msg}`);
     }
-  }, []);
+  }, [stopSpeaking]);
 
   const stopAndTranscribe = useCallback(async () => {
     if (!recording) return;
