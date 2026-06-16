@@ -48,21 +48,20 @@ export async function POST(req: Request) {
     if (capturedImage && messages.length > 0) {
       const lastMsg = messages[messages.length - 1]
       if (lastMsg.role === "user") {
+        // Attach the photo as a `file` part so convertToModelMessages turns it
+        // into a vision input. (The previous `content`-array approach was for
+        // the web message shape and broke the mobile `parts` format.)
+        const match = /^data:([^;]+);/.exec(capturedImage)
+        const mediaType = match ? match[1] : "image/jpeg"
+        const existingParts = Array.isArray((lastMsg as { parts?: unknown }).parts)
+          ? (lastMsg as unknown as { parts: unknown[] }).parts
+          : []
         processedMessages = [
           ...messages.slice(0, -1),
           {
             ...lastMsg,
-            content: [
-              {
-                type: "image" as const,
-                image: capturedImage,
-              },
-              {
-                type: "text" as const,
-                text: typeof lastMsg.content === "string" ? lastMsg.content : lastMsg.content[0]?.text || "",
-              },
-            ],
-          },
+            parts: [...existingParts, { type: "file", mediaType, url: capturedImage }],
+          } as UIMessage,
         ]
       }
     }

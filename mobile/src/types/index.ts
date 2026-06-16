@@ -81,6 +81,8 @@ export type ChatMessage = {
   id: string;
   role: ChatRole;
   parts: ChatMessagePart[];
+  /** Local file URI of a photo the user attached — shown in their bubble. */
+  imageUri?: string;
 };
 
 export type ConversationSummary = {

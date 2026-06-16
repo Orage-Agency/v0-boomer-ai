@@ -1,6 +1,8 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
+  Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
+import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -47,7 +50,49 @@ export default function Chat() {
   const { profile, updateProfile, apiConfigured } = useProfile();
   const { entitled } = useEntitlement();
   const [input, setInput] = useState('');
+  const [attachedImage, setAttachedImage] = useState<{ uri: string; dataUrl: string } | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
+
+  const pickFrom = useCallback(async (source: 'camera' | 'library') => {
+    try {
+      const perm =
+        source === 'camera'
+          ? await ImagePicker.requestCameraPermissionsAsync()
+          : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          'Permission needed',
+          source === 'camera'
+            ? 'Turn on Camera access in Settings → Boomer AI to take a photo.'
+            : 'Turn on Photos access in Settings → Boomer AI to choose a photo.',
+        );
+        return;
+      }
+      const options: ImagePicker.ImagePickerOptions = {
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.4,
+        base64: true,
+      };
+      const result =
+        source === 'camera'
+          ? await ImagePicker.launchCameraAsync(options)
+          : await ImagePicker.launchImageLibraryAsync(options);
+      const asset = result.assets?.[0];
+      if (result.canceled || !asset?.base64) return;
+      const mime = asset.mimeType ?? 'image/jpeg';
+      setAttachedImage({ uri: asset.uri, dataUrl: `data:${mime};base64,${asset.base64}` });
+    } catch {
+      Alert.alert('Could not add photo', 'Please try again.');
+    }
+  }, []);
+
+  const openPhotoOptions = useCallback(() => {
+    Alert.alert('Add a Photo', 'Send a photo to Boomer AI to ask about it.', [
+      { text: 'Take Photo', onPress: () => void pickFrom('camera') },
+      { text: 'Choose from Library', onPress: () => void pickFrom('library') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }, [pickFrom]);
 
   // Keep latest entitled inside callbacks without re-creating subscriptions.
   const entitledRef = useRef(entitled);
@@ -96,11 +141,13 @@ export default function Chat() {
   const handleSend = useCallback(
     (text: string) => {
       const trimmed = text.trim();
-      if (!trimmed) return;
+      const image = attachedImage;
+      if (!trimmed && !image) return;
       const runSend = () => {
         awardStars();
-        void send(trimmed);
+        void send(trimmed, image ?? undefined);
         setInput('');
+        setAttachedImage(null);
         setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
       };
       if (entitledRef.current) {
@@ -112,7 +159,7 @@ export default function Chat() {
         if (ok) runSend();
       })();
     },
-    [awardStars, consumeFreeQuota, send],
+    [awardStars, consumeFreeQuota, send, attachedImage],
   );
 
   // Keep a stable ref so focus/subscription handlers always call the latest
@@ -199,7 +246,32 @@ export default function Chat() {
           </View>
         )}
 
+        {attachedImage && (
+          <View style={styles.attachWrap}>
+            <Image source={{ uri: attachedImage.uri }} style={styles.attachThumb} />
+            <Text style={styles.attachLabel}>Photo ready to send</Text>
+            <Pressable
+              onPress={() => setAttachedImage(null)}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Remove photo"
+              style={styles.attachRemove}
+            >
+              <Text style={styles.attachRemoveText}>✕</Text>
+            </Pressable>
+          </View>
+        )}
+
         <View style={styles.inputBar}>
+          <Pressable
+            onPress={openPhotoOptions}
+            disabled={busy}
+            style={[styles.photoBtn, busy && styles.sendDisabled]}
+            accessibilityRole="button"
+            accessibilityLabel="Add a photo"
+          >
+            <Text style={styles.photoIcon}>📷</Text>
+          </Pressable>
           <TextInput
             style={styles.input}
             value={input}
@@ -212,9 +284,12 @@ export default function Chat() {
           />
           <AnimatedPressable
             onPress={() => handleSend(input)}
-            disabled={busy || !input.trim()}
+            disabled={busy || (!input.trim() && !attachedImage)}
             pressedScale={0.93}
-            style={[styles.sendBtn, (busy || !input.trim()) && styles.sendDisabled]}
+            style={[
+              styles.sendBtn,
+              (busy || (!input.trim() && !attachedImage)) && styles.sendDisabled,
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Send message"
           >
@@ -284,15 +359,20 @@ function Bubble({ message }: { message: ChatMessage }) {
           isUser ? styles.userBubble : styles.aiBubble,
         ]}
       >
-        <Text
-          style={[
-            styles.bubbleText,
-            isUser ? styles.userText : styles.aiText,
-          ]}
-          selectable
-        >
-          {text || ' '}
-        </Text>
+        {message.imageUri && (
+          <Image source={{ uri: message.imageUri }} style={styles.bubbleImage} />
+        )}
+        {(text || !message.imageUri) && (
+          <Text
+            style={[
+              styles.bubbleText,
+              isUser ? styles.userText : styles.aiText,
+            ]}
+            selectable
+          >
+            {text || ' '}
+          </Text>
+        )}
       </View>
     </Animated.View>
   );
@@ -370,8 +450,42 @@ const styles = StyleSheet.create({
   },
   aiText: { color: colors.textPrimary, fontWeight: fontWeight.medium },
   userText: { color: colors.textOnDark, fontWeight: fontWeight.medium },
+  bubbleImage: {
+    width: 200,
+    height: 200,
+    borderRadius: radius.md,
+    marginBottom: 8,
+    backgroundColor: colors.surfaceMuted,
+  },
   thinking: { fontSize: fontSize.sm, color: colors.textMuted, paddingTop: spacing.sm },
   thinkingBubble: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, minHeight: 36 },
+  attachWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+  },
+  attachThumb: { width: 44, height: 44, borderRadius: radius.sm, backgroundColor: colors.surfaceMuted },
+  attachLabel: { flex: 1, fontSize: fontSize.sm, color: colors.textSecondary, fontWeight: fontWeight.medium },
+  attachRemove: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attachRemoveText: { fontSize: fontSize.sm, color: colors.textSecondary, fontWeight: fontWeight.bold },
+  photoBtn: {
+    minHeight: 48,
+    minWidth: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoIcon: { fontSize: 22 },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',

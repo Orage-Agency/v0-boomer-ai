@@ -50,15 +50,18 @@ export function useChatSession() {
   }, []);
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, image?: { uri: string; dataUrl: string }) => {
       const trimmed = text.trim();
-      if (!trimmed || status === 'streaming' || status === 'submitted') return;
+      if ((!trimmed && !image) || status === 'streaming' || status === 'submitted') return;
       setError(null);
 
+      // With a photo but no text, give the model a gentle default prompt.
+      const promptText = trimmed || (image ? 'Can you tell me about this picture?' : '');
       const userMsg: ChatMessage = {
         id: nextId('user'),
         role: 'user',
-        parts: [{ type: 'text', text: trimmed }],
+        parts: [{ type: 'text', text: promptText }],
+        ...(image ? { imageUri: image.uri } : {}),
       };
       const assistantId = nextId('assistant');
       const assistantMsg: ChatMessage = {
@@ -74,6 +77,7 @@ export function useChatSession() {
       try {
         const full = await chatApi.sendChat({
           messages: history,
+          capturedImage: image?.dataUrl,
           conversationId: conversationId.current == null ? undefined : String(conversationId.current),
           onDelta: (cumulative) => {
             setStatus('streaming');
