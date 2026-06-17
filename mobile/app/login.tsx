@@ -33,7 +33,7 @@ type Tab = 'login' | 'code';
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn, redeem, user } = useAuth();
-  const { refresh } = useEntitlement();
+  const { refresh, celebrateUnlock } = useEntitlement();
   const [tab, setTab] = useState<Tab>('login');
 
   // Login fields
@@ -68,8 +68,10 @@ export default function LoginScreen() {
     }
     try {
       setBusy(true);
-      await signIn(email.trim(), password);
+      const u = await signIn(email.trim(), password);
       await refresh();
+      // Signing back in on a new device restores Pro — celebrate it.
+      if (u?.isPro) celebrateUnlock();
       dismissToApp();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Sign-in failed');
@@ -98,6 +100,8 @@ export default function LoginScreen() {
         codePassword || undefined,
       );
       await refresh();
+      // A redeemed code means they're Pro now — always show the thank-you.
+      celebrateUnlock();
       dismissToApp();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Code redemption failed');

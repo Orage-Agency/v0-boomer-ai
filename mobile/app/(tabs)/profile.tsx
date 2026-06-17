@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
+import { useEntitlement } from '@/context/EntitlementContext';
 import { avatarApi } from '@/api';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
@@ -30,6 +31,7 @@ function getLevelProgress(stars: number) {
 export default function ProfileScreen() {
   const router = useRouter();
   const { profile, updateProfile, resetOnboarding, deleteAccount } = useProfile();
+  const { entitled } = useEntitlement();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const progress = getLevelProgress(profile.stars);
   const displayName = profile.name || profile.userName || 'Friend';
@@ -146,8 +148,15 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
           <Text style={styles.name}>{displayName}</Text>
-          <View style={styles.levelPill}>
-            <Text style={styles.levelText}>🏆 {progress.current}</Text>
+          <View style={styles.pillRow}>
+            {entitled && (
+              <View style={styles.proBadge}>
+                <Text style={styles.proBadgeText}>⭐ PRO</Text>
+              </View>
+            )}
+            <View style={styles.levelPill}>
+              <Text style={styles.levelText}>🏆 {progress.current}</Text>
+            </View>
           </View>
         </View>
 
@@ -250,12 +259,19 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: fontSize.display, fontWeight: fontWeight.black, color: colors.textOnDark },
   name: { fontSize: fontSize.xl, fontWeight: fontWeight.black, color: colors.textPrimary },
   email: { fontSize: fontSize.sm, color: colors.textSecondary },
+  pillRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
+  proBadge: {
+    backgroundColor: '#F2C740', // gold = Pro
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  proBadgeText: { fontSize: fontSize.sm, fontWeight: fontWeight.black, color: '#1A1A1A', letterSpacing: 0.5 },
   levelPill: {
     backgroundColor: colors.amberSoft,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    marginTop: spacing.xs,
   },
   levelText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.textPrimary },
   card: {

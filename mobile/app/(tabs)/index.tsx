@@ -129,7 +129,7 @@ export default function Home() {
               emoji="⭐"
               title="Pro Member"
               subtitle="You're all set"
-              gradient={gradients.brand}
+              gradient={['#D4A017', '#A9810F']}
               onPress={() => router.push('/(tabs)/profile')}
             />
           ) : (

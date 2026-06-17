@@ -92,7 +92,7 @@ type PaywallMode = 'soft' | 'hard';
 export default function PaywallScreen() {
   const router = useRouter();
   const { mode } = useLocalSearchParams<{ mode?: PaywallMode }>();
-  const { entitled, refresh } = useEntitlement();
+  const { entitled, refresh, celebrateUnlock } = useEntitlement();
 
   const hardGate = mode === 'hard';
 
@@ -212,16 +212,17 @@ export default function PaywallScreen() {
       const res = await purchasePackage(pkg);
       setBusy(false);
       if (res.ok) {
-        // Entitlement flips true → the global ProUnlockOverlay celebrates and
-        // the entitled effect collapses the paywall. Nothing to do here.
+        // Purchase succeeded — always show the thank-you, then the entitled
+        // effect collapses the paywall.
         await refresh();
+        celebrateUnlock();
       } else if (res.cancelled) {
         // Silent — user backed out.
       } else {
         setMessage(res.error ?? 'Purchase did not complete. Please try again.');
       }
     },
-    [refresh, router],
+    [refresh, router, celebrateUnlock],
   );
 
   const restore = useCallback(async () => {
@@ -230,12 +231,12 @@ export default function PaywallScreen() {
     const ok = await restorePurchases();
     setBusy(false);
     if (ok) {
-      // Global overlay celebrates + entitled effect dismisses the paywall.
       await refresh();
+      celebrateUnlock();
     } else {
       setMessage('No previous purchases were found.');
     }
-  }, [refresh, router]);
+  }, [refresh, router, celebrateUnlock]);
 
   /**
    * Promo / offer code redemption.
@@ -257,6 +258,8 @@ export default function PaywallScreen() {
       try {
         await AsyncStorage.setItem(BYPASS_PRO_KEY, 'true');
         await refresh();
+        // A redeemed code = they're Pro now; always show the thank-you.
+        celebrateUnlock();
       } catch {
         setMessage('Could not apply the code. Please try again.');
       } finally {
@@ -288,7 +291,7 @@ export default function PaywallScreen() {
     } finally {
       setPromoLoading(false);
     }
-  }, [promoCode, refresh, router]);
+  }, [promoCode, refresh, router, celebrateUnlock]);
 
   const isAnnual = (pkg: PurchasesPackage) =>
     pkg.product.identifier.includes(PRODUCT_IDS.annual);

@@ -39,6 +39,12 @@ type EntitlementContextValue = {
   justUnlocked: boolean;
   /** Dismiss the just-unlocked celebration. */
   clearJustUnlocked: () => void;
+  /**
+   * Explicitly show the "You're Pro now!" celebration. Call this right after a
+   * successful purchase, restore, or access-code redemption so the thank-you
+   * always shows on that action — even if entitlement was somehow already true.
+   */
+  celebrateUnlock: () => void;
 };
 
 const EntitlementContext = createContext<EntitlementContextValue | null>(null);
@@ -91,6 +97,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     prevEntitled.current = entitled;
   }, [entitled, loading]);
   const clearJustUnlocked = useCallback(() => setJustUnlocked(false), []);
+  const celebrateUnlock = useCallback(() => setJustUnlocked(true), []);
 
   const value = useMemo<EntitlementContextValue>(
     () => ({
@@ -100,8 +107,9 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       refresh,
       justUnlocked,
       clearJustUnlocked,
+      celebrateUnlock,
     }),
-    [entitled, loading, refresh, justUnlocked, clearJustUnlocked],
+    [entitled, loading, refresh, justUnlocked, clearJustUnlocked, celebrateUnlock],
   );
 
   return (
