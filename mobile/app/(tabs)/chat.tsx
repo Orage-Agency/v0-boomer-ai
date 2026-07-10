@@ -19,8 +19,14 @@ import { Screen } from '@/components/Screen';
 import { InfoBanner } from '@/components/InfoBanner';
 import { TypingDots } from '@/components/Skeleton';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
+import { MicButton } from '@/components/MicButton';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useChatSession } from '@/screens/useChat';
-import { consumePendingPrompt, subscribePendingPrompt } from '@/screens/pendingPrompt';
+import {
+  consumePendingMic,
+  consumePendingPrompt,
+  subscribePendingPrompt,
+} from '@/screens/pendingPrompt';
 import { useProfile } from '@/context/ProfileContext';
 import { useEntitlement } from '@/context/EntitlementContext';
 import {
@@ -33,9 +39,12 @@ import type { ChatMessage } from '@/types';
 
 /**
  * AI Chat — FULLY IMPLEMENTED.
- * Streams replies from /api/chat, renders a message list, and awards stars on
- * send (matching the web reward logic: +10 + "First Chat" badge on first
- * message, +1 thereafter).
+ * Streams replies from /api/chat token-by-token, renders a structured message
+ * list (avatar + name on AI turns), and awards stars on send (matching the
+ * web reward logic: +10 + "First Chat" badge on first message, +1 thereafter).
+ *
+ * Input bar affordances: photo (camera / library), voice-to-text (Whisper),
+ * and plain typing. A failed send offers one-tap "Try Again".
  */
 const STARTER_PROMPTS = [
   'How do I create a strong password I can remember?',
@@ -46,12 +55,16 @@ const STARTER_PROMPTS = [
 
 export default function Chat() {
   const router = useRouter();
-  const { messages, status, error, send } = useChatSession();
+  const { messages, status, error, send, reset } = useChatSession();
   const { profile, updateProfile, apiConfigured } = useProfile();
   const { entitled } = useEntitlement();
   const [input, setInput] = useState('');
   const [attachedImage, setAttachedImage] = useState<{ uri: string; dataUrl: string } | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
+  // Remembers the last send that errored so "Try Again" can replay it.
+  const lastAttempt = useRef<{ text: string; image?: { uri: string; dataUrl: string } } | null>(
+    null,
+  );
 
   const pickFrom = useCallback(async (source: 'camera' | 'library') => {
     try {
@@ -139,11 +152,12 @@ export default function Chat() {
   }, [router]);
 
   const handleSend = useCallback(
-    (text: string) => {
+    (text: string, imageOverride?: { uri: string; dataUrl: string } | null) => {
       const trimmed = text.trim();
-      const image = attachedImage;
+      const image = imageOverride !== undefined ? imageOverride : attachedImage;
       if (!trimmed && !image) return;
       const runSend = () => {
+        lastAttempt.current = { text: trimmed, image: image ?? undefined };
         awardStars();
         void send(trimmed, image ?? undefined);
         setInput('');
@@ -167,27 +181,68 @@ export default function Chat() {
   const handleSendRef = useRef(handleSend);
   handleSendRef.current = handleSend;
 
+  // Voice-to-text: tap mic → speak → tap again → the transcript sends itself.
+  // Auto-send keeps the flow to two taps total, which beats "transcribe into
+  // the box, then find Send" for the target audience.
+  const voice = useVoiceInput({
+    onTranscript: (text) => handleSendRef.current(text, null),
+  });
+  const voiceRef = useRef(voice);
+  voiceRef.current = voice;
+
   // When the Chat tab gains focus, pick up any prompt queued by another screen
-  // (Lessons / Tips / Quick Questions "Try in chat" actions) and send it.
+  // (Lessons / Tips / Quick Questions "Try in chat" actions) and send it; also
+  // honor a queued "start listening" request from the GlobalChatBar mic.
   useFocusEffect(
     useCallback(() => {
       const queued = consumePendingPrompt();
-      if (queued) handleSendRef.current(queued);
+      if (queued) handleSendRef.current(queued, null);
+      if (consumePendingMic() && voiceRef.current.state === 'idle') {
+        voiceRef.current.toggle();
+      }
       // Also handle prompts pushed while the screen is already focused.
       const unsubscribe = subscribePendingPrompt((prompt) => {
-        handleSendRef.current(prompt);
+        handleSendRef.current(prompt, null);
       });
       return unsubscribe;
     }, []),
   );
 
+  const handleNewChat = useCallback(() => {
+    if (messages.length === 0) return;
+    Alert.alert('Start a new chat?', 'Your current conversation will be cleared.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'New Chat', style: 'destructive', onPress: () => reset() },
+    ]);
+  }, [messages.length, reset]);
+
+  const handleRetry = useCallback(() => {
+    const attempt = lastAttempt.current;
+    if (!attempt) return;
+    handleSendRef.current(attempt.text, attempt.image ?? null);
+  }, []);
+
   const busy = status === 'streaming' || status === 'submitted';
+  const recording = voice.state === 'recording';
 
   return (
     <Screen centered edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Chat</Text>
-        <Text style={styles.stars}>⭐ {profile.stars}</Text>
+        <View style={styles.headerRight}>
+          {messages.length > 0 && (
+            <Pressable
+              onPress={handleNewChat}
+              style={styles.newChatBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Start a new chat"
+              hitSlop={6}
+            >
+              <Text style={styles.newChatText}>+ New Chat</Text>
+            </Pressable>
+          )}
+          <Text style={styles.stars}>⭐ {profile.stars}</Text>
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -209,7 +264,9 @@ export default function Chat() {
           <Animated.View entering={FadeInUp.duration(300)} style={styles.empty}>
             <Text style={styles.emptyEmoji}>✨</Text>
             <Text style={styles.emptyTitle}>Let's Chat!</Text>
-            <Text style={styles.emptySub}>What can I help you with today?</Text>
+            <Text style={styles.emptySub}>
+              Type, talk with the microphone, or send a photo.
+            </Text>
             <View style={styles.starters}>
               {STARTER_PROMPTS.map((p, i) => (
                 <Animated.View
@@ -243,6 +300,30 @@ export default function Chat() {
         {error && (
           <View style={styles.bannerWrap}>
             <InfoBanner tone="danger" message={error} />
+            <Pressable
+              onPress={handleRetry}
+              style={styles.retryBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Try sending your message again"
+            >
+              <Text style={styles.retryText}>↻ Try Again</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {voice.error && (
+          <View style={styles.bannerWrap}>
+            <InfoBanner tone="danger" message={voice.error} />
+          </View>
+        )}
+
+        {recording && (
+          <View style={styles.bannerWrap}>
+            <InfoBanner
+              tone="info"
+              title="Listening…"
+              message="Say your question, then tap the square button to send it."
+            />
           </View>
         )}
 
@@ -265,8 +346,8 @@ export default function Chat() {
         <View style={styles.inputBar}>
           <Pressable
             onPress={openPhotoOptions}
-            disabled={busy}
-            style={[styles.photoBtn, busy && styles.sendDisabled]}
+            disabled={busy || recording}
+            style={[styles.photoBtn, (busy || recording) && styles.sendDisabled]}
             accessibilityRole="button"
             accessibilityLabel="Add a photo"
           >
@@ -275,20 +356,24 @@ export default function Chat() {
           <TextInput
             style={styles.input}
             value={input}
-            onChangeText={setInput}
-            placeholder="Ask Boomer AI anything…"
+            onChangeText={(t) => {
+              setInput(t);
+              if (voice.error) voice.clearError();
+            }}
+            placeholder={recording ? 'Listening…' : 'Ask Boomer AI anything…'}
             placeholderTextColor={colors.textMuted}
             multiline
-            editable={!busy}
+            editable={!recording}
             accessibilityLabel="Message input"
           />
+          <MicButton state={voice.state} onPress={voice.toggle} disabled={busy} />
           <AnimatedPressable
             onPress={() => handleSend(input)}
-            disabled={busy || (!input.trim() && !attachedImage)}
+            disabled={busy || recording || (!input.trim() && !attachedImage)}
             pressedScale={0.93}
             style={[
               styles.sendBtn,
-              (busy || (!input.trim() && !attachedImage)) && styles.sendDisabled,
+              (busy || recording || (!input.trim() && !attachedImage)) && styles.sendDisabled,
             ]}
             accessibilityRole="button"
             accessibilityLabel="Send message"
@@ -348,31 +433,37 @@ function Bubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
   const raw = message.parts.map((p) => p.text).join('');
   const text = isUser ? raw : stripMarkdown(raw);
+
+  if (isUser) {
+    return (
+      <Animated.View entering={FadeInUp.duration(220)} style={[styles.bubbleRow, styles.rowEnd]}>
+        <View style={[styles.bubble, styles.userBubble]}>
+          {message.imageUri && (
+            <Image source={{ uri: message.imageUri }} style={styles.bubbleImage} />
+          )}
+          {(text || !message.imageUri) && (
+            <Text style={[styles.bubbleText, styles.userText]} selectable>
+              {text || ' '}
+            </Text>
+          )}
+        </View>
+      </Animated.View>
+    );
+  }
+
+  // AI turn: avatar + name header makes the back-and-forth easy to follow.
   return (
-    <Animated.View
-      entering={FadeInUp.duration(220)}
-      style={[styles.bubbleRow, isUser ? styles.rowEnd : styles.rowStart]}
-    >
-      <View
-        style={[
-          styles.bubble,
-          isUser ? styles.userBubble : styles.aiBubble,
-        ]}
-      >
-        {message.imageUri && (
-          <Image source={{ uri: message.imageUri }} style={styles.bubbleImage} />
-        )}
-        {(text || !message.imageUri) && (
-          <Text
-            style={[
-              styles.bubbleText,
-              isUser ? styles.userText : styles.aiText,
-            ]}
-            selectable
-          >
+    <Animated.View entering={FadeInUp.duration(220)} style={[styles.bubbleRow, styles.rowStart]}>
+      <View style={styles.aiAvatar}>
+        <Text style={styles.aiAvatarEmoji}>✨</Text>
+      </View>
+      <View style={styles.aiColumn}>
+        <Text style={styles.aiName}>Boomer AI</Text>
+        <View style={[styles.bubble, styles.aiBubble]}>
+          <Text style={[styles.bubbleText, styles.aiText]} selectable>
             {text || ' '}
           </Text>
-        )}
+        </View>
       </View>
     </Animated.View>
   );
@@ -382,6 +473,9 @@ function Bubble({ message }: { message: ChatMessage }) {
 function ThinkingBubble() {
   return (
     <Animated.View entering={FadeIn.duration(180)} style={[styles.bubbleRow, styles.rowStart]}>
+      <View style={styles.aiAvatar}>
+        <Text style={styles.aiAvatarEmoji}>✨</Text>
+      </View>
       <View style={[styles.bubble, styles.aiBubble, styles.thinkingBubble]}>
         <TypingDots />
       </View>
@@ -401,12 +495,37 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   title: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.textPrimary },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  newChatBtn: {
+    minHeight: 36,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newChatText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.primary },
   stars: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textPrimary },
   bannerWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  retryBtn: {
+    marginTop: spacing.sm,
+    minHeight: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryText: { color: colors.textOnDark, fontSize: fontSize.md, fontWeight: fontWeight.bold },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   emptyEmoji: { fontSize: 48, marginBottom: spacing.md },
   emptyTitle: { fontSize: fontSize.xl, fontWeight: fontWeight.black, color: colors.textPrimary },
-  emptySub: { fontSize: fontSize.md, color: colors.textSecondary, marginTop: spacing.xs },
+  emptySub: {
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+    textAlign: 'center',
+  },
   starters: { marginTop: spacing.xl, gap: spacing.md, width: '100%' },
   starter: {
     backgroundColor: colors.surface,
@@ -422,8 +541,27 @@ const styles = StyleSheet.create({
   bubbleRow: { flexDirection: 'row', marginVertical: 2 },
   rowEnd: { justifyContent: 'flex-end' },
   rowStart: { justifyContent: 'flex-start' },
+  aiAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.xs,
+    marginTop: 18,
+  },
+  aiAvatarEmoji: { fontSize: 15 },
+  aiColumn: { flexShrink: 1, maxWidth: '85%' },
+  aiName: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.textSecondary,
+    marginBottom: 2,
+    marginLeft: 4,
+  },
   bubble: {
-    maxWidth: '85%',
+    maxWidth: '100%',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 22,
@@ -434,6 +572,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   userBubble: {
+    maxWidth: '85%',
     backgroundColor: colors.primary,
     borderBottomRightRadius: 6,
   },

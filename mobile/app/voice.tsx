@@ -15,9 +15,10 @@ import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { InfoBanner } from '@/components/InfoBanner';
 import { useChatSession } from '@/screens/useChat';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useProfile } from '@/context/ProfileContext';
 import { isApiConfigured } from '@/config/env';
-import { ttsApi, transcribeApi } from '@/api';
+import { ttsApi } from '@/api';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 import type { ChatMessage } from '@/types';
 
@@ -40,9 +41,6 @@ export default function VoiceScreen() {
   const [input, setInput] = useState('');
   const [speaking, setSpeaking] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const [transcribing, setTranscribing] = useState(false);
-  const [micError, setMicError] = useState<string | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const lastSpokenId = useRef<string | null>(null);
   const awardedStar = useRef(false);
@@ -154,94 +152,25 @@ export default function VoiceScreen() {
     });
   }, [stopSpeaking]);
 
-  const startRecording = useCallback(async () => {
-    setMicError(null);
-    try {
-      // Free the audio session from any TTS playback first — a live Sound keeps
-      // the session in playback-only mode and makes prepareToRecord fail.
-      await stopSpeaking();
+  // Shared record → Whisper-transcribe machinery (same hook that powers the
+  // mic in Chat and AI Art). `onBeforeRecord` frees the audio session from any
+  // TTS playback first — a live Sound keeps the session in playback-only mode
+  // and makes prepareToRecord fail.
+  const handleSendRef = useRef(handleSend);
+  handleSendRef.current = handleSend;
+  const voiceInput = useVoiceInput({
+    onTranscript: (text) => handleSendRef.current(text),
+    onBeforeRecord: stopSpeaking,
+  });
 
-      // Ensure mic permission. getPermissions first so we only prompt when
-      // genuinely undetermined; guide the user to Settings if it's denied.
-      let perm = await Audio.getPermissionsAsync();
-      if (!perm.granted && perm.canAskAgain) {
-        perm = await Audio.requestPermissionsAsync();
-      }
-      if (!perm.granted) {
-        setMicError(
-          'Microphone access is off. Turn it on in Settings → Boomer AI → Microphone, then try again.',
-        );
-        return;
-      }
-
-      // Switch the session into record mode (must include interruptionModeIOS).
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-      });
-
-      // Explicit prepare + start is more reliable than createAsync, especially
-      // right after audio playback held the session.
-      const rec = new Audio.Recording();
-      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      await rec.startAsync();
-      setRecording(rec);
-    } catch (e) {
-      // Surface the real reason so failures are diagnosable instead of generic.
-      const msg = e instanceof Error ? e.message : 'unknown error';
-      setMicError(`Could not start recording: ${msg}`);
-    }
-  }, [stopSpeaking]);
-
-  const stopAndTranscribe = useCallback(async () => {
-    if (!recording) return;
-    try {
-      await recording.stopAndUnloadAsync();
-      // Hand the audio session back to playback so the spoken reply works.
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-      });
-      const uri = recording.getURI();
-      setRecording(null);
-      if (!uri) {
-        setMicError('Recording did not save. Please try again.');
-        return;
-      }
-      setTranscribing(true);
-      const text = await transcribeApi.transcribeAudio(uri);
-      setTranscribing(false);
-      if (text) {
-        handleSend(text);
-      } else {
-        setMicError("I didn't catch that. Please try again.");
-      }
-    } catch (e) {
-      setTranscribing(false);
-      setRecording(null);
-      const msg = e instanceof Error ? e.message : 'unknown error';
-      setMicError(`Could not transcribe your audio: ${msg}`);
-    }
-  }, [recording, handleSend]);
+  const recording = voiceInput.state === 'recording';
+  const transcribing = voiceInput.state === 'transcribing';
+  const micError = voiceInput.error;
 
   const handleMicPress = useCallback(() => {
     if (busy || transcribing) return;
-    if (recording) {
-      void stopAndTranscribe();
-    } else {
-      void startRecording();
-    }
-  }, [busy, transcribing, recording, startRecording, stopAndTranscribe]);
-
-  // Stop any in-progress recording when leaving the screen.
-  useEffect(() => {
-    return () => {
-      if (recording) {
-        void recording.stopAndUnloadAsync().catch(() => undefined);
-      }
-    };
-  }, [recording]);
+    voiceInput.toggle();
+  }, [busy, transcribing, voiceInput]);
 
   return (
     <Screen centered edges={['top', 'bottom']}>

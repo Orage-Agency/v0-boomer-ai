@@ -34,3 +34,19 @@ export function subscribePendingPrompt(fn: (prompt: string) => void): () => void
     listeners.delete(fn);
   };
 }
+
+// ---- "open Chat and start listening" (GlobalChatBar mic) ----
+
+let pendingMic = false;
+
+/** Ask the Chat screen to start voice recording the next time it gains focus. */
+export function setPendingMic(): void {
+  pendingMic = true;
+}
+
+/** Read and clear the pending-mic request. */
+export function consumePendingMic(): boolean {
+  const value = pendingMic;
+  pendingMic = false;
+  return value;
+}

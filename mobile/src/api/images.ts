@@ -10,7 +10,9 @@ import type { GenerateImageResult } from '@/types';
  */
 
 export function generateImage(prompt: string): Promise<GenerateImageResult> {
-  return apiPost<GenerateImageResult>('/api/generate-image', { prompt });
+  // Image generation can legitimately take a while on cold starts — give it
+  // a longer leash than the default 30s before declaring a timeout.
+  return apiPost<GenerateImageResult>('/api/generate-image', { prompt }, 75_000);
 }
 
 export function improvePrompt(

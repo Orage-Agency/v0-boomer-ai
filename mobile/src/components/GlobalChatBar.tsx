@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { setPendingMic } from '@/screens/pendingPrompt';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
 /**
@@ -9,10 +10,17 @@ import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
  * full Chat screen (which owns the real, keyboard-aware text input) — this
  * keeps the affordance reliable instead of fighting the keyboard from inside
  * the fixed tab bar.
+ *
+ * The mic button does the same jump but asks the Chat screen to start
+ * listening immediately, so "talk to it from anywhere" is two taps: 🎤 → speak.
  */
 export function GlobalChatBar() {
   const router = useRouter();
   const open = () => router.push('/(tabs)/chat');
+  const openWithMic = () => {
+    setPendingMic();
+    router.push('/(tabs)/chat');
+  };
 
   return (
     <View style={styles.wrap}>
@@ -23,6 +31,15 @@ export function GlobalChatBar() {
         accessibilityLabel="Open chat to ask Boomer AI anything"
       >
         <Text style={styles.placeholder}>Ask Boomer AI anything…</Text>
+        <Pressable
+          onPress={openWithMic}
+          style={styles.mic}
+          accessibilityRole="button"
+          accessibilityLabel="Speak to Boomer AI"
+          hitSlop={6}
+        >
+          <Text style={styles.micIcon}>🎤</Text>
+        </Pressable>
         <View style={styles.send}>
           <Text style={styles.sendIcon}>↑</Text>
         </View>
@@ -49,12 +66,22 @@ const styles = StyleSheet.create({
     paddingRight: spacing.xs,
     paddingVertical: spacing.xs,
     minHeight: 48,
+    gap: spacing.xs,
   },
   placeholder: {
     flex: 1,
     fontSize: fontSize.md,
     color: colors.textMuted,
   },
+  mic: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micIcon: { fontSize: 18 },
   send: {
     width: 40,
     height: 40,

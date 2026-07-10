@@ -7,6 +7,10 @@ import { env } from '@/config/env';
  * an absolute origin, supplied by `env.apiBaseUrl`. All request/response
  * contracts here intentionally match the existing route handlers in
  * `app/api/*` so the hosted backend is reused as-is.
+ *
+ * Every JSON request carries a timeout (default 30s, image generation passes
+ * 75s) so a stalled connection surfaces a clear, retryable error instead of
+ * a spinner that never ends.
  */
 
 export class ApiError extends Error {
@@ -19,6 +23,8 @@ export class ApiError extends Error {
     this.body = body;
   }
 }
+
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 function url(path: string): string {
   const base = env.apiBaseUrl.replace(/\/$/, '');
@@ -42,28 +48,61 @@ async function parseJson<T>(res: Response): Promise<T> {
   return body as T;
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(url(path), {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-  });
+/** fetch with an abort-based timeout; maps aborts to a friendly ApiError. */
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (e) {
+    if (controller.signal.aborted) {
+      throw new ApiError(
+        'This is taking longer than usual. Please check your internet and try again.',
+        0,
+        null,
+      );
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function apiGet<T>(path: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
+  const res = await fetchWithTimeout(
+    url(path),
+    { method: 'GET', headers: { Accept: 'application/json' } },
+    timeoutMs,
+  );
   return parseJson<T>(res);
 }
 
-export async function apiPost<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(url(path), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
+export async function apiPost<T>(
+  path: string,
+  body: unknown,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<T> {
+  const res = await fetchWithTimeout(
+    url(path),
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+    timeoutMs,
+  );
   return parseJson<T>(res);
 }
 
-export async function apiDelete<T>(path: string): Promise<T> {
-  const res = await fetch(url(path), { method: 'DELETE' });
+export async function apiDelete<T>(path: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
+  const res = await fetchWithTimeout(url(path), { method: 'DELETE' }, timeoutMs);
   return parseJson<T>(res);
 }
 
