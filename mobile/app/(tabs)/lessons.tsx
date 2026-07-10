@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
+import { BrandHeader } from '@/components/BrandHeader';
 import { Skeleton } from '@/components/Skeleton';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { useProfile } from '@/context/ProfileContext';
@@ -34,20 +35,20 @@ export default function LessonsScreen() {
 
   return (
     <Screen centered edges={['top']}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Video Lessons</Text>
-          <Text style={styles.subtitle}>Real people, real help!</Text>
-        </View>
-        <View style={styles.stats}>
-          <View style={styles.statPill}>
-            <Text style={styles.statText}>🔥 {profile.streak}</Text>
+      <BrandHeader
+        title="Video Lessons"
+        subtitle="Real people, real help!"
+        right={
+          <View style={styles.stats}>
+            <View style={styles.statPill}>
+              <Text style={styles.statText}>🔥 {profile.streak}</Text>
+            </View>
+            <View style={[styles.statPill, styles.starPill]}>
+              <Text style={styles.statText}>⭐ {profile.stars}</Text>
+            </View>
           </View>
-          <View style={[styles.statPill, styles.starPill]}>
-            <Text style={styles.statText}>⭐ {profile.stars}</Text>
-          </View>
-        </View>
-      </View>
+        }
+      />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {profile.stars < 100 && (

@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
+import { BrandHeader } from '@/components/BrandHeader';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { useProfile } from '@/context/ProfileContext';
 import { setPendingPrompt } from '@/screens/pendingPrompt';
@@ -35,15 +36,15 @@ export default function TipsScreen() {
 
   return (
     <Screen centered edges={['top']}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>AI Tips & Guides</Text>
-          <Text style={styles.subtitle}>Tap any tip to try it in chat</Text>
-        </View>
-        <View style={styles.starPill}>
-          <Text style={styles.starText}>⭐ {profile.stars}</Text>
-        </View>
-      </View>
+      <BrandHeader
+        title="AI Tips & Guides"
+        subtitle="Tap any tip to try it in chat"
+        right={
+          <View style={styles.starPill}>
+            <Text style={styles.starText}>⭐ {profile.stars}</Text>
+          </View>
+        }
+      />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {TIP_CATEGORIES.map((category, idx) => {

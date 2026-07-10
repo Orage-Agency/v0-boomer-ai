@@ -3,6 +3,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'rea
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
+import { BrandHeader } from '@/components/BrandHeader';
 import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
 import { useEntitlement } from '@/context/EntitlementContext';
@@ -120,9 +121,7 @@ export default function ProfileScreen() {
 
   return (
     <Screen centered edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Your Profile</Text>
-      </View>
+      <BrandHeader title="Your Profile" />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.identity}>

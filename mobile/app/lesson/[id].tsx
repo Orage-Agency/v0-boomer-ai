@@ -10,6 +10,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ResizeMode, Video, AVPlaybackStatus } from 'expo-av';
 import { Screen } from '@/components/Screen';
+import { BrandHeader } from '@/components/BrandHeader';
 import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
 import { setPendingPrompt } from '@/screens/pendingPrompt';
@@ -84,20 +85,7 @@ export default function LessonDetail() {
 
   return (
     <Screen centered edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Text style={styles.backText}>‹ Back</Text>
-        </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Lesson
-        </Text>
-        <View style={styles.backBtn} />
-      </View>
+      <BrandHeader title="Lesson" onBack={() => router.back()} />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{lesson.title}</Text>

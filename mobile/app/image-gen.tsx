@@ -15,6 +15,7 @@ import {
 import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
+import { BrandHeader } from '@/components/BrandHeader';
 import { Button } from '@/components/Button';
 import { InfoBanner } from '@/components/InfoBanner';
 import { MicButton } from '@/components/MicButton';
@@ -157,18 +158,7 @@ export default function ImageGenScreen() {
 
   return (
     <Screen centered edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Text style={styles.backText}>‹ Back</Text>
-        </Pressable>
-        <Text style={styles.title}>Create AI Art</Text>
-        <View style={styles.backBtn} />
-      </View>
+      <BrandHeader title="Create AI Art" onBack={() => router.back()} />
 
       <KeyboardAvoidingView
         style={styles.flex}

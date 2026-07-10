@@ -1,4 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { chatApi, conversationsApi } from '@/api';
 import { getDeviceId } from '@/context/storage';
 import { isApiConfigured } from '@/config/env';
@@ -9,6 +10,12 @@ import type { ChatMessage } from '@/types';
  * streamed reply, and best-effort saves the conversation to /api/conversations.
  * Mirrors the responsibilities of the web `chat-tab.tsx` (minus the prompt
  * library UI).
+ *
+ * MEMORY: the current conversation is persisted to AsyncStorage after every
+ * completed turn and restored when the app reopens, so closing the app never
+ * loses the chat. Past conversations saved to the backend can be reloaded via
+ * `loadById` (used by the History screen) and continued seamlessly — new turns
+ * update the same conversation row.
  */
 
 let idCounter = 0;
@@ -19,12 +26,61 @@ function nextId(prefix: string): string {
 
 export type ChatStatus = 'idle' | 'submitted' | 'streaming' | 'error';
 
+/** Where the in-progress conversation lives between app launches. */
+const CURRENT_CHAT_KEY = 'boomer.chat.current';
+
+type PersistedChat = {
+  messages: ChatMessage[];
+  conversationId: number | string | null;
+};
+
 export function useChatSession() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<ChatStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const conversationId = useRef<number | string | null>(null);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hydrated = useRef(false);
+
+  // Restore the conversation that was on screen when the app last closed.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(CURRENT_CHAT_KEY);
+        if (raw && !cancelled) {
+          const saved = JSON.parse(raw) as PersistedChat;
+          if (Array.isArray(saved.messages) && saved.messages.length > 0) {
+            conversationId.current = saved.conversationId ?? null;
+            setMessages(saved.messages);
+          }
+        }
+      } catch {
+        /* corrupted snapshot — start fresh */
+      } finally {
+        hydrated.current = true;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Persist the current conversation locally (called on completed turns). */
+  const persist = useCallback((msgs: ChatMessage[]) => {
+    if (!hydrated.current) return;
+    const payload: PersistedChat = {
+      messages: msgs,
+      conversationId: conversationId.current,
+    };
+    if (msgs.length === 0) {
+      void AsyncStorage.removeItem(CURRENT_CHAT_KEY).catch(() => undefined);
+    } else {
+      void AsyncStorage.setItem(CURRENT_CHAT_KEY, JSON.stringify(payload)).catch(
+        () => undefined,
+      );
+    }
+  }, []);
 
   const scheduleSave = useCallback((msgs: ChatMessage[]) => {
     if (!isApiConfigured || msgs.length === 0) return;
@@ -42,12 +98,14 @@ export function useChatSession() {
         });
         if (res.id && conversationId.current == null) {
           conversationId.current = res.id;
+          // Re-persist so the locally-stored chat carries its backend id.
+          persist(msgs);
         }
       } catch {
         /* best effort */
       }
     }, 1000);
-  }, []);
+  }, [persist]);
 
   const send = useCallback(
     async (text: string, image?: { uri: string; dataUrl: string }) => {
@@ -97,23 +155,51 @@ export function useChatSession() {
         ];
         setMessages(finalMsgs);
         setStatus('idle');
+        persist(finalMsgs);
         scheduleSave(finalMsgs);
       } catch (e) {
         setStatus('error');
         setError((e as Error).message || 'Something went wrong. Please try again.');
-        // Drop the empty assistant placeholder on error.
-        setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+        // Drop the empty assistant placeholder on error; keep the user's
+        // message visible so "Try Again" has context.
+        setMessages((prev) => {
+          const kept = prev.filter((m) => m.id !== assistantId);
+          persist(kept);
+          return kept;
+        });
       }
     },
-    [messages, status, scheduleSave],
+    [messages, status, scheduleSave, persist],
   );
+
+  /**
+   * Load a past conversation from the backend and make it the active chat.
+   * New messages will continue (update) that same conversation.
+   */
+  const loadById = useCallback(async (id: number | string): Promise<boolean> => {
+    try {
+      const row = await conversationsApi.getConversation(id);
+      const msgs = Array.isArray(row.messages) ? row.messages : [];
+      if (msgs.length === 0) return false;
+      conversationId.current = row.id;
+      setMessages(msgs);
+      setStatus('idle');
+      setError(null);
+      persist(msgs);
+      return true;
+    } catch {
+      setError('Could not open that conversation. Please try again.');
+      return false;
+    }
+  }, [persist]);
 
   const reset = useCallback(() => {
     setMessages([]);
     setStatus('idle');
     setError(null);
     conversationId.current = null;
+    void AsyncStorage.removeItem(CURRENT_CHAT_KEY).catch(() => undefined);
   }, []);
 
-  return { messages, status, error, send, reset };
+  return { messages, status, error, send, reset, loadById };
 }

@@ -13,6 +13,7 @@ import * as Speech from 'expo-speech';
 import { Audio, InterruptionModeIOS } from 'expo-av';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
+import { BrandHeader } from '@/components/BrandHeader';
 import { InfoBanner } from '@/components/InfoBanner';
 import { useChatSession } from '@/screens/useChat';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
@@ -174,25 +175,20 @@ export default function VoiceScreen() {
 
   return (
     <Screen centered edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Text style={styles.backText}>‹ Back</Text>
-        </Pressable>
-        <Text style={styles.title}>Talk to AI</Text>
-        <Pressable
-          onPress={toggleTts}
-          style={styles.backBtn}
-          accessibilityRole="button"
-          accessibilityLabel={ttsEnabled ? 'Turn off voice replies' : 'Turn on voice replies'}
-        >
-          <Text style={styles.ttsToggle}>{ttsEnabled ? '🔊' : '🔇'}</Text>
-        </Pressable>
-      </View>
+      <BrandHeader
+        title="Talk to Sara"
+        onBack={() => router.back()}
+        right={
+          <Pressable
+            onPress={toggleTts}
+            style={styles.ttsBtn}
+            accessibilityRole="button"
+            accessibilityLabel={ttsEnabled ? 'Turn off voice replies' : 'Turn on voice replies'}
+          >
+            <Text style={styles.ttsToggle}>{ttsEnabled ? '🔊' : '🔇'}</Text>
+          </Pressable>
+        }
+      />
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -308,7 +304,7 @@ function Bubble({ message }: { message: ChatMessage }) {
   return (
     <View style={[styles.bubbleRow, isUser ? styles.rowEnd : styles.rowStart]}>
       <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-        <Text style={styles.speaker}>{isUser ? 'You' : 'AI'}</Text>
+        <Text style={styles.speaker}>{isUser ? 'You' : '👩🏼 Sara'}</Text>
         <Text style={[styles.bubbleText, isUser && styles.userText]}>{text || ' '}</Text>
       </View>
     </View>
@@ -326,10 +322,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  backBtn: { minWidth: 64, minHeight: 44, justifyContent: 'center' },
-  backText: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.primary },
+  ttsBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   ttsToggle: { fontSize: 22, textAlign: 'right' },
-  title: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.textPrimary },
   bannerWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   emptyEmoji: { fontSize: 56, marginBottom: spacing.md },

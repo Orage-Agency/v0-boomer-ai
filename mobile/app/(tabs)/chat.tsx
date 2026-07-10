@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
+import { BrandHeader } from '@/components/BrandHeader';
 import { InfoBanner } from '@/components/InfoBanner';
 import { TypingDots } from '@/components/Skeleton';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
@@ -23,6 +24,7 @@ import { MicButton } from '@/components/MicButton';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useChatSession } from '@/screens/useChat';
 import {
+  consumePendingConversation,
   consumePendingMic,
   consumePendingPrompt,
   subscribePendingPrompt,
@@ -40,12 +42,19 @@ import type { ChatMessage } from '@/types';
 /**
  * AI Chat — FULLY IMPLEMENTED.
  * Streams replies from /api/chat token-by-token, renders a structured message
- * list (avatar + name on AI turns), and awards stars on send (matching the
- * web reward logic: +10 + "First Chat" badge on first message, +1 thereafter).
+ * list (Sara's avatar + name on AI turns), and awards stars on send (matching
+ * the web reward logic: +10 + "First Chat" badge on first message, +1 after).
  *
  * Input bar affordances: photo (camera / library), voice-to-text (Whisper),
  * and plain typing. A failed send offers one-tap "Try Again".
+ *
+ * MEMORY: the conversation survives app restarts (see useChatSession), and
+ * the History screen can reopen any saved conversation to continue it.
  */
+
+/** The friendly face of the assistant across the app. */
+export const COMPANION_NAME = 'Sara';
+export const COMPANION_EMOJI = '👩🏼';
 const STARTER_PROMPTS = [
   'How do I create a strong password I can remember?',
   'Is this email a scam? How can I tell?',
@@ -55,7 +64,7 @@ const STARTER_PROMPTS = [
 
 export default function Chat() {
   const router = useRouter();
-  const { messages, status, error, send, reset } = useChatSession();
+  const { messages, status, error, send, reset, loadById } = useChatSession();
   const { profile, updateProfile, apiConfigured } = useProfile();
   const { entitled } = useEntitlement();
   const [input, setInput] = useState('');
@@ -190,11 +199,18 @@ export default function Chat() {
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
 
+  // Keep loadById stable for the focus effect.
+  const loadByIdRef = useRef(loadById);
+  loadByIdRef.current = loadById;
+
   // When the Chat tab gains focus, pick up any prompt queued by another screen
-  // (Lessons / Tips / Quick Questions "Try in chat" actions) and send it; also
-  // honor a queued "start listening" request from the GlobalChatBar mic.
+  // (Lessons / Tips / Quick Questions "Try in chat" actions) and send it; a
+  // saved conversation chosen on the History screen; or a queued "start
+  // listening" request from the GlobalChatBar mic.
   useFocusEffect(
     useCallback(() => {
+      const conversation = consumePendingConversation();
+      if (conversation != null) void loadByIdRef.current(conversation);
       const queued = consumePendingPrompt();
       if (queued) handleSendRef.current(queued, null);
       if (consumePendingMic() && voiceRef.current.state === 'idle') {
@@ -227,23 +243,34 @@ export default function Chat() {
 
   return (
     <Screen centered edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Chat</Text>
-        <View style={styles.headerRight}>
-          {messages.length > 0 && (
+      <BrandHeader
+        title="Chat"
+        right={
+          <>
             <Pressable
-              onPress={handleNewChat}
-              style={styles.newChatBtn}
+              onPress={() => router.push('/history')}
+              style={styles.historyBtn}
               accessibilityRole="button"
-              accessibilityLabel="Start a new chat"
+              accessibilityLabel="See my past conversations"
               hitSlop={6}
             >
-              <Text style={styles.newChatText}>+ New Chat</Text>
+              <Text style={styles.historyIcon}>🕐</Text>
             </Pressable>
-          )}
-          <Text style={styles.stars}>⭐ {profile.stars}</Text>
-        </View>
-      </View>
+            {messages.length > 0 && (
+              <Pressable
+                onPress={handleNewChat}
+                style={styles.newChatBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Start a new chat"
+                hitSlop={6}
+              >
+                <Text style={styles.newChatText}>+ New</Text>
+              </Pressable>
+            )}
+            <Text style={styles.stars}>⭐ {profile.stars}</Text>
+          </>
+        }
+      />
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -262,8 +289,8 @@ export default function Chat() {
 
         {messages.length === 0 ? (
           <Animated.View entering={FadeInUp.duration(300)} style={styles.empty}>
-            <Text style={styles.emptyEmoji}>✨</Text>
-            <Text style={styles.emptyTitle}>Let's Chat!</Text>
+            <Text style={styles.emptyEmoji}>{COMPANION_EMOJI}</Text>
+            <Text style={styles.emptyTitle}>Hi, I'm {COMPANION_NAME}!</Text>
             <Text style={styles.emptySub}>
               Type, talk with the microphone, or send a photo.
             </Text>
@@ -451,14 +478,15 @@ function Bubble({ message }: { message: ChatMessage }) {
     );
   }
 
-  // AI turn: avatar + name header makes the back-and-forth easy to follow.
+  // AI turn: Sara's avatar + name make the back-and-forth easy to follow —
+  // a companion face, not an abstract symbol.
   return (
     <Animated.View entering={FadeInUp.duration(220)} style={[styles.bubbleRow, styles.rowStart]}>
       <View style={styles.aiAvatar}>
-        <Text style={styles.aiAvatarEmoji}>✨</Text>
+        <Text style={styles.aiAvatarEmoji}>{COMPANION_EMOJI}</Text>
       </View>
       <View style={styles.aiColumn}>
-        <Text style={styles.aiName}>Boomer AI</Text>
+        <Text style={styles.aiName}>{COMPANION_NAME}</Text>
         <View style={[styles.bubble, styles.aiBubble]}>
           <Text style={[styles.bubbleText, styles.aiText]} selectable>
             {text || ' '}
@@ -469,12 +497,12 @@ function Bubble({ message }: { message: ChatMessage }) {
   );
 }
 
-/** "AI is thinking" skeleton — replaces the plain "Thinking…" text. */
+/** "Sara is thinking" skeleton — replaces the plain "Thinking…" text. */
 function ThinkingBubble() {
   return (
     <Animated.View entering={FadeIn.duration(180)} style={[styles.bubbleRow, styles.rowStart]}>
       <View style={styles.aiAvatar}>
-        <Text style={styles.aiAvatarEmoji}>✨</Text>
+        <Text style={styles.aiAvatarEmoji}>{COMPANION_EMOJI}</Text>
       </View>
       <View style={[styles.bubble, styles.aiBubble, styles.thinkingBubble]}>
         <TypingDots />
@@ -485,17 +513,15 @@ function ThinkingBubble() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  header: {
-    flexDirection: 'row',
+  historyBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    justifyContent: 'center',
   },
-  title: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.textPrimary },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  historyIcon: { fontSize: 20 },
   newChatBtn: {
     minHeight: 36,
     paddingHorizontal: spacing.md,

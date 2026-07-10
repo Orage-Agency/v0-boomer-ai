@@ -35,6 +35,22 @@ export function subscribePendingPrompt(fn: (prompt: string) => void): () => void
   };
 }
 
+// ---- "open Chat with a past conversation" (History screen) ----
+
+let pendingConversationId: number | string | null = null;
+
+/** Ask the Chat screen to load this saved conversation on next focus. */
+export function setPendingConversation(id: number | string): void {
+  pendingConversationId = id;
+}
+
+/** Read and clear the pending conversation id (returns null if none). */
+export function consumePendingConversation(): number | string | null {
+  const value = pendingConversationId;
+  pendingConversationId = null;
+  return value;
+}
+
 // ---- "open Chat and start listening" (GlobalChatBar mic) ----
 
 let pendingMic = false;

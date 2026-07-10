@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
+import { BrandHeader } from '@/components/BrandHeader';
 import { setPendingPrompt } from '@/screens/pendingPrompt';
 import { QUICK_QUESTIONS } from '@/data/content';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
@@ -25,18 +26,7 @@ export default function QuickQuestionsScreen() {
 
   return (
     <Screen centered edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Text style={styles.backText}>‹ Back</Text>
-        </Pressable>
-        <Text style={styles.title}>Quick Questions</Text>
-        <View style={styles.backBtn} />
-      </View>
+      <BrandHeader title="Quick Questions" onBack={() => router.back()} />
 
       <Text style={styles.subtitle}>Tap a question to ask the AI</Text>
 

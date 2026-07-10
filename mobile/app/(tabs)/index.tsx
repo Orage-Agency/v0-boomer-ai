@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -40,17 +40,18 @@ export default function Home() {
   return (
     <Screen centered edges={['top']}>
       <View style={styles.header}>
-        {entitled ? (
-          <View style={styles.brandRow}>
-            <Text style={styles.brand}>Boomer</Text>
+        <View style={styles.brandRow}>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.brandLogo}
+            accessibilityLabel="Boomer AI"
+          />
+          {entitled && (
             <View style={styles.proPill}>
               <Text style={styles.proPillText}>Pro</Text>
             </View>
-            <Text style={styles.brand}>AI</Text>
-          </View>
-        ) : (
-          <Text style={styles.brand}>Boomer AI</Text>
-        )}
+          )}
+        </View>
         <StarBadge stars={profile.stars} />
       </View>
 
@@ -157,11 +158,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  brand: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.black,
-    color: colors.textPrimary,
-  },
+  brandLogo: { width: 44, height: 44, borderRadius: 8 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   proPill: {
     backgroundColor: '#F2C740', // gold = premium
