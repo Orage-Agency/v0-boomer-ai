@@ -1,4 +1,4 @@
-import { apiFetchRaw } from './client';
+import { fetch as expoFetch } from 'expo/fetch';
 import { env } from '@/config/env';
 import type { ChatMessage } from '@/types';
 
@@ -15,17 +15,11 @@ import type { ChatMessage } from '@/types';
  *   data: {"type":"text-delta","delta":" there"}
  *   data: [DONE]
  *
- * We accumulate `text-delta` deltas (and tolerate the older `text` field) and
- * surface them through an `onDelta` callback for live streaming UI.
- *
- * NOTE: React Native's fetch does not expose a `ReadableStream` body reader in
- * all engines. We therefore read the full response text and parse it. This
- * yields the complete answer reliably; for token-by-token streaming on device,
- * see TODO below.
- *
- * TODO(parity): For true incremental streaming on device, add
- * `react-native-fetch-api` / `expo/fetch` streaming or switch the backend to a
- * plain text endpoint. The current approach delivers the full message at once.
+ * STREAMING: we use `expo/fetch` (SDK 52+), whose response body is a real
+ * `ReadableStream`, so deltas render token-by-token as they arrive — the
+ * reply "types itself" instead of appearing all at once after a long wait.
+ * If the stream reader is unavailable for any reason we fall back to reading
+ * the full body, which still yields the complete answer.
  */
 
 const MODEL = 'openai/gpt-4o-mini';
@@ -69,12 +63,19 @@ function parsePayload(payload: string): string {
   }
 }
 
+/** Strip SSE framing from a single line and return appended text. */
+function parseLine(line: string): string {
+  const payload = line.startsWith('data:') ? line.slice(5) : line;
+  return parsePayload(payload);
+}
+
 /**
  * Send a chat turn and return the assistant's full reply text.
- * Calls `onDelta` with cumulative text as chunks are parsed.
+ * Calls `onDelta` with cumulative text as chunks arrive from the stream.
  */
 export async function sendChat(opts: SendChatOptions): Promise<string> {
-  const res = await apiFetchRaw('/api/chat', {
+  const base = env.apiBaseUrl.replace(/\/$/, '');
+  const res = await expoFetch(`${base}/api/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -100,24 +101,50 @@ export async function sendChat(opts: SendChatOptions): Promise<string> {
     throw new Error(message);
   }
 
-  const raw = await res.text();
   let cumulative = '';
+  const reader = res.body?.getReader();
 
-  // Handle both SSE ("data: ...") framing and raw concatenated lines.
-  const lines = raw.split(/\r?\n/);
-  for (const line of lines) {
-    const payload = line.startsWith('data:') ? line.slice(5) : line;
-    const piece = parsePayload(payload);
-    if (piece) {
-      cumulative += piece;
+  if (reader) {
+    // True incremental streaming: decode chunks, split into complete lines,
+    // and keep the trailing partial line in the buffer for the next chunk.
+    const decoder = new TextDecoder();
+    let buffer = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() ?? '';
+      let appended = false;
+      for (const line of lines) {
+        const piece = parseLine(line);
+        if (piece) {
+          cumulative += piece;
+          appended = true;
+        }
+      }
+      if (appended) opts.onDelta?.(cumulative);
+    }
+    // Flush whatever remains in the buffer.
+    const tailPiece = parseLine(buffer);
+    if (tailPiece) {
+      cumulative += tailPiece;
       opts.onDelta?.(cumulative);
     }
-  }
-
-  // Fallback: if nothing parsed (unexpected format), surface the raw text.
-  if (!cumulative && raw.trim()) {
-    cumulative = raw.trim();
-    opts.onDelta?.(cumulative);
+  } else {
+    // Fallback: no stream reader — read the whole body and parse at once.
+    const raw = await res.text();
+    for (const line of raw.split(/\r?\n/)) {
+      const piece = parseLine(line);
+      if (piece) {
+        cumulative += piece;
+        opts.onDelta?.(cumulative);
+      }
+    }
+    if (!cumulative && raw.trim()) {
+      cumulative = raw.trim();
+      opts.onDelta?.(cumulative);
+    }
   }
 
   return cumulative;

@@ -6,15 +6,19 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { InfoBanner } from '@/components/InfoBanner';
+import { MicButton } from '@/components/MicButton';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { imagesApi, ApiError } from '@/api';
 import { useProfile } from '@/context/ProfileContext';
 import { isApiConfigured } from '@/config/env';
@@ -26,10 +30,11 @@ import { LinearGradient } from 'expo-linear-gradient';
  *
  * Wraps the existing images API client (`/api/generate-image` +
  * `/api/improve-prompt`). Mirrors the web `ai-art-tab.tsx`:
- *  - prompt input + quick idea chips + style presets
+ *  - prompt input (typed or DICTATED via the mic) + quick idea chips + styles
  *  - "Improve" enhances the prompt via /api/improve-prompt
  *  - "Create Image" generates and shows the result
- *  - loading + error + content-safety states
+ *  - result actions: Save / Share (real buttons — long-press-to-save is a web
+ *    behavior that does nothing in a native <Image>)
  * Awards +1 star on a successful generation (matches web reward logic).
  */
 
@@ -59,8 +64,17 @@ export default function ImageGenScreen() {
   const [improving, setImproving] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareNote, setShareNote] = useState<string | null>(null);
 
   const canGenerate = !!prompt.trim() && !generating && isApiConfigured;
+
+  // Dictate the description instead of typing it.
+  const voice = useVoiceInput({
+    onTranscript: (text) => {
+      setPrompt((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+    },
+  });
 
   const handleImprove = useCallback(async () => {
     const base = prompt.trim();
@@ -89,6 +103,7 @@ export default function ImageGenScreen() {
     setGenerating(true);
     setError(null);
     setImageUrl(null);
+    setShareNote(null);
     try {
       const fullPrompt = `${base}, ${style} style, high quality, beautiful lighting`;
       const res = await imagesApi.generateImage(fullPrompt);
@@ -112,7 +127,33 @@ export default function ImageGenScreen() {
   const handleNewImage = useCallback(() => {
     setImageUrl(null);
     setError(null);
+    setShareNote(null);
   }, []);
+
+  /**
+   * Save / Share the generated artwork. Downloads the remote image to the app
+   * cache, then opens the iOS share sheet — which includes "Save Image" (to
+   * Photos), Messages, Mail, etc. One flow covers both saving and sharing
+   * without needing extra photo-library write permissions.
+   */
+  const handleShare = useCallback(async () => {
+    if (!imageUrl || sharing) return;
+    setSharing(true);
+    setShareNote(null);
+    try {
+      const target = `${FileSystem.cacheDirectory}boomer-art-${Date.now()}.jpg`;
+      const dl = await FileSystem.downloadAsync(imageUrl, target);
+      await Share.share(
+        Platform.OS === 'ios'
+          ? { url: dl.uri }
+          : { message: imageUrl },
+      );
+    } catch {
+      setShareNote('Could not open sharing. Please try again.');
+    } finally {
+      setSharing(false);
+    }
+  }, [imageUrl, sharing]);
 
   return (
     <Screen centered edges={['top', 'bottom']}>
@@ -155,24 +196,45 @@ export default function ImageGenScreen() {
                 resizeMode="cover"
                 accessibilityLabel="Your generated AI artwork"
               />
-              <Button title="Create Another" onPress={handleNewImage} variant="primary" />
-              <Text style={styles.hint}>
-                Press and hold the image to save or share it.
-              </Text>
+              <Button
+                title={sharing ? 'Opening…' : '💾 Save or Share'}
+                onPress={handleShare}
+                disabled={sharing}
+                variant="primary"
+              />
+              {shareNote && <InfoBanner tone="danger" message={shareNote} />}
+              <Button title="🪄 Create Another" onPress={handleNewImage} variant="secondary" />
             </View>
           ) : (
             <View style={styles.form}>
               <Text style={styles.label}>Describe your image</Text>
-              <TextInput
-                style={styles.input}
-                value={prompt}
-                onChangeText={setPrompt}
-                placeholder="A beautiful sunset over a calm lake…"
-                placeholderTextColor={colors.textMuted}
-                multiline
-                editable={!generating}
-                accessibilityLabel="Image description"
-              />
+              <View style={styles.promptRow}>
+                <TextInput
+                  style={styles.input}
+                  value={prompt}
+                  onChangeText={(t) => {
+                    setPrompt(t);
+                    if (voice.error) voice.clearError();
+                  }}
+                  placeholder="A beautiful sunset over a calm lake…"
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  editable={!generating && voice.state !== 'recording'}
+                  accessibilityLabel="Image description"
+                />
+                <MicButton
+                  state={voice.state}
+                  onPress={voice.toggle}
+                  disabled={generating}
+                />
+              </View>
+              {voice.state === 'recording' && (
+                <InfoBanner
+                  tone="info"
+                  message="Listening… describe your picture, then tap the square button."
+                />
+              )}
+              {voice.error && <InfoBanner tone="danger" message={voice.error} />}
 
               <Pressable
                 onPress={handleImprove}
@@ -228,7 +290,20 @@ export default function ImageGenScreen() {
                 })}
               </View>
 
-              {error && <InfoBanner tone="danger" message={error} />}
+              {error && (
+                <View style={styles.errorWrap}>
+                  <InfoBanner tone="danger" message={error} />
+                  <Pressable
+                    onPress={handleGenerate}
+                    disabled={!canGenerate}
+                    style={[styles.retryBtn, !canGenerate && styles.improveDisabled]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Try creating the image again"
+                  >
+                    <Text style={styles.retryText}>↻ Try Again</Text>
+                  </Pressable>
+                </View>
+              )}
 
               <Pressable
                 onPress={handleGenerate}
@@ -244,7 +319,10 @@ export default function ImageGenScreen() {
                   style={styles.generate}
                 >
                   {generating ? (
-                    <ActivityIndicator color={colors.textOnDark} />
+                    <View style={styles.generatingRow}>
+                      <ActivityIndicator color={colors.textOnDark} />
+                      <Text style={styles.generateText}>Creating your art…</Text>
+                    </View>
                   ) : (
                     <Text style={styles.generateText}>🪄 Create Image</Text>
                   )}
@@ -275,7 +353,9 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing.lg, gap: spacing.lg },
   form: { gap: spacing.md },
   label: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textPrimary },
+  promptRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-end' },
   input: {
+    flex: 1,
     minHeight: 96,
     backgroundColor: colors.surfaceMuted,
     borderRadius: radius.md,
@@ -321,6 +401,15 @@ const styles = StyleSheet.create({
   styleEmoji: { fontSize: 22 },
   styleLabel: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: colors.textSecondary },
   styleLabelActive: { color: colors.purple },
+  errorWrap: { gap: spacing.sm },
+  retryBtn: {
+    minHeight: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryText: { color: colors.textOnDark, fontSize: fontSize.md, fontWeight: fontWeight.bold },
   generateWrap: { borderRadius: radius.lg, overflow: 'hidden', marginTop: spacing.sm },
   generateDisabled: { opacity: 0.4 },
   generate: {
@@ -328,6 +417,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  generatingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   generateText: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textOnDark },
   resultWrap: { gap: spacing.lg },
   resultImage: {
@@ -336,5 +426,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: colors.surfaceMuted,
   },
-  hint: { fontSize: fontSize.xs, color: colors.textMuted, textAlign: 'center' },
 });

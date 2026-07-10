@@ -20,13 +20,16 @@ Take this simple prompt and enhance it to create a better image. Add specific de
 - Specific details and textures
 - Composition and perspective
 
-Keep it concise (2-3 sentences max) and focused on visual elements.
+Keep it concise (2 sentences max) and focused on visual elements.
 
 Original prompt: "${prompt}"
 
 Enhanced prompt:`,
       temperature: 0.7,
-      maxTokens: 150,
+      // AI SDK v5+ renamed maxTokens → maxOutputTokens; the old name was
+      // silently ignored, so "improve" generated an unbounded essay and took
+      // ~12s. Capping output brings it down to a snappy couple of seconds.
+      maxOutputTokens: 120,
     })
 
     const improvedPrompt = await text
