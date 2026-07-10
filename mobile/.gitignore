@@ -22,3 +22,10 @@ android/
 # Misc
 *.log
 .DS_Store
+
+# Signing secrets (handoff-restored, local only)
+ios-creds/
+*.p12
+*.jks
+*.p8
+*.keystore

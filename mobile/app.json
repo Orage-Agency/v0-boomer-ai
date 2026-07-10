@@ -29,12 +29,15 @@
     },
     "android": {
       "package": "boomerai.orage.agency",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "CAMERA",
+        "READ_MEDIA_IMAGES"
       ]
     },
     "web": {

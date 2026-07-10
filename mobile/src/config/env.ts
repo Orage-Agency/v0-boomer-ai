@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 /**
  * Centralized runtime configuration.
@@ -52,6 +53,20 @@ function isRealKey(key: string): boolean {
 /** True when the API base URL has not yet been configured by the owner. */
 export const isApiConfigured = !env.apiBaseUrl.includes('CHANGE-ME');
 
-/** True when a real RevenueCat key has been supplied for the current platform. */
-export const isRevenueCatConfigured =
-  isRealKey(env.revenueCat.iosApiKey) || isRealKey(env.revenueCat.androidApiKey);
+/** True when a real RevenueCat key exists for the platform actually running. */
+export function isRevenueCatConfiguredForPlatform(os: string): boolean {
+  const key =
+    os === 'ios' ? env.revenueCat.iosApiKey : env.revenueCat.androidApiKey;
+  return isRealKey(key);
+}
+
+/**
+ * True when a real RevenueCat key is configured for the CURRENT platform.
+ * Platform-aware so that a live iOS key does not make Android (still on a
+ * placeholder store key) think IAP is available — on Android this stays false
+ * until a real `goog_...` key is set, and the paywall shows its unavailable
+ * state instead of dead buttons.
+ */
+export const isRevenueCatConfigured = isRevenueCatConfiguredForPlatform(
+  Platform.OS,
+);

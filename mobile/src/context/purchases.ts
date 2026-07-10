@@ -5,7 +5,7 @@ import Purchases, {
   type PurchasesOffering,
   type PurchasesPackage,
 } from 'react-native-purchases';
-import { env, isRevenueCatConfigured } from '@/config/env';
+import { env, isRevenueCatConfiguredForPlatform } from '@/config/env';
 
 /**
  * RevenueCat in-app purchases service.
@@ -49,8 +49,10 @@ let configured = false;
 /** Initialize the RevenueCat SDK. Safe to call multiple times. */
 export async function initPurchases(): Promise<void> {
   if (configured) return;
-  if (!isRevenueCatConfigured) {
-    // No real key — skip init so the app keeps working.
+  // Gate on the CURRENT platform's key. The Android store key may still be a
+  // placeholder while iOS is live — configuring RC with a placeholder throws,
+  // so on Android we stay a safe no-op until a real `goog_...` key is set.
+  if (!isRevenueCatConfiguredForPlatform(Platform.OS)) {
     return;
   }
   const apiKey =
