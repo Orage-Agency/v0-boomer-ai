@@ -35,12 +35,15 @@ export type SendChatOptions = {
 
 function toBackendMessages(messages: ChatMessage[]) {
   // The backend accepts UIMessage[]; sending role + parts is compatible with
-  // convertToModelMessages on the server.
-  return messages.map((m) => ({
-    id: m.id,
-    role: m.role,
-    parts: m.parts,
-  }));
+  // convertToModelMessages on the server. Upsell cards are app furniture, not
+  // conversation — keep them away from the model.
+  return messages
+    .filter((m) => !m.upsell)
+    .map((m) => ({
+      id: m.id,
+      role: m.role,
+      parts: m.parts,
+    }));
 }
 
 function extractDelta(obj: Record<string, unknown>): string {

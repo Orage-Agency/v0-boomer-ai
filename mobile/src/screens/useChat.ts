@@ -19,10 +19,12 @@ import type { ChatMessage } from '@/types';
  */
 
 let idCounter = 0;
-function nextId(prefix: string): string {
+/** Unique message id — exported so screens can build local messages too. */
+export function makeMessageId(prefix: string): string {
   idCounter += 1;
   return `${prefix}_${Date.now()}_${idCounter}`;
 }
+const nextId = makeMessageId;
 
 export type ChatStatus = 'idle' | 'submitted' | 'streaming' | 'error';
 
@@ -201,5 +203,35 @@ export function useChatSession() {
     void AsyncStorage.removeItem(CURRENT_CHAT_KEY).catch(() => undefined);
   }, []);
 
-  return { messages, status, error, send, reset, loadById };
+  /**
+   * Append locally-authored messages (inline image exchanges, upsell cards)
+   * without going through /api/chat. Persists + backend-saves like a normal
+   * turn so they survive restarts and appear in History.
+   */
+  const appendLocal = useCallback(
+    (newMessages: ChatMessage[]) => {
+      setMessages((prev) => {
+        const next = [...prev, ...newMessages];
+        persist(next);
+        scheduleSave(next);
+        return next;
+      });
+    },
+    [persist, scheduleSave],
+  );
+
+  /** Replace a message in place (e.g. "painting…" placeholder → the image). */
+  const updateMessage = useCallback(
+    (id: string, next: ChatMessage) => {
+      setMessages((prev) => {
+        const updated = prev.map((m) => (m.id === id ? next : m));
+        persist(updated);
+        scheduleSave(updated);
+        return updated;
+      });
+    },
+    [persist, scheduleSave],
+  );
+
+  return { messages, status, error, send, reset, loadById, appendLocal, updateMessage };
 }

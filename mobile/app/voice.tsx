@@ -264,9 +264,11 @@ export default function VoiceScreen() {
           </Pressable>
           <Text style={styles.micHint}>
             {recording
-              ? 'Listening… tap to stop and send'
+              ? `Listening… ${Math.floor(voiceInput.durationMs / 60000)}:${String(
+                  Math.floor(voiceInput.durationMs / 1000) % 60,
+                ).padStart(2, '0')} — tap to stop and send (up to 1 min)`
               : transcribing
-              ? 'Transcribing…'
+              ? 'Understanding your words…'
               : 'Tap the microphone to speak, or type below'}
           </Text>
         </View>
