@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { BrandHeader } from '@/components/BrandHeader';
-import { Skeleton } from '@/components/Skeleton';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { useProfile } from '@/context/ProfileContext';
 import { useEntitlement } from '@/context/EntitlementContext';
@@ -23,15 +23,6 @@ export default function LessonsScreen() {
   const { profile } = useProfile();
   const { entitled } = useEntitlement();
   const completed = profile.lessonsCompleted ?? [];
-
-  // Show animated skeletons for a beat on first render so the list feels
-  // alive and the user gets immediate motion feedback. Lesson content is
-  // static, so this is purely a perceived-performance polish.
-  const [hydrating, setHydrating] = useState(true);
-  useEffect(() => {
-    const t = setTimeout(() => setHydrating(false), 350);
-    return () => clearTimeout(t);
-  }, []);
 
   return (
     <Screen centered edges={['top']}>
@@ -59,9 +50,7 @@ export default function LessonsScreen() {
           </Animated.View>
         )}
 
-        {hydrating
-          ? Array.from({ length: 4 }).map((_, i) => <LessonSkeleton key={i} />)
-          : LESSONS.map((lesson, index) => {
+        {LESSONS.map((lesson, index) => {
               const isDone = completed.includes(lesson.id);
               const locked = !entitled && index >= FREE_FEATURES.FREE_LESSON_COUNT;
               const onPress = locked
@@ -93,9 +82,11 @@ export default function LessonsScreen() {
                             : styles.iconTodo,
                       ]}
                     >
-                      <Text style={styles.iconEmoji}>
-                        {locked ? '🔒' : isDone ? '✓' : '▶'}
-                      </Text>
+                      <Ionicons
+                        name={locked ? 'lock-closed' : isDone ? 'checkmark' : 'play'}
+                        size={20}
+                        color={colors.textOnDark}
+                      />
                     </View>
                     <View style={styles.cardBody}>
                       <View style={styles.cardMeta}>
@@ -106,25 +97,17 @@ export default function LessonsScreen() {
                       </View>
                       <Text style={styles.lessonTitle}>{lesson.title}</Text>
                     </View>
-                    <Text style={styles.chevron}>{locked ? '🔒' : '›'}</Text>
+                    <Ionicons
+                      name={locked ? 'lock-closed' : 'chevron-forward'}
+                      size={22}
+                      color={colors.textMuted}
+                    />
                   </AnimatedPressable>
                 </Animated.View>
               );
             })}
       </ScrollView>
     </Screen>
-  );
-}
-
-function LessonSkeleton() {
-  return (
-    <Animated.View entering={FadeIn.duration(160)} style={styles.skeletonCard}>
-      <Skeleton width={48} height={48} rounded={24} />
-      <View style={styles.skeletonBody}>
-        <Skeleton width={80} height={12} />
-        <Skeleton width={'85%'} height={18} style={{ marginTop: 8 }} />
-      </View>
-    </Animated.View>
   );
 }
 

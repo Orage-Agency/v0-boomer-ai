@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { BrandHeader } from '@/components/BrandHeader';
@@ -178,7 +179,7 @@ export default function HistoryScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`Delete conversation ${item.title}`}
                 >
-                  <Text style={styles.deleteText}>🗑</Text>
+                  <Ionicons name="trash-outline" size={18} color={colors.textSecondary} />
                 </Pressable>
               </View>
             </Pressable>

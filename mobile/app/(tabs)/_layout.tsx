@@ -1,22 +1,33 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { BottomTabBar, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { GlobalChatBar } from '@/components/GlobalChatBar';
 import { colors, fontSize, fontWeight } from '@/theme/theme';
 
 /**
  * Bottom tab navigator. Mirrors the web app's bottom nav:
- * Home · Chat · Learn · Tips · Profile.
- * Emoji icons keep the foundation dependency-free (swap for vector icons later).
+ * Home · Chat · Learn · Tips · Profile — proper vector icons (filled when
+ * active, outline when not), tinted by the navigator.
  *
  * A persistent "chat from anywhere" bar is stacked above the tab icons on every
  * screen except the Chat tab itself (which already has its own input).
  */
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return (
-    <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>
-  );
+type IoniconName = keyof typeof Ionicons.glyphMap;
+
+function TabIcon({
+  name,
+  outline,
+  focused,
+  color,
+}: {
+  name: IoniconName;
+  outline: IoniconName;
+  focused: boolean;
+  color: string;
+}) {
+  return <Ionicons name={focused ? name : outline} size={24} color={color} />;
 }
 
 function TabBarWithChat(props: BottomTabBarProps) {
@@ -54,35 +65,50 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon name="home" outline="home-outline" focused={focused} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
           title: 'Chat',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💬" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              name="chatbubble"
+              outline="chatbubble-outline"
+              focused={focused}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="lessons"
         options={{
           title: 'Learn',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📚" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon name="book" outline="book-outline" focused={focused} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="tips"
         options={{
           title: 'Tips',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💡" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon name="bulb" outline="bulb-outline" focused={focused} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon name="person" outline="person-outline" focused={focused} color={color} />
+          ),
         }}
       />
     </Tabs>

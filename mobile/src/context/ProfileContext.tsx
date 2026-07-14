@@ -76,10 +76,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = useCallback(
     (updates: Partial<UserProfile>) => {
       setProfile((prev) => {
+        // NOTE: `level` is the LEARNING level the user chose in onboarding
+        // ("Beginner", "Advanced", …). It must never be overwritten by the
+        // star-based achievement tier — that used to silently reset a user's
+        // chosen level to "Basic" on their first earned star. The star tier
+        // is derived from `stars` wherever it's displayed (see profile.tsx).
         const merged: UserProfile = { ...prev, ...updates };
-        if (updates.stars !== undefined) {
-          merged.level = calculateLevelFromStars(updates.stars);
-        }
         void persist(merged);
         return merged;
       });

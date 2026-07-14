@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { BrandHeader } from '@/components/BrandHeader';
@@ -67,7 +68,11 @@ export default function TipsScreen() {
                   <View style={styles.countPill}>
                     <Text style={styles.countText}>{category.tips.length}</Text>
                   </View>
-                  <Text style={styles.chevron}>{isOpen ? '▾' : '▸'}</Text>
+                  <Ionicons
+                    name={isOpen ? 'chevron-down' : 'chevron-forward'}
+                    size={18}
+                    color={colors.textSecondary}
+                  />
                 </View>
               </Pressable>
 

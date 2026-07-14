@@ -1,5 +1,6 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, fontSize, fontWeight, spacing } from '@/theme/theme';
 
@@ -49,7 +50,8 @@ export function BrandHeader({
           accessibilityLabel="Go back"
           hitSlop={6}
         >
-          <Text style={styles.backText}>‹ Back</Text>
+          <Ionicons name="chevron-back" size={20} color={colors.primary} />
+          <Text style={styles.backText}>Back</Text>
         </Pressable>
       )}
 
@@ -89,7 +91,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: { width: 40, height: 40, borderRadius: 8 },
-  backBtn: { minHeight: 44, justifyContent: 'center', paddingRight: spacing.xs },
+  backBtn: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: spacing.xs,
+  },
   backText: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.primary },
   titleWrap: { flex: 1 },
   title: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.textPrimary },

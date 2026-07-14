@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
 type Props = {
@@ -10,6 +11,8 @@ type Props = {
   gradient: readonly [string, string];
   onPress: () => void;
   large?: boolean;
+  /** Show a "PRO" lock pill — the user sees the gate BEFORE tapping. */
+  locked?: boolean;
 };
 
 /**
@@ -23,12 +26,13 @@ export function GradientTile({
   gradient,
   onPress,
   large,
+  locked,
 }: Props) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessibilityLabel={locked ? `${title}, Pro feature` : title}
       style={({ pressed }) => [
         styles.wrap,
         large ? styles.large : styles.small,
@@ -42,6 +46,12 @@ export function GradientTile({
         style={[styles.gradient, large ? styles.gradientLarge : styles.gradientSmall]}
       >
         <View style={styles.blob} />
+        {locked && (
+          <View style={styles.lockPill}>
+            <Ionicons name="lock-closed" size={11} color="#1A1A1A" />
+            <Text style={styles.lockText}>PRO</Text>
+          </View>
+        )}
         {emoji ? <Text style={styles.emoji}>{emoji}</Text> : null}
         <Text style={[styles.title, large && styles.titleLarge]}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -73,6 +83,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)',
   },
   emoji: { fontSize: 26, marginBottom: 2 },
+  lockPill: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#F2C740',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+  },
+  lockText: { fontSize: 10, fontWeight: fontWeight.black, color: '#1A1A1A', letterSpacing: 0.4 },
   title: {
     color: colors.textOnDark,
     fontSize: fontSize.md,

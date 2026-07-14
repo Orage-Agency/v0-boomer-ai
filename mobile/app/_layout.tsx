@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ConversationProvider } from '@elevenlabs/react-native';
 import { ProfileProvider } from '@/context/ProfileContext';
 import { EntitlementProvider } from '@/context/EntitlementContext';
 import { AuthProvider } from '@/context/AuthContext';
@@ -21,6 +22,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
+      <ConversationProvider>
       <ProfileProvider>
         <AuthProvider>
           <EntitlementProvider>
@@ -62,6 +64,7 @@ export default function RootLayout() {
           </EntitlementProvider>
         </AuthProvider>
       </ProfileProvider>
+      </ConversationProvider>
     </SafeAreaProvider>
   );
 }

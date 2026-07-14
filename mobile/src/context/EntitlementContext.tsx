@@ -26,9 +26,12 @@ import { BYPASS_PRO_KEY } from './storage';
  *  - account.isPro covers off-store paying customers and George dev codes
  *    redeemed via /api/redeem.
  *
- * When RevenueCat is not configured (dev / preview), the RC half short-circuits
- * to `true` so devs aren't locked out — production builds always set a real key.
+ * When RevenueCat is not configured, the RC half short-circuits to `true`
+ * ONLY in dev builds (`__DEV__`) so devs aren't locked out. A production
+ * build with a placeholder key (e.g. Android before its store key exists)
+ * must never hand out free Pro to everyone.
  */
+const UNCONFIGURED_ENTITLED = !isRevenueCatConfigured && __DEV__;
 
 type EntitlementContextValue = {
   entitled: boolean;
@@ -51,7 +54,7 @@ const EntitlementContext = createContext<EntitlementContextValue | null>(null);
 
 export function EntitlementProvider({ children }: { children: React.ReactNode }) {
   const { user, refresh: refreshAccount } = useAuth();
-  const [rcEntitled, setRcEntitled] = useState<boolean>(!isRevenueCatConfigured);
+  const [rcEntitled, setRcEntitled] = useState<boolean>(UNCONFIGURED_ENTITLED);
   const [bypassEntitled, setBypassEntitled] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(isRevenueCatConfigured);
 
@@ -61,7 +64,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     const bypass = await AsyncStorage.getItem(BYPASS_PRO_KEY);
     setBypassEntitled(bypass === 'true');
     if (!isRevenueCatConfigured) {
-      setRcEntitled(true);
+      setRcEntitled(UNCONFIGURED_ENTITLED);
       setLoading(false);
       return;
     }

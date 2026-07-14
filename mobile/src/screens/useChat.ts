@@ -43,6 +43,10 @@ export function useChatSession() {
   const conversationId = useRef<number | string | null>(null);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydrated = useRef(false);
+  // Bumped by reset(); an in-flight send that started under an older
+  // generation must not write its result back (otherwise "New Chat" during
+  // streaming resurrected the cleared conversation when the stream finished).
+  const generation = useRef(0);
 
   // Restore the conversation that was on screen when the app last closed.
   useEffect(() => {
@@ -110,10 +114,11 @@ export function useChatSession() {
   }, [persist]);
 
   const send = useCallback(
-    async (text: string, image?: { uri: string; dataUrl: string }) => {
+    async (text: string, image?: { uri: string; dataUrl: string }): Promise<boolean> => {
       const trimmed = text.trim();
-      if ((!trimmed && !image) || status === 'streaming' || status === 'submitted') return;
+      if ((!trimmed && !image) || status === 'streaming' || status === 'submitted') return false;
       setError(null);
+      const gen = generation.current;
 
       // With a photo but no text, give the model a gentle default prompt.
       const promptText = trimmed || (image ? 'Can you tell me about this picture?' : '');
@@ -140,6 +145,7 @@ export function useChatSession() {
           capturedImage: image?.dataUrl,
           conversationId: conversationId.current == null ? undefined : String(conversationId.current),
           onDelta: (cumulative) => {
+            if (generation.current !== gen) return;
             setStatus('streaming');
             setMessages((prev) =>
               prev.map((m) =>
@@ -151,6 +157,7 @@ export function useChatSession() {
           },
         });
 
+        if (generation.current !== gen) return true;
         const finalMsgs: ChatMessage[] = [
           ...history,
           { id: assistantId, role: 'assistant', parts: [{ type: 'text', text: full }] },
@@ -159,7 +166,9 @@ export function useChatSession() {
         setStatus('idle');
         persist(finalMsgs);
         scheduleSave(finalMsgs);
+        return true;
       } catch (e) {
+        if (generation.current !== gen) return false;
         setStatus('error');
         setError((e as Error).message || 'Something went wrong. Please try again.');
         // Drop the empty assistant placeholder on error; keep the user's
@@ -169,6 +178,7 @@ export function useChatSession() {
           persist(kept);
           return kept;
         });
+        return false;
       }
     },
     [messages, status, scheduleSave, persist],
@@ -183,6 +193,7 @@ export function useChatSession() {
       const row = await conversationsApi.getConversation(id);
       const msgs = Array.isArray(row.messages) ? row.messages : [];
       if (msgs.length === 0) return false;
+      generation.current += 1; // orphan any in-flight send
       conversationId.current = row.id;
       setMessages(msgs);
       setStatus('idle');
@@ -196,10 +207,12 @@ export function useChatSession() {
   }, [persist]);
 
   const reset = useCallback(() => {
+    generation.current += 1;
     setMessages([]);
     setStatus('idle');
     setError(null);
     conversationId.current = null;
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
     void AsyncStorage.removeItem(CURRENT_CHAT_KEY).catch(() => undefined);
   }, []);
 
