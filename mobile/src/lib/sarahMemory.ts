@@ -1,4 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { sarahMemoryApi } from '@/api';
+import { isApiConfigured } from '@/config/env';
+import { getHistoryKey } from '@/context/storage';
 
 /**
  * Sarah's memory of the person she talks to.
@@ -9,8 +12,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * prompt then treats them the way a friend would ("How did that appointment
  * go?") rather than reciting them.
  *
- * Deliberately kept small and local:
- *  - notes live only on the device (nothing new leaves the phone at rest)
+ * Storage is local-first with a per-person copy on the backend:
+ *  - AsyncStorage answers instantly and works offline, so a call never waits
+ *    on the network to know who it is talking to
+ *  - the backend copy is keyed the same way chat history is (account when
+ *    signed in, device otherwise), so Sarah follows a signed-in user to a new
+ *    phone instead of forgetting them
  *  - a hard cap keeps the prompt cheap and stops it drifting into a wall of
  *    text the model starts ignoring
  */
@@ -59,6 +66,52 @@ async function save(memory: SarahMemory): Promise<void> {
   }
 }
 
+/**
+ * Pull this person's memory from the backend and adopt it if it is richer
+ * than what this device has — the case that matters is a new phone, where
+ * local is empty and the account already knows them.
+ *
+ * Best-effort: any failure just leaves the local copy in place.
+ */
+export async function syncMemoryFromServer(): Promise<SarahMemory> {
+  const local = await loadMemory();
+  if (!isApiConfigured) return local;
+  try {
+    const ownerKey = await getHistoryKey();
+    const remote = await sarahMemoryApi.getMemory(ownerKey);
+    const remoteNotes = Array.isArray(remote.notes) ? remote.notes : [];
+    if (remoteNotes.length > local.notes.length ||
+        (remote.totalConversations || 0) > local.totalConversations) {
+      const merged: SarahMemory = {
+        notes: remoteNotes.slice(-MAX_NOTES),
+        totalConversations: Math.max(remote.totalConversations || 0, local.totalConversations),
+      };
+      await save(merged);
+      return merged;
+    }
+    // Local is ahead (e.g. saved while offline) — push it up.
+    void pushMemory(local);
+    return local;
+  } catch {
+    return local;
+  }
+}
+
+/** Best-effort upload so other devices on this account see the same Sarah. */
+async function pushMemory(memory: SarahMemory): Promise<void> {
+  if (!isApiConfigured) return;
+  try {
+    const ownerKey = await getHistoryKey();
+    await sarahMemoryApi.putMemory({
+      ownerKey,
+      notes: memory.notes,
+      totalConversations: memory.totalConversations,
+    });
+  } catch {
+    /* the device copy is still correct — try again after the next call */
+  }
+}
+
 /** Record what this conversation was about. */
 export async function addNote(summary: string): Promise<void> {
   const clean = summary.trim();
@@ -69,6 +122,7 @@ export async function addNote(summary: string): Promise<void> {
   );
   memory.totalConversations += 1;
   await save(memory);
+  void pushMemory(memory);
 }
 
 export async function clearMemory(): Promise<void> {

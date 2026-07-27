@@ -5,4 +5,5 @@ export * as imagesApi from './images';
 export * as ttsApi from './tts';
 export * as transcribeApi from './transcribe';
 export * as avatarApi from './avatar';
+export * as sarahMemoryApi from './sarahMemory';
 export { ApiError } from './client';

@@ -31,8 +31,10 @@ import {
   buildMemoryPrompt,
   lastTopic,
   loadMemory,
+  syncMemoryFromServer,
   type SarahMemory,
 } from '@/lib/sarahMemory';
+import { saveVoiceConversation } from '@/lib/saveVoiceConversation';
 import { summarizeCall, type CallTurn } from '@/lib/summarizeCall';
 import { colors, fontSize, fontWeight, layout, radius, spacing } from '@/theme/theme';
 
@@ -84,8 +86,12 @@ function VoiceCallInner() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const m = await loadMemory();
-      if (!cancelled) setMemory(m);
+      // Show the device copy immediately, then adopt the account's copy if it
+      // knows more (the new-phone case).
+      const local = await loadMemory();
+      if (!cancelled) setMemory(local);
+      const synced = await syncMemoryFromServer();
+      if (!cancelled) setMemory(synced);
     })();
     return () => {
       cancelled = true;
@@ -100,6 +106,8 @@ function VoiceCallInner() {
     if (savedThisCall.current) return;
     savedThisCall.current = true;
     const turns: CallTurn[] = transcriptRef.current.map((t) => ({ role: t.role, text: t.text }));
+    // Keep the transcript in History under the same per-person key.
+    void saveVoiceConversation(turns);
     const summary = await summarizeCall(turns);
     if (summary) {
       await addNote(summary);

@@ -74,3 +74,10 @@ const group = await api(`/v1/betaGroups/${GROUP_ID}/builds?limit=200&fields[buil
 const inGroup = (group.body.data || []).map((b) => b.attributes?.version).sort((a, b) => b - a);
 console.log('--- Builds in TestFlight group "BOOMER AI V1" ---');
 console.log('  ', inGroup.length ? inGroup.slice(0, 8).join(', ') : '(none / ' + group.status + ')');
+
+// ---- TestFlight crash feedback (if any tester submitted one) ----
+const crashes = await api(
+  `/v1/betaFeedbackCrashSubmissions?filter[build]=818f2146-e621-453c-9370-359fcd710560&limit=10`,
+);
+console.log('--- TestFlight crash submissions (build 39) ---');
+console.log('  HTTP', crashes.status, JSON.stringify(crashes.body).slice(0, 500));
