@@ -36,6 +36,12 @@ import {
 } from '@/lib/sarahMemory';
 import { saveVoiceConversation } from '@/lib/saveVoiceConversation';
 import { summarizeCall, type CallTurn } from '@/lib/summarizeCall';
+import {
+  formatAllowance,
+  getVoiceQuota,
+  recordVoiceUsage,
+  type VoiceQuota,
+} from '@/lib/voiceQuota';
 import { colors, fontSize, fontWeight, layout, radius, spacing } from '@/theme/theme';
 
 /**
@@ -71,8 +77,12 @@ function VoiceCallInner() {
   const [transcript, setTranscript] = useState<TranscriptTurn[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [memory, setMemory] = useState<SarahMemory | null>(null);
+  const [quota, setQuota] = useState<VoiceQuota | null>(null);
   const listRef = useRef<FlatList<TranscriptTurn>>(null);
   const awardedStar = useRef(false);
+  // Wall-clock start of the live call, used to bill and to stop at the cap.
+  const callStartedAt = useRef<number | null>(null);
+  const capTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Read inside cleanup, where React state would be stale.
   const transcriptRef = useRef<TranscriptTurn[]>([]);
   transcriptRef.current = transcript;
@@ -92,6 +102,8 @@ function VoiceCallInner() {
       if (!cancelled) setMemory(local);
       const synced = await syncMemoryFromServer();
       if (!cancelled) setMemory(synced);
+      const q = await getVoiceQuota();
+      if (!cancelled) setQuota(q);
     })();
     return () => {
       cancelled = true;
@@ -105,6 +117,18 @@ function VoiceCallInner() {
   const rememberCall = useCallback(async () => {
     if (savedThisCall.current) return;
     savedThisCall.current = true;
+    // Bill the time before anything else can fail.
+    if (capTimer.current) {
+      clearTimeout(capTimer.current);
+      capTimer.current = null;
+    }
+    if (callStartedAt.current != null) {
+      const seconds = (Date.now() - callStartedAt.current) / 1000;
+      callStartedAt.current = null;
+      await recordVoiceUsage(seconds);
+      const q = await getVoiceQuota();
+      setQuota(q);
+    }
     const turns: CallTurn[] = transcriptRef.current.map((t) => ({ role: t.role, text: t.text }));
     // Keep the transcript in History under the same per-person key.
     void saveVoiceConversation(turns);
@@ -141,6 +165,11 @@ function VoiceCallInner() {
   const connected = status === 'connected';
   const connecting = status === 'connecting';
 
+  // Held in a ref so the allowance timer and unmount cleanup always call the
+  // current endSession, not the one captured when they were created.
+  const endSessionRef = useRef(endSession);
+  endSessionRef.current = endSession;
+
   const startCall = useCallback(async () => {
     setError(null);
     if (!env.elevenLabsAgentId) {
@@ -157,12 +186,32 @@ function VoiceCallInner() {
       setError('Microphone access is off. Turn it on in Settings → Boomer AI → Microphone.');
       return;
     }
+    // Re-check the allowance at dial time, not just on screen load.
+    const fresh = await getVoiceQuota();
+    setQuota(fresh);
+    if (fresh.remainingSeconds <= 0) {
+      setError(
+        `You have used all ${formatAllowance(fresh.limitSeconds)} of your voice time this month. It refreshes at the start of next month — until then, Sarah is still here to chat by typing.`,
+      );
+      return;
+    }
     if (!awardedStar.current) {
       awardedStar.current = true;
       updateProfile({ stars: profile.stars + 2 });
     }
     savedThisCall.current = false;
     setTranscript([]);
+    callStartedAt.current = Date.now();
+    // Hang up when the remaining allowance runs out. The agent also caps a
+    // single call, but that cap knows nothing about the monthly balance.
+    if (capTimer.current) clearTimeout(capTimer.current);
+    capTimer.current = setTimeout(
+      () => {
+        setError('That is all your voice time for this month — it refreshes next month.');
+        endSessionRef.current();
+      },
+      Math.max(1000, fresh.remainingSeconds * 1000),
+    );
     const current = memory ?? (await loadMemory());
     startSession({
       agentId: env.elevenLabsAgentId,
@@ -180,8 +229,6 @@ function VoiceCallInner() {
 
   // Never leave a live call running after the screen is gone, and keep
   // whatever was said.
-  const endSessionRef = useRef(endSession);
-  endSessionRef.current = endSession;
   useEffect(() => {
     return () => {
       endSessionRef.current();
@@ -288,6 +335,14 @@ function VoiceCallInner() {
             </View>
             <Text style={styles.memoryText}>{remembered}</Text>
           </View>
+        )}
+
+        {idle && quota && quota.limitSeconds < Number.MAX_SAFE_INTEGER && (
+          <Text style={styles.quotaText}>
+            {quota.remainingSeconds > 0
+              ? `${formatAllowance(quota.remainingSeconds)} of talking time left this month`
+              : 'You have used your voice time for this month — it refreshes next month.'}
+          </Text>
         )}
       </View>
 
@@ -421,6 +476,12 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSecondary,
     lineHeight: 24,
+  },
+  quotaText: {
+    marginTop: spacing.md,
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    textAlign: 'center',
   },
   bannerWrap: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg },
   transcript: { flex: 1, marginTop: spacing.lg },
