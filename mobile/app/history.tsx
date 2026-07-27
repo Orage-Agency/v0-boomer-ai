@@ -15,7 +15,7 @@ import { Screen } from '@/components/Screen';
 import { BrandHeader } from '@/components/BrandHeader';
 import { InfoBanner } from '@/components/InfoBanner';
 import { conversationsApi } from '@/api';
-import { getDeviceId } from '@/context/storage';
+import { getHistoryKeys } from '@/context/storage';
 import { setPendingConversation } from '@/screens/pendingPrompt';
 import { isApiConfigured } from '@/config/env';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
@@ -40,9 +40,28 @@ export default function HistoryScreen() {
     }
     setError(null);
     try {
-      const deviceId = await getDeviceId();
-      const res = await conversationsApi.listConversations(deviceId);
-      setItems(res.conversations ?? []);
+      // Read every key this install may have saved under (account + device)
+      // so conversations from before sign-in still show up.
+      const keys = await getHistoryKeys();
+      const lists = await Promise.all(
+        keys.map((key) =>
+          conversationsApi
+            .listConversations(key)
+            .then((r) => r.conversations ?? [])
+            .catch(() => []),
+        ),
+      );
+      const seen = new Set<string>();
+      const merged = lists.flat().filter((c) => {
+        const id = String(c.id);
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+      merged.sort(
+        (a, b) => new Date(b.timestamp ?? 0).getTime() - new Date(a.timestamp ?? 0).getTime(),
+      );
+      setItems(merged);
     } catch {
       setError('Could not load your conversations. Pull down to try again.');
     } finally {

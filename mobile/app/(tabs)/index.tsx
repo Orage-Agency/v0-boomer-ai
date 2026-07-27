@@ -77,7 +77,7 @@ export default function Home() {
           <GradientTile
             emoji="🎙️"
             title="Voice"
-            subtitle="Talk with Sara live"
+            subtitle="Talk with Sarah live"
             gradient={gradients.voice}
             onPress={openVoice}
             locked={!entitled}

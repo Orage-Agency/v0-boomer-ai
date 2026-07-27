@@ -48,7 +48,7 @@ import type { ChatMessage } from '@/types';
 /**
  * AI Chat — FULLY IMPLEMENTED.
  * Streams replies from /api/chat token-by-token, renders a structured message
- * list (Sara's avatar + name on AI turns), and awards stars on send (matching
+ * list (Sarah's avatar + name on AI turns), and awards stars on send (matching
  * the web reward logic: +10 + "First Chat" badge on first message, +1 after).
  *
  * Input bar affordances: photo (camera / library), voice-to-text (Whisper),
@@ -59,13 +59,13 @@ import type { ChatMessage } from '@/types';
  */
 
 /** The friendly face of the assistant across the app. */
-export const COMPANION_NAME = 'Sara';
+export const COMPANION_NAME = 'Sarah';
 export const COMPANION_AVATAR = require('../../assets/sara-avatar.jpg');
 
 // ---- In-chat picture creation -------------------------------------------
 
 /**
- * Does this message ask Sara to CREATE a picture (vs. talk about one)?
+ * Does this message ask Sarah to CREATE a picture (vs. talk about one)?
  * Requires a making-verb AND an image-noun so ordinary sentences like
  * "I took a photo yesterday" don't trigger it. "show" is deliberately NOT a
  * making-verb — "show me a photo of how to..." is a question, not an art
@@ -73,21 +73,41 @@ export const COMPANION_AVATAR = require('../../assets/sara-avatar.jpg');
  * Photo attachments never trigger it either (the caller skips detection
  * when an image is attached).
  */
+const ART_NOUN = 'picture|image|photo|drawing|painting|artwork|art|illustration';
+
 function isImageRequest(text: string): boolean {
-  return /\b(draw|paint|create|generate|make|design|sketch)\b[\s\S]{0,40}?\b(picture|image|photo|drawing|painting|artwork|art|illustration)\b/i.test(
-    text,
+  // "make me a picture of a barn", "create some art of a sunset"
+  const verbThenNoun = new RegExp(
+    `\\b(draw|paint|create|generate|make|design|sketch|illustrate)\\b[\\s\\S]{0,40}?\\b(${ART_NOUN})\\b`,
+    'i',
   );
+  // "a picture of my dog", "I'd love a painting of the lake"
+  const nounOf = new RegExp(`\\b(${ART_NOUN})\\s+(of|showing)\\b`, 'i');
+  // "paint a barn in autumn" — these verbs only ever mean art here, so the
+  // noun is optional. ("make"/"create"/"design" are excluded: "make me a
+  // sandwich" must stay a normal chat message.)
+  const artVerbLed = /^\s*(please\s+)?(can|could|will|would)?\s*(you\s+)?(please\s+)?(draw|paint|sketch|illustrate)\b/i;
+  return verbThenNoun.test(text) || nounOf.test(text) || artVerbLed.test(text);
 }
 
 /** Strip "can you draw me a picture of" style framing → the actual subject. */
 function cleanImagePrompt(text: string): string {
   let s = text.trim();
-  s = s.replace(/^(hey|hi|hello|please|sara)[,!.\s]+/i, '');
+  s = s.replace(/^(hey|hi|hello|please|sarah?)[,!.\s]+/i, '');
   s = s.replace(/^(can|could|will|would)\s+you\s+(please\s+)?/i, '');
+  // "I would like / I want / I'd love" framing before the real subject.
+  s = s.replace(/^(i\s+(would|really)?\s*(like|want|need|love)\s+(to\s+)?(see\s+)?)/i, '');
   s = s.replace(
-    /\b(draw|paint|create|generate|make|design|sketch|show)\s+(me\s+)?(us\s+)?(a|an|the)?\s*(nice\s+|pretty\s+|beautiful\s+)?(picture|image|photo|drawing|painting|artwork|art|illustration)s?\s*(of|about|with|showing)?\s*/i,
+    /\b(draw|paint|create|generate|make|design|sketch|illustrate|show)\s+(me\s+)?(us\s+)?(a|an|the|some)?\s*(nice\s+|pretty\s+|beautiful\s+)?(picture|image|photo|drawing|painting|artwork|art|illustration)s?\s*(of|about|with|showing)?\s*/i,
     '',
   );
+  // Bare "a picture of X" with no verb in front.
+  s = s.replace(
+    /^(a|an|the|some)?\s*(picture|image|photo|drawing|painting|artwork|art|illustration)s?\s+(of|showing)\s+/i,
+    '',
+  );
+  // Leading art verb with no noun after it ("paint a barn in autumn").
+  s = s.replace(/^(draw|paint|sketch|illustrate)\s+(me\s+)?(us\s+)?/i, '');
   s = s.replace(/^(please|kindly)[,!.\s]+/i, '');
   s = s.replace(/[?!.]+$/g, '').trim();
   return s.length >= 3 ? s : text.trim();
@@ -132,7 +152,7 @@ export default function Chat() {
   // Only auto-scroll while the user is already at the bottom — never yank
   // them back down while they scrolled up to re-read something.
   const atBottomRef = useRef(true);
-  // Milestone queued while Sara is replying; shown once she finishes.
+  // Milestone queued while Sarah is replying; shown once she finishes.
   const pendingUpsellRef = useRef<number | null>(null);
   // Remembers the last send that errored so "Try Again" can replay it.
   const lastAttempt = useRef<{ text: string; image?: { uri: string; dataUrl: string } } | null>(
@@ -211,7 +231,7 @@ export default function Chat() {
     return true;
   }, [router]);
 
-  /** Read aloud one of Sara's replies — same ElevenLabs voice as her calls. */
+  /** Read aloud one of Sarah's replies — same ElevenLabs voice as her calls. */
   const stopListening = useCallback(async () => {
     const s = listenSoundRef.current;
     listenSoundRef.current = null;
@@ -265,7 +285,7 @@ export default function Chat() {
     };
   }, [stopListening]);
 
-  /** Append a friendly "Go Pro" card as a Sara turn. */
+  /** Append a friendly "Go Pro" card as a Sarah turn. */
   const appendUpsellCard = useCallback(
     (kind: 'image' | 'milestone', userText?: string) => {
       const cardText =
@@ -293,7 +313,7 @@ export default function Chat() {
   );
 
   /**
-   * Sara paints INSIDE the chat: user message + "painting…" placeholder →
+   * Sarah paints INSIDE the chat: user message + "painting…" placeholder →
    * the finished artwork replaces the placeholder. No screen changes.
    */
   const runImageFlow = useCallback(
@@ -386,7 +406,7 @@ export default function Chat() {
       const image = imageOverride !== undefined ? imageOverride : attachedImage;
       if (!trimmed && !image) return;
 
-      // "Draw me a picture of…" → Sara paints right here in the chat.
+      // "Draw me a picture of…" → Sarah paints right here in the chat.
       // (Never triggered when the user attached a photo to ask about it.)
       if (!image && trimmed && isImageRequest(trimmed)) {
         setInput('');
@@ -435,7 +455,7 @@ export default function Chat() {
     ],
   );
 
-  // Surface a queued milestone card once Sara finishes her current reply.
+  // Surface a queued milestone card once Sarah finishes her current reply.
   useEffect(() => {
     if (status !== 'idle' || pendingUpsellRef.current == null) return;
     pendingUpsellRef.current = null;
@@ -707,7 +727,7 @@ export default function Chat() {
               placeholder={
                 voice.state === 'transcribing'
                   ? 'Understanding your words…'
-                  : 'Ask Sara anything…'
+                  : 'Ask Sarah anything…'
               }
               placeholderTextColor={colors.textMuted}
               multiline
@@ -816,7 +836,7 @@ function Bubble({
     );
   }
 
-  // AI turn: Sara's avatar + name make the back-and-forth easy to follow —
+  // AI turn: Sarah's avatar + name make the back-and-forth easy to follow —
   // a companion face, not an abstract symbol.
   return (
     <Animated.View entering={FadeInUp.duration(220)} style={[styles.bubbleRow, styles.rowStart]}>
@@ -833,7 +853,7 @@ function Bubble({
               style={styles.listenBtn}
               accessibilityRole="button"
               accessibilityLabel={
-                listening ? 'Stop reading aloud' : "Listen to Sara's reply out loud"
+                listening ? 'Stop reading aloud' : "Listen to Sarah's reply out loud"
               }
               hitSlop={6}
             >
@@ -881,7 +901,7 @@ function Bubble({
   );
 }
 
-/** "Sara is thinking" skeleton — replaces the plain "Thinking…" text. */
+/** "Sarah is thinking" skeleton — replaces the plain "Thinking…" text. */
 function ThinkingBubble() {
   return (
     <Animated.View entering={FadeIn.duration(180)} style={[styles.bubbleRow, styles.rowStart]}>
@@ -1126,7 +1146,7 @@ const styles = StyleSheet.create({
   },
   recSendRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   recSendText: { color: colors.textOnDark, fontWeight: fontWeight.bold, fontSize: fontSize.md },
-  // Inline artwork from Sara
+  // Inline artwork from Sarah
   artPending: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { chatApi, conversationsApi } from '@/api';
-import { getDeviceId } from '@/context/storage';
+import { getHistoryKey } from '@/context/storage';
 import { isApiConfigured } from '@/config/env';
 import type { ChatMessage } from '@/types';
 
@@ -93,7 +93,7 @@ export function useChatSession() {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(async () => {
       try {
-        const deviceId = await getDeviceId();
+        const deviceId = await getHistoryKey();
         const title = msgs[0]?.parts?.[0]?.text?.slice(0, 50) || 'New conversation';
         const preview = msgs[msgs.length - 1]?.parts?.[0]?.text?.slice(0, 100) || '';
         const res = await conversationsApi.saveConversation({

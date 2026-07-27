@@ -27,7 +27,7 @@ function arrayBufferToBase64(buf: ArrayBuffer): string {
 }
 
 /**
- * Sara's ElevenLabs voice — the same voice the conversational agent uses, so
+ * Sarah's ElevenLabs voice — the same voice the conversational agent uses, so
  * read-aloud in chat and the live Voice screen sound like ONE person. The
  * backend routes any 20+ char voice id straight to ElevenLabs.
  */

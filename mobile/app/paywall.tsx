@@ -98,19 +98,19 @@ type PaywallMode = 'soft' | 'hard';
 const REASON_COPY: Record<string, { title: string; sub: string }> = {
   chat_quota: {
     title: "You've used today's 5 free chats",
-    sub: 'Go Pro for unlimited conversations with Sara — no daily limits.',
+    sub: 'Go Pro for unlimited conversations with Sarah — no daily limits.',
   },
   chat_upsell: {
-    title: 'Enjoying your chats with Sara?',
+    title: 'Enjoying your chats with Sarah?',
     sub: 'Pro removes the daily limit and unlocks her voice and pictures.',
   },
   voice: {
-    title: 'Talk with Sara, live',
+    title: 'Talk with Sarah, live',
     sub: 'Real voice conversations are a Pro feature — like a phone call with a patient friend.',
   },
   image_gen: {
-    title: 'Create pictures with Sara',
-    sub: 'AI picture creation is a Pro feature. Describe it, Sara paints it.',
+    title: 'Create pictures with Sarah',
+    sub: 'AI picture creation is a Pro feature. Describe it, Sarah paints it.',
   },
   lessons: {
     title: 'Unlock every video lesson',

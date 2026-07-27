@@ -29,10 +29,10 @@ import { env } from '@/config/env';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
 /**
- * Voice screen — a REAL-TIME conversation with Sara.
+ * Voice screen — a REAL-TIME conversation with Sarah.
  *
  * Powered by the dedicated ElevenLabs conversational agent (WebRTC via
- * @elevenlabs/react-native). One tap starts a live call: Sara listens
+ * @elevenlabs/react-native). One tap starts a live call: Sarah listens
  * continuously (no tap-to-stop), replies in about a second in her own voice,
  * and can be interrupted naturally just by speaking — the walkie-talkie
  * record → transcribe → chat → TTS chain is gone.
@@ -70,7 +70,7 @@ export default function VoiceScreen() {
     },
     onDisconnect: (details) => {
       if (details?.reason === 'error') {
-        setError('The call dropped. Please tap the button to talk to Sara again.');
+        setError('The call dropped. Please tap the button to talk to Sarah again.');
       }
     },
   });
@@ -113,7 +113,7 @@ export default function VoiceScreen() {
     return () => endSessionRef.current();
   }, []);
 
-  // Gentle pulsing ring around Sara while the call is live — stronger while
+  // Gentle pulsing ring around Sarah while the call is live — stronger while
   // she is speaking, subtle while she listens.
   const pulse = useSharedValue(1);
   useEffect(() => {
@@ -137,10 +137,10 @@ export default function VoiceScreen() {
   if (!entitled) {
     return (
       <Screen centered edges={['top', 'bottom']}>
-        <BrandHeader title="Talk with Sara" onBack={() => router.back()} />
+        <BrandHeader title="Talk with Sarah" onBack={() => router.back()} />
         <View style={styles.gate}>
           <Image source={require('../assets/sara-avatar.jpg')} style={styles.gateAvatar} />
-          <Text style={styles.gateTitle}>Talk with Sara, live</Text>
+          <Text style={styles.gateTitle}>Talk with Sarah, live</Text>
           <Text style={styles.gateSub}>
             Have a real back-and-forth voice conversation — no typing, no waiting.
             Voice calls are part of Boomer AI Pro.
@@ -160,14 +160,14 @@ export default function VoiceScreen() {
 
   return (
     <Screen centered edges={['top', 'bottom']}>
-      <BrandHeader title="Talk with Sara" onBack={() => router.back()} />
+      <BrandHeader title="Talk with Sarah" onBack={() => router.back()} />
 
       <View style={styles.stage}>
         <Animated.View style={[styles.avatarRing, connected && styles.avatarRingLive, ringStyle]}>
           <Image
             source={require('../assets/sara-avatar.jpg')}
             style={styles.avatar}
-            accessibilityLabel="Sara, your AI companion"
+            accessibilityLabel="Sarah, your AI companion"
           />
         </Animated.View>
 
@@ -176,7 +176,7 @@ export default function VoiceScreen() {
             ? 'Calling Sara…'
             : connected
               ? isSpeaking
-                ? 'Sara is speaking'
+                ? 'Sarah is speaking'
                 : "I'm listening…"
               : `Hi ${profile.name || profile.userName || 'there'}!`}
         </Text>
@@ -186,8 +186,8 @@ export default function VoiceScreen() {
             : connected
               ? isSpeaking
                 ? 'Just start talking to interrupt her'
-                : 'Speak whenever you like — Sara hears you'
-              : 'Tap the button below and simply start talking. Sara answers out loud, like a phone call.'}
+                : 'Speak whenever you like — Sarah hears you'
+              : 'Tap the button below and simply start talking. Sarah answers out loud, like a phone call.'}
         </Text>
       </View>
 
@@ -213,7 +213,7 @@ export default function VoiceScreen() {
               ]}
             >
               <Text style={styles.turnSpeaker}>
-                {item.role === 'user' ? 'You' : 'Sara'}
+                {item.role === 'user' ? 'You' : 'Sarah'}
               </Text>
               <Text
                 style={[styles.turnText, item.role === 'user' && styles.turnTextUser]}
@@ -241,14 +241,14 @@ export default function VoiceScreen() {
             onPress={startCall}
             style={styles.startBtn}
             accessibilityRole="button"
-            accessibilityLabel="Start talking with Sara"
+            accessibilityLabel="Start talking with Sarah"
           >
             {connecting ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <>
                 <Ionicons name="mic" size={28} color="#fff" />
-                <Text style={styles.startText}>Start Talking with Sara</Text>
+                <Text style={styles.startText}>Start Talking with Sarah</Text>
               </>
             )}
           </Pressable>

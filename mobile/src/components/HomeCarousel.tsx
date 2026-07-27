@@ -24,8 +24,11 @@ type Slide = {
   emoji: string;
   title: string;
   subtitle: string;
+  /** Starter prompt sent to Chat — ignored when `route` is set. */
   prompt: string;
   gradient: readonly [string, string];
+  /** Open this screen instead of Chat (used by cards that have a real screen). */
+  route?: string;
 };
 
 const SLIDES: Slide[] = [
@@ -54,8 +57,9 @@ const SLIDES: Slide[] = [
     emoji: '🎨',
     title: 'Create art from words',
     subtitle: 'Describe a picture and I will make it',
-    prompt: 'I would like to create a picture. Help me describe it.',
+    prompt: '',
     gradient: ['#F2A03D', '#F7C04A'] as const,
+    route: '/image-gen',
   },
   {
     emoji: '📱',
@@ -84,6 +88,13 @@ export function HomeCarousel() {
 
   const open = useCallback(
     (slide: Slide) => {
+      // Cards backed by a real screen (AI Art) open it directly. Sending them
+      // through Chat as a prompt made the app answer in words instead of
+      // actually making the thing the card promised.
+      if (slide.route) {
+        router.push(slide.route as never);
+        return;
+      }
       setPendingPrompt(slide.prompt);
       router.push('/(tabs)/chat');
     },

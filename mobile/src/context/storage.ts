@@ -28,6 +28,41 @@ export async function getDeviceId(): Promise<string> {
   return id;
 }
 
+/** Where AuthContext stores the signed-in account. */
+const AUTH_KEY = 'boomer.auth.v1';
+
+/**
+ * Owner key for saved conversations.
+ *
+ * History used to be keyed on the device id alone — but that id is generated
+ * per install, so deleting and reinstalling the app (or moving to a new phone)
+ * silently orphaned every past conversation. When the user has a real account
+ * we key on their email instead, which survives reinstalls. Signed-out users
+ * still fall back to the device id, and `getHistoryKeys()` reads both so
+ * nothing saved before signing in disappears from the list.
+ */
+export async function getHistoryKey(): Promise<string> {
+  try {
+    const raw = await AsyncStorage.getItem(AUTH_KEY);
+    if (raw) {
+      const email = (JSON.parse(raw) as { email?: string })?.email?.trim().toLowerCase();
+      // Bypass/demo accounts share one synthetic email — never pool their
+      // conversations together.
+      if (email && email !== 'bypass@boomer.ai') return `user:${email}`;
+    }
+  } catch {
+    /* unreadable auth blob — fall back to the device id */
+  }
+  return getDeviceId();
+}
+
+/** Every key this install's conversations may be stored under, newest first. */
+export async function getHistoryKeys(): Promise<string[]> {
+  const primary = await getHistoryKey();
+  const device = await getDeviceId();
+  return primary === device ? [device] : [primary, device];
+}
+
 export async function getCachedProfile<T>(key: string): Promise<T | null> {
   const raw = await AsyncStorage.getItem(KEYS.profile(key));
   if (!raw) return null;
