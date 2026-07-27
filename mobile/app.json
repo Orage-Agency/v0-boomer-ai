@@ -60,7 +60,8 @@
           "photosPermission": "Boomer AI uses your photo library so you can share a photo with your AI guide to ask about it, and to set your profile picture.",
           "cameraPermission": "Boomer AI uses the camera so you can take a photo to ask your AI guide about it, and to take your profile picture."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "apiBaseUrl": "https://boomerai.orage.agency",
