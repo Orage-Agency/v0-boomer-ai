@@ -215,7 +215,7 @@ function VoiceCallInner() {
       <Screen centered edges={['top', 'bottom']}>
         <BrandHeader title="Sarah" onBack={() => router.back()} />
         <View style={styles.gate}>
-          <Image source={require('../../assets/sara-avatar.jpg')} style={styles.gateAvatar} />
+          <Image source={require('../../assets/sarah-avatar.jpg')} style={styles.gateAvatar} />
           <Text style={styles.gateTitle}>Talk with Sarah, live</Text>
           <Text style={styles.gateSub}>
             Have a real back-and-forth voice conversation — no typing, no waiting. Voice
@@ -244,7 +244,7 @@ function VoiceCallInner() {
       <View style={styles.stage}>
         <Animated.View style={[styles.avatarRing, connected && styles.avatarRingLive, ringStyle]}>
           <Image
-            source={require('../../assets/sara-avatar.jpg')}
+            source={require('../../assets/sarah-avatar.jpg')}
             style={styles.avatar}
             accessibilityLabel="Sarah, your AI companion"
           />

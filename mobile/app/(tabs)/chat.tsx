@@ -60,7 +60,7 @@ import type { ChatMessage } from '@/types';
 
 /** The friendly face of the assistant across the app. */
 export const COMPANION_NAME = 'Sarah';
-export const COMPANION_AVATAR = require('../../assets/sara-avatar.jpg');
+export const COMPANION_AVATAR = require('../../assets/sarah-avatar.jpg');
 
 // ---- In-chat picture creation -------------------------------------------
 
