@@ -61,7 +61,9 @@
           "cameraPermission": "Boomer AI uses the camera so you can take a photo to ask your AI guide about it, and to take your profile picture."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "@livekit/react-native-expo-plugin",
+      "@config-plugins/react-native-webrtc"
     ],
     "extra": {
       "apiBaseUrl": "https://boomerai.orage.agency",

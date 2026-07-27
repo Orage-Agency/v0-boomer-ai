@@ -12,9 +12,11 @@
     "export": "expo export --platform web"
   },
   "dependencies": {
-    "@elevenlabs/react-native": "^1.2.14",
-    "@livekit/react-native": "^2.9.2",
-    "@livekit/react-native-webrtc": "^137.0.2",
+    "@config-plugins/react-native-webrtc": "^10.0.0",
+    "@elevenlabs/react-native": "1.2.14",
+    "@livekit/react-native": "2.9.2",
+    "@livekit/react-native-expo-plugin": "^1.0.2",
+    "@livekit/react-native-webrtc": "137.0.2",
     "@react-native-async-storage/async-storage": "1.23.1",
     "expo": "~52.0.0",
     "expo-asset": "~11.0.5",
@@ -29,7 +31,6 @@
     "expo-router": "~4.0.0",
     "expo-speech": "~13.0.1",
     "expo-status-bar": "~2.0.0",
-    "livekit-client": "^2.20.1",
     "react": "18.3.1",
     "react-native": "0.76.9",
     "react-native-purchases": "^8.2.0",
@@ -41,5 +42,8 @@
     "@types/react": "~18.3.12",
     "babel-plugin-module-resolver": "^5.0.2",
     "typescript": "^5.3.3"
+  },
+  "overrides": {
+    "livekit-client": "2.16.1"
   }
 }
