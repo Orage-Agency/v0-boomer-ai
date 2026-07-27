@@ -213,8 +213,8 @@ export default function LoginScreen() {
                 loading={busy}
               />
               <Text style={styles.helpSmall}>
-                Don't have an account yet? You'll need to create one first — close this
-                window, tap "Start free", finish onboarding, then come back here.
+                Don't have a code? No problem — close this window and you can use
+                Boomer AI free right away.
               </Text>
             </View>
           )}

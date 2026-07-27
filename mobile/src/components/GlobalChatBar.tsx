@@ -1,8 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { setPendingMic } from '@/screens/pendingPrompt';
-import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
+import { colors, fontSize, radius, spacing } from '@/theme/theme';
 
 /**
  * Always-on "chat from anywhere" entry, docked above the tab bar on every main
@@ -36,12 +37,12 @@ export function GlobalChatBar() {
           style={styles.mic}
           accessibilityRole="button"
           accessibilityLabel="Speak to Boomer AI"
-          hitSlop={6}
+          hitSlop={8}
         >
-          <Text style={styles.micIcon}>🎤</Text>
+          <Ionicons name="mic" size={20} color={colors.textSecondary} />
         </Pressable>
         <View style={styles.send}>
-          <Text style={styles.sendIcon}>↑</Text>
+          <Ionicons name="arrow-up" size={20} color={colors.textOnDark} />
         </View>
       </Pressable>
     </View>
@@ -81,7 +82,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  micIcon: { fontSize: 18 },
   send: {
     width: 40,
     height: 40,
@@ -89,11 +89,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  sendIcon: {
-    color: colors.textOnDark,
-    fontSize: 20,
-    fontWeight: fontWeight.black,
-    lineHeight: 22,
   },
 });

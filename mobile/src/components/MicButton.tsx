@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
@@ -77,7 +78,11 @@ export function MicButton({
         {transcribing ? (
           <ActivityIndicator color={colors.textSecondary} />
         ) : (
-          <Text style={styles.icon}>{recording ? '⏹' : '🎤'}</Text>
+          <Ionicons
+            name={recording ? 'stop' : 'mic'}
+            size={22}
+            color={recording ? '#991B1B' : colors.textSecondary}
+          />
         )}
       </Pressable>
     </Animated.View>
@@ -93,5 +98,4 @@ const styles = StyleSheet.create({
   },
   recording: { backgroundColor: '#FCA5A5' },
   disabled: { opacity: 0.4 },
-  icon: { fontSize: 22 },
 });

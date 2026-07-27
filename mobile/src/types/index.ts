@@ -83,9 +83,9 @@ export type ChatMessage = {
   parts: ChatMessagePart[];
   /** Local file URI of a photo the user attached — shown in their bubble. */
   imageUri?: string;
-  /** Remote URL of AI artwork Sara created inline — shown in her bubble. */
+  /** Remote URL of AI artwork Sarah created inline — shown in her bubble. */
   generatedImageUrl?: string;
-  /** True while Sara is still painting the picture for this bubble. */
+  /** True while Sarah is still painting the picture for this bubble. */
   imagePending?: boolean;
   /** Renders as a friendly "Go Pro" card instead of a plain reply. */
   upsell?: boolean;

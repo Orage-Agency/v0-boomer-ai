@@ -77,9 +77,10 @@ export default function Home() {
           <GradientTile
             emoji="🎙️"
             title="Voice"
-            subtitle="Talk to me"
+            subtitle="Talk with Sarah live"
             gradient={gradients.voice}
             onPress={openVoice}
+            locked={!entitled}
           />
         </Animated.View>
 
@@ -107,6 +108,7 @@ export default function Home() {
             subtitle="Create images"
             gradient={gradients.art}
             onPress={openImageGen}
+            locked={!entitled}
           />
           <GradientTile
             emoji="❓"

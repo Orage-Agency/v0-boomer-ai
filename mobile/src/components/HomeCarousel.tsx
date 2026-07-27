@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
@@ -23,8 +24,11 @@ type Slide = {
   emoji: string;
   title: string;
   subtitle: string;
+  /** Starter prompt sent to Chat — ignored when `route` is set. */
   prompt: string;
   gradient: readonly [string, string];
+  /** Open this screen instead of Chat (used by cards that have a real screen). */
+  route?: string;
 };
 
 const SLIDES: Slide[] = [
@@ -53,8 +57,9 @@ const SLIDES: Slide[] = [
     emoji: '🎨',
     title: 'Create art from words',
     subtitle: 'Describe a picture and I will make it',
-    prompt: 'I would like to create a picture. Help me describe it.',
+    prompt: '',
     gradient: ['#F2A03D', '#F7C04A'] as const,
+    route: '/image-gen',
   },
   {
     emoji: '📱',
@@ -65,44 +70,69 @@ const SLIDES: Slide[] = [
   },
 ];
 
-// The carousel lives inside the home ScrollView, which is already inset by
-// spacing.lg on each side. So each page is the available content width and we
-// page by that, not the full screen width.
-const CARD_W = Dimensions.get('window').width - spacing.lg * 2;
-const ROTATE_MS = 4500;
+const ROTATE_MS = 6000;
+// Sensible first-render estimate; replaced by the measured width onLayout so
+// rotation / iPad split-view can't break pagination.
+const INITIAL_W = Dimensions.get('window').width - spacing.lg * 2;
 
 export function HomeCarousel() {
   const router = useRouter();
   const listRef = useRef<FlatList<Slide>>(null);
   const [index, setIndex] = useState(0);
+  const [cardW, setCardW] = useState(INITIAL_W);
   const indexRef = useRef(0);
   indexRef.current = index;
+  const cardWRef = useRef(cardW);
+  cardWRef.current = cardW;
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const open = useCallback(
     (slide: Slide) => {
+      // Cards backed by a real screen (AI Art) open it directly. Sending them
+      // through Chat as a prompt made the app answer in words instead of
+      // actually making the thing the card promised.
+      if (slide.route) {
+        router.push(slide.route as never);
+        return;
+      }
       setPendingPrompt(slide.prompt);
       router.push('/(tabs)/chat');
     },
     [router],
   );
 
-  // Auto-advance, looping back to the first card.
-  useEffect(() => {
-    const timer = setInterval(() => {
+  // Auto-advance, looping back to the first card. Restartable so a manual
+  // swipe resets the clock — the card must never yank away right after the
+  // user moved it themselves.
+  const startTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
       const next = (indexRef.current + 1) % SLIDES.length;
-      listRef.current?.scrollToOffset({ offset: next * CARD_W, animated: true });
+      listRef.current?.scrollToOffset({ offset: next * cardWRef.current, animated: true });
       setIndex(next);
     }, ROTATE_MS);
-    return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    startTimer();
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [startTimer]);
+
+  const onLayout = (e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0 && Math.abs(w - cardWRef.current) > 1) setCardW(w);
+  };
+
   const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const i = Math.round(e.nativeEvent.contentOffset.x / CARD_W);
+    const i = Math.round(e.nativeEvent.contentOffset.x / cardWRef.current);
     if (i !== indexRef.current) setIndex(i);
+    startTimer(); // user (or auto) finished moving — restart the clock
   };
 
   return (
-    <View>
+    <View onLayout={onLayout}>
       <FlatList
         ref={listRef}
         data={SLIDES}
@@ -110,10 +140,14 @@ export function HomeCarousel() {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
+        onScrollBeginDrag={() => {
+          // Hands off while the user is touching it.
+          if (timerRef.current) clearInterval(timerRef.current);
+        }}
         onMomentumScrollEnd={onScrollEnd}
-        getItemLayout={(_, i) => ({ length: CARD_W, offset: CARD_W * i, index: i })}
+        getItemLayout={(_, i) => ({ length: cardW, offset: cardW * i, index: i })}
         renderItem={({ item }) => (
-          <View style={styles.page}>
+          <View style={{ width: cardW }}>
             <Pressable
               onPress={() => open(item)}
               accessibilityRole="button"
@@ -145,8 +179,7 @@ export function HomeCarousel() {
 }
 
 const styles = StyleSheet.create({
-  page: { width: CARD_W },
-  cardWrap: { width: CARD_W, borderRadius: radius.xl, overflow: 'hidden' },
+  cardWrap: { width: '100%', borderRadius: radius.xl, overflow: 'hidden' },
   pressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
   card: {
     minHeight: 96,

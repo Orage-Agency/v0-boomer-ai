@@ -18,6 +18,7 @@ import { Platform } from 'react-native';
 
 type Extra = {
   apiBaseUrl?: string;
+  elevenLabsAgentId?: string;
   revenueCatApiKeyIos?: string;
   revenueCatApiKeyAndroid?: string;
 };
@@ -40,6 +41,8 @@ const androidKey =
 export const env = {
   /** Origin of the hosted Next.js backend that serves /api/* routes. */
   apiBaseUrl: extra.apiBaseUrl ?? PLACEHOLDER_API,
+  /** ElevenLabs conversational agent (Sarah) for the real-time Voice screen. */
+  elevenLabsAgentId: extra.elevenLabsAgentId ?? '',
   revenueCat: {
     iosApiKey: iosKey,
     androidApiKey: androidKey,

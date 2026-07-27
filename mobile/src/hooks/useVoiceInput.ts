@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Vibration } from 'react-native';
 import { Audio, InterruptionModeIOS } from 'expo-av';
 import { transcribeApi } from '@/api';
 
@@ -24,6 +25,35 @@ export type VoiceInputState = 'idle' | 'recording' | 'transcribing';
 
 /** Hard ceiling per take — long enough for a full question, never runaway. */
 export const MAX_RECORD_MS = 60_000;
+
+/**
+ * Speech-optimized recording: mono 16 kHz AAC. Whisper downsamples to 16 kHz
+ * anyway, so the old HIGH_QUALITY preset (44.1 kHz stereo) only made uploads
+ * ~8× bigger — the main reason transcription felt slow on cellular.
+ */
+const SPEECH_RECORDING_OPTIONS: Audio.RecordingOptions = {
+  isMeteringEnabled: false,
+  ios: {
+    extension: '.m4a',
+    outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+    audioQuality: Audio.IOSAudioQuality.HIGH,
+    sampleRate: 16000,
+    numberOfChannels: 1,
+    bitRate: 64000,
+  },
+  android: {
+    extension: '.m4a',
+    outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+    audioEncoder: Audio.AndroidAudioEncoder.AAC,
+    sampleRate: 16000,
+    numberOfChannels: 1,
+    bitRate: 64000,
+  },
+  web: {
+    mimeType: 'audio/webm',
+    bitsPerSecond: 64000,
+  },
+};
 
 export type UseVoiceInputOptions = {
   /** Receives the transcribed text once recording stops. */
@@ -123,11 +153,14 @@ export function useVoiceInput({ onTranscript, onBeforeRecord }: UseVoiceInputOpt
           stopRef.current();
         }
       });
-      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await rec.prepareToRecordAsync(SPEECH_RECORDING_OPTIONS);
       await rec.startAsync();
       recordingRef.current = rec;
       setDurationMs(0);
       setState('recording');
+      // Tactile "I'm listening" confirmation — matters for older hands that
+      // aren't sure whether the tap registered.
+      Vibration.vibrate(30);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'unknown error';
       setError(`Could not start recording: ${msg}`);

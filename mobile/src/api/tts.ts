@@ -27,23 +27,41 @@ function arrayBufferToBase64(buf: ArrayBuffer): string {
 }
 
 /**
+ * Sarah's ElevenLabs voice — the same voice the conversational agent uses, so
+ * read-aloud in chat and the live Voice screen sound like ONE person. The
+ * backend routes any 20+ char voice id straight to ElevenLabs.
+ */
+export const SARA_VOICE_ID = '3liN8q8YoeB9Hk6AboKe';
+
+/**
  * Text-to-Speech via the Boomer AI backend proxy (/api/tts).
  * Returns a base64 data URI that expo-av can play directly.
  *
- * Default voice "nova" is warm and clear (better for older listeners than the
- * flat "alloy"); `speed` slightly under 1 makes it easier to follow.
+ * A 25s abort guard means a stalled connection surfaces an error instead of a
+ * "Speaking…" state that never resolves.
  */
 export async function speakText(
   text: string,
-  voice = 'nova',
+  voice = SARA_VOICE_ID,
   speed = 0.95,
 ): Promise<string> {
   const base = env.apiBaseUrl.replace(/\/$/, '');
-  const res = await fetch(`${base}/api/tts`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: text.slice(0, 4096), voice, speed }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25_000);
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/tts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text.slice(0, 4096), voice, speed }),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    if (controller.signal.aborted) throw new Error('TTS request timed out');
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     throw new Error(`TTS request failed: ${res.status}`);

@@ -78,22 +78,47 @@ function parseLine(line: string): string {
  */
 export async function sendChat(opts: SendChatOptions): Promise<string> {
   const base = env.apiBaseUrl.replace(/\/$/, '');
-  const res = await expoFetch(`${base}/api/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream',
-    },
-    body: JSON.stringify({
-      messages: toBackendMessages(opts.messages),
-      model: MODEL,
-      capturedImage: opts.capturedImage,
-      conversationId: opts.conversationId ?? undefined,
-    }),
-    signal: opts.signal,
-  });
+
+  // Inactivity watchdog: 30s to connect / first byte, 25s between chunks.
+  // Without this a stalled connection left "Thinking…" on screen forever
+  // with the input disabled.
+  const controller = new AbortController();
+  if (opts.signal) {
+    opts.signal.addEventListener('abort', () => controller.abort(), { once: true });
+  }
+  let watchdog: ReturnType<typeof setTimeout> | null = null;
+  const armWatchdog = (ms: number) => {
+    if (watchdog) clearTimeout(watchdog);
+    watchdog = setTimeout(() => controller.abort(), ms);
+  };
+  const friendlyTimeout = () =>
+    new Error('This is taking longer than usual. Please check your internet and try again.');
+
+  armWatchdog(30_000);
+  let res: Awaited<ReturnType<typeof expoFetch>>;
+  try {
+    res = await expoFetch(`${base}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify({
+        messages: toBackendMessages(opts.messages),
+        model: MODEL,
+        capturedImage: opts.capturedImage,
+        conversationId: opts.conversationId ?? undefined,
+      }),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    if (watchdog) clearTimeout(watchdog);
+    if (controller.signal.aborted && !opts.signal?.aborted) throw friendlyTimeout();
+    throw e;
+  }
 
   if (!res.ok) {
+    if (watchdog) clearTimeout(watchdog);
     let message = `Chat failed (${res.status})`;
     try {
       const body = (await res.json()) as { message?: string; error?: string };
@@ -113,7 +138,16 @@ export async function sendChat(opts: SendChatOptions): Promise<string> {
     const decoder = new TextDecoder();
     let buffer = '';
     for (;;) {
-      const { done, value } = await reader.read();
+      armWatchdog(25_000);
+      let done: boolean;
+      let value: Uint8Array | undefined;
+      try {
+        ({ done, value } = await reader.read());
+      } catch (e) {
+        if (watchdog) clearTimeout(watchdog);
+        if (controller.signal.aborted && !opts.signal?.aborted) throw friendlyTimeout();
+        throw e;
+      }
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split(/\r?\n/);
@@ -128,6 +162,7 @@ export async function sendChat(opts: SendChatOptions): Promise<string> {
       }
       if (appended) opts.onDelta?.(cumulative);
     }
+    if (watchdog) clearTimeout(watchdog);
     // Flush whatever remains in the buffer.
     const tailPiece = parseLine(buffer);
     if (tailPiece) {
@@ -136,7 +171,16 @@ export async function sendChat(opts: SendChatOptions): Promise<string> {
     }
   } else {
     // Fallback: no stream reader — read the whole body and parse at once.
-    const raw = await res.text();
+    armWatchdog(60_000);
+    let raw: string;
+    try {
+      raw = await res.text();
+    } catch (e) {
+      if (controller.signal.aborted && !opts.signal?.aborted) throw friendlyTimeout();
+      throw e;
+    } finally {
+      if (watchdog) clearTimeout(watchdog);
+    }
     for (const line of raw.split(/\r?\n/)) {
       const piece = parseLine(line);
       if (piece) {

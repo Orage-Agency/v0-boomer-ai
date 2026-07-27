@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { BYPASS_PRO_KEY } from '@/context/storage';
 import { isBypassCode } from '@/lib/bypassCodes';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Purchases from 'react-native-purchases';
@@ -89,12 +90,41 @@ const MARKETING_MONTHLY = '$10/month';
 
 type PaywallMode = 'soft' | 'hard';
 
+/**
+ * Why the user landed here — every gate passes ?reason= so the paywall can
+ * explain itself instead of appearing out of nowhere (a top source of
+ * "why am I seeing this?" confusion for older users).
+ */
+const REASON_COPY: Record<string, { title: string; sub: string }> = {
+  chat_quota: {
+    title: "You've used today's 5 free chats",
+    sub: 'Go Pro for unlimited conversations with Sarah — no daily limits.',
+  },
+  chat_upsell: {
+    title: 'Enjoying your chats with Sarah?',
+    sub: 'Pro removes the daily limit and unlocks her voice and pictures.',
+  },
+  voice: {
+    title: 'Talk with Sarah, live',
+    sub: 'Real voice conversations are a Pro feature — like a phone call with a patient friend.',
+  },
+  image_gen: {
+    title: 'Create pictures with Sarah',
+    sub: 'AI picture creation is a Pro feature. Describe it, Sarah paints it.',
+  },
+  lessons: {
+    title: 'Unlock every video lesson',
+    sub: 'The first 3 lessons are free. Pro opens the full library.',
+  },
+};
+
 export default function PaywallScreen() {
   const router = useRouter();
-  const { mode } = useLocalSearchParams<{ mode?: PaywallMode }>();
+  const { mode, reason } = useLocalSearchParams<{ mode?: PaywallMode; reason?: string }>();
   const { entitled, refresh, celebrateUnlock } = useEntitlement();
 
   const hardGate = mode === 'hard';
+  const reasonCopy = reason ? REASON_COPY[reason] : undefined;
 
   // A Pro user must never be stuck on the paywall. The moment entitlement
   // flips true — a purchase, a restore, or a code redeemed in the nested
@@ -313,7 +343,7 @@ export default function PaywallScreen() {
               accessibilityLabel="Close paywall"
               hitSlop={16}
             >
-              <Text style={styles.closeText}>✕</Text>
+              <Ionicons name="close" size={26} color={colors.textMuted} />
             </Pressable>
           </View>
         )}
@@ -321,7 +351,8 @@ export default function PaywallScreen() {
         <Animated.View entering={FadeInDown.duration(320)}>
           <LinearGradient colors={gradients.brand} style={styles.hero}>
             <Text style={styles.heroEmoji}>⭐</Text>
-            <Text style={styles.heroTitle}>Boomer AI Pro</Text>
+            <Text style={styles.heroTitle}>{reasonCopy?.title ?? 'Boomer AI Pro'}</Text>
+            {reasonCopy && <Text style={styles.heroReason}>{reasonCopy.sub}</Text>}
             <Text style={styles.heroSub}>
               {annualPackage
                 ? `7 days free, then ${annualPackage.product.priceString} a year. Cancel anytime.`
@@ -638,6 +669,13 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.92)',
     fontWeight: fontWeight.medium,
     textAlign: 'center',
+  },
+  heroReason: {
+    fontSize: fontSize.sm,
+    color: 'rgba(255,255,255,0.95)',
+    fontWeight: fontWeight.semibold,
+    textAlign: 'center',
+    marginBottom: 2,
   },
   features: { gap: spacing.sm },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

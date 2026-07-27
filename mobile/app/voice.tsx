@@ -1,393 +1,348 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
+  Image,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-import * as Speech from 'expo-speech';
-import { Audio, InterruptionModeIOS } from 'expo-av';
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { Audio } from 'expo-av';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useConversation } from '@elevenlabs/react-native';
 import { Screen } from '@/components/Screen';
 import { BrandHeader } from '@/components/BrandHeader';
 import { InfoBanner } from '@/components/InfoBanner';
-import { useChatSession } from '@/screens/useChat';
-import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useProfile } from '@/context/ProfileContext';
-import { isApiConfigured } from '@/config/env';
-import { ttsApi } from '@/api';
+import { useEntitlement } from '@/context/EntitlementContext';
+import { env } from '@/config/env';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
-import type { ChatMessage } from '@/types';
 
 /**
- * Voice chat screen.
+ * Voice screen — a REAL-TIME conversation with Sarah.
  *
- * Two-way voice with the AI:
- *  - Tap the mic to record (expo-av), tap again to stop. Audio is uploaded to
- *    /api/transcribe (OpenAI Whisper) and the returned text is sent through
- *    the normal /api/chat pipeline.
- *  - The AI's reply is spoken aloud via /api/tts (OpenAI TTS, "alloy" voice),
- *    played by expo-av. Falls back to on-device `expo-speech` if the backend
- *    TTS proxy is unavailable.
+ * Powered by the dedicated ElevenLabs conversational agent (WebRTC via
+ * @elevenlabs/react-native). One tap starts a live call: Sarah listens
+ * continuously (no tap-to-stop), replies in about a second in her own voice,
+ * and can be interrupted naturally just by speaking — the walkie-talkie
+ * record → transcribe → chat → TTS chain is gone.
  */
+
+type TranscriptTurn = { id: string; role: 'user' | 'agent'; text: string };
+
+let turnCounter = 0;
+function turnId(): string {
+  turnCounter += 1;
+  return `turn_${Date.now()}_${turnCounter}`;
+}
 
 export default function VoiceScreen() {
   const router = useRouter();
-  const { messages, status, error, send } = useChatSession();
   const { profile, updateProfile } = useProfile();
-  const [input, setInput] = useState('');
-  const [speaking, setSpeaking] = useState(false);
-  const [ttsEnabled, setTtsEnabled] = useState(true);
-  const listRef = useRef<FlatList<ChatMessage>>(null);
-  const lastSpokenId = useRef<string | null>(null);
+  const { entitled } = useEntitlement();
+  const [transcript, setTranscript] = useState<TranscriptTurn[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const listRef = useRef<FlatList<TranscriptTurn>>(null);
   const awardedStar = useRef(false);
-  const soundRef = useRef<Audio.Sound | null>(null);
 
-  const busy = status === 'streaming' || status === 'submitted';
-
-  // Stop ALL audio output — both the backend-TTS Sound and the device-speech
-  // fallback. Previously only device speech was stopped, so the AI kept talking
-  // over the user when they started recording, and the live Sound held the
-  // audio session, which made the next recording fail to start.
-  const stopSpeaking = useCallback(async () => {
-    try {
-      await Speech.stop();
-    } catch {
-      /* ignore */
-    }
-    const s = soundRef.current;
-    soundRef.current = null;
-    if (s) {
-      try {
-        await s.stopAsync();
-      } catch {
-        /* ignore */
-      }
-      try {
-        await s.unloadAsync();
-      } catch {
-        /* ignore */
-      }
-    }
-    setSpeaking(false);
-  }, []);
-
-  // Speak the assistant's reply aloud once it finishes streaming.
-  // Primary: backend TTS (OpenAI proxy at /api/tts) played via expo-av.
-  // Fallback: expo-speech device TTS if the backend call fails.
-  useEffect(() => {
-    if (!ttsEnabled) return;
-    if (status !== 'idle' || messages.length === 0) return;
-    const last = messages[messages.length - 1];
-    if (last.role !== 'assistant' || last.id === lastSpokenId.current) return;
-    const text = last.parts.map((p) => p.text).join('').trim();
-    if (!text) return;
-    lastSpokenId.current = last.id;
-    setSpeaking(true);
-
-    const playWithBackendTts = async () => {
-      try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: true,
-          interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-        });
-        const dataUri = await ttsApi.speakText(text);
-        const { sound } = await Audio.Sound.createAsync({ uri: dataUri });
-        soundRef.current = sound;
-        await sound.playAsync();
-        sound.setOnPlaybackStatusUpdate((s) => {
-          if (s.isLoaded && s.didJustFinish) {
-            setSpeaking(false);
-            void sound.unloadAsync();
-            if (soundRef.current === sound) soundRef.current = null;
-          }
-        });
-      } catch {
-        // Fallback to device speech if backend TTS fails
-        Speech.speak(text, {
-          rate: 0.95,
-          onDone: () => setSpeaking(false),
-          onStopped: () => setSpeaking(false),
-          onError: () => setSpeaking(false),
-        });
-      }
-    };
-
-    void playWithBackendTts();
-  }, [messages, status, ttsEnabled]);
-
-  // Stop all audio when leaving the screen.
-  useEffect(() => {
-    return () => {
-      void stopSpeaking();
-    };
-  }, [stopSpeaking]);
-
-  const handleSend = useCallback(
-    (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed || busy) return;
-      void stopSpeaking();
-      // Award +2 stars on the first voice interaction (matches web reward).
-      if (!awardedStar.current) {
-        awardedStar.current = true;
-        updateProfile({ stars: profile.stars + 2 });
-      }
-      void send(trimmed);
-      setInput('');
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+  const conversation = useConversation({
+    onMessage: ({ message, role }) => {
+      if (!message?.trim()) return;
+      setTranscript((prev) => [...prev, { id: turnId(), role, text: message }]);
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
     },
-    [busy, send, profile.stars, updateProfile, stopSpeaking],
-  );
-
-  const toggleTts = useCallback(() => {
-    setTtsEnabled((prev) => {
-      const next = !prev;
-      if (!next) void stopSpeaking();
-      return next;
-    });
-  }, [stopSpeaking]);
-
-  // Shared record → Whisper-transcribe machinery (same hook that powers the
-  // mic in Chat and AI Art). `onBeforeRecord` frees the audio session from any
-  // TTS playback first — a live Sound keeps the session in playback-only mode
-  // and makes prepareToRecord fail.
-  const handleSendRef = useRef(handleSend);
-  handleSendRef.current = handleSend;
-  const voiceInput = useVoiceInput({
-    onTranscript: (text) => handleSendRef.current(text),
-    onBeforeRecord: stopSpeaking,
+    onError: (message) => {
+      setError(
+        message?.includes('permission')
+          ? 'Microphone access is off. Turn it on in Settings → Boomer AI → Microphone.'
+          : 'The call could not continue. Please check your internet and try again.',
+      );
+    },
+    onDisconnect: (details) => {
+      if (details?.reason === 'error') {
+        setError('The call dropped. Please tap the button to talk to Sarah again.');
+      }
+    },
   });
 
-  const recording = voiceInput.state === 'recording';
-  const transcribing = voiceInput.state === 'transcribing';
-  const micError = voiceInput.error;
+  const { status, isSpeaking, startSession, endSession } = conversation;
+  const connected = status === 'connected';
+  const connecting = status === 'connecting';
 
-  const handleMicPress = useCallback(() => {
-    if (busy || transcribing) return;
-    voiceInput.toggle();
-  }, [busy, transcribing, voiceInput]);
+  const startCall = useCallback(async () => {
+    setError(null);
+    if (!env.elevenLabsAgentId) {
+      setError('Voice is not configured yet. Please update the app.');
+      return;
+    }
+    // Ask for the mic BEFORE dialing so the call never dies on a permission
+    // prompt mid-connect.
+    let perm = await Audio.getPermissionsAsync();
+    if (!perm.granted && perm.canAskAgain) {
+      perm = await Audio.requestPermissionsAsync();
+    }
+    if (!perm.granted) {
+      setError('Microphone access is off. Turn it on in Settings → Boomer AI → Microphone.');
+      return;
+    }
+    if (!awardedStar.current) {
+      awardedStar.current = true;
+      updateProfile({ stars: profile.stars + 2 });
+    }
+    startSession({ agentId: env.elevenLabsAgentId });
+  }, [startSession, profile.stars, updateProfile]);
+
+  const endCall = useCallback(() => {
+    endSession();
+  }, [endSession]);
+
+  // Never leave a live call running after the screen is gone.
+  const endSessionRef = useRef(endSession);
+  endSessionRef.current = endSession;
+  useEffect(() => {
+    return () => endSessionRef.current();
+  }, []);
+
+  // Gentle pulsing ring around Sarah while the call is live — stronger while
+  // she is speaking, subtle while she listens.
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    if (connected) {
+      const peak = isSpeaking ? 1.1 : 1.04;
+      pulse.value = withRepeat(
+        withSequence(
+          withTiming(peak, { duration: isSpeaking ? 420 : 900 }),
+          withTiming(1, { duration: isSpeaking ? 420 : 900 }),
+        ),
+        -1,
+      );
+    } else {
+      cancelAnimation(pulse);
+      pulse.value = withTiming(1, { duration: 200 });
+    }
+  }, [connected, isSpeaking, pulse]);
+  const ringStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+
+  // Voice conversations are a Pro feature — friendly gate for deep links.
+  if (!entitled) {
+    return (
+      <Screen centered edges={['top', 'bottom']}>
+        <BrandHeader title="Talk with Sarah" onBack={() => router.back()} />
+        <View style={styles.gate}>
+          <Image source={require('../assets/sara-avatar.jpg')} style={styles.gateAvatar} />
+          <Text style={styles.gateTitle}>Talk with Sarah, live</Text>
+          <Text style={styles.gateSub}>
+            Have a real back-and-forth voice conversation — no typing, no waiting.
+            Voice calls are part of Boomer AI Pro.
+          </Text>
+          <Pressable
+            onPress={() => router.push('/paywall?reason=voice')}
+            style={styles.gateBtn}
+            accessibilityRole="button"
+            accessibilityLabel="See Boomer AI Pro options"
+          >
+            <Text style={styles.gateBtnText}>See Pro Options</Text>
+          </Pressable>
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen centered edges={['top', 'bottom']}>
-      <BrandHeader
-        title="Talk to Sara"
-        onBack={() => router.back()}
-        right={
+      <BrandHeader title="Talk with Sarah" onBack={() => router.back()} />
+
+      <View style={styles.stage}>
+        <Animated.View style={[styles.avatarRing, connected && styles.avatarRingLive, ringStyle]}>
+          <Image
+            source={require('../assets/sara-avatar.jpg')}
+            style={styles.avatar}
+            accessibilityLabel="Sarah, your AI companion"
+          />
+        </Animated.View>
+
+        <Text style={styles.stateTitle}>
+          {connecting
+            ? 'Calling Sara…'
+            : connected
+              ? isSpeaking
+                ? 'Sarah is speaking'
+                : "I'm listening…"
+              : `Hi ${profile.name || profile.userName || 'there'}!`}
+        </Text>
+        <Text style={styles.stateSub}>
+          {connecting
+            ? 'One moment'
+            : connected
+              ? isSpeaking
+                ? 'Just start talking to interrupt her'
+                : 'Speak whenever you like — Sarah hears you'
+              : 'Tap the button below and simply start talking. Sarah answers out loud, like a phone call.'}
+        </Text>
+      </View>
+
+      {error && (
+        <View style={styles.bannerWrap}>
+          <InfoBanner tone="danger" message={error} />
+        </View>
+      )}
+
+      {transcript.length > 0 && (
+        <FlatList
+          ref={listRef}
+          data={transcript}
+          keyExtractor={(t) => t.id}
+          style={styles.transcript}
+          contentContainerStyle={styles.transcriptContent}
+          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+          renderItem={({ item }) => (
+            <View
+              style={[
+                styles.turn,
+                item.role === 'user' ? styles.turnUser : styles.turnAgent,
+              ]}
+            >
+              <Text style={styles.turnSpeaker}>
+                {item.role === 'user' ? 'You' : 'Sarah'}
+              </Text>
+              <Text
+                style={[styles.turnText, item.role === 'user' && styles.turnTextUser]}
+              >
+                {item.text}
+              </Text>
+            </View>
+          )}
+        />
+      )}
+
+      <View style={styles.controls}>
+        {connected || connecting ? (
           <Pressable
-            onPress={toggleTts}
-            style={styles.ttsBtn}
+            onPress={endCall}
+            style={styles.endBtn}
             accessibilityRole="button"
-            accessibilityLabel={ttsEnabled ? 'Turn off voice replies' : 'Turn on voice replies'}
+            accessibilityLabel="End the conversation"
           >
-            <Text style={styles.ttsToggle}>{ttsEnabled ? '🔊' : '🔇'}</Text>
+            <Ionicons name="call" size={26} color="#fff" style={styles.endIcon} />
+            <Text style={styles.endText}>End Conversation</Text>
           </Pressable>
-        }
-      />
-
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={20}
-      >
-        {!isApiConfigured && (
-          <View style={styles.bannerWrap}>
-            <InfoBanner
-              tone="warn"
-              title="Server not connected"
-              message="Set the API base URL in app.json to enable voice chat."
-            />
-          </View>
-        )}
-
-        {messages.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🎙️</Text>
-            <Text style={styles.emptyTitle}>Hi {profile.name || profile.userName || 'there'}!</Text>
-            <Text style={styles.emptySub}>
-              Tap the microphone and ask your question, or type it below. I'll read my answer
-              out loud.
-            </Text>
-          </View>
         ) : (
-          <FlatList
-            ref={listRef}
-            data={messages}
-            keyExtractor={(m) => m.id}
-            contentContainerStyle={styles.list}
-            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-            renderItem={({ item }) => <Bubble message={item} />}
-            ListFooterComponent={
-              busy ? <Text style={styles.status}>Thinking…</Text> : speaking ? (
-                <Text style={styles.status}>🔊 Speaking…</Text>
-              ) : null
-            }
-          />
-        )}
-
-        {error && (
-          <View style={styles.bannerWrap}>
-            <InfoBanner tone="danger" message={error} />
-          </View>
-        )}
-
-        {micError && (
-          <View style={styles.bannerWrap}>
-            <InfoBanner tone="danger" message={micError} />
-          </View>
-        )}
-
-        <View style={styles.micWrap}>
           <Pressable
-            onPress={handleMicPress}
-            disabled={busy || transcribing}
-            style={[
-              styles.mic,
-              recording && styles.micRecording,
-              (busy || transcribing) && styles.micDisabled,
-            ]}
+            onPress={startCall}
+            style={styles.startBtn}
             accessibilityRole="button"
-            accessibilityLabel={
-              recording
-                ? 'Stop recording and send'
-                : transcribing
-                ? 'Transcribing your audio'
-                : 'Tap to speak'
-            }
+            accessibilityLabel="Start talking with Sarah"
           >
-            <Text style={styles.micEmoji}>{recording ? '⏹' : '🎤'}</Text>
+            {connecting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="mic" size={28} color="#fff" />
+                <Text style={styles.startText}>Start Talking with Sarah</Text>
+              </>
+            )}
           </Pressable>
-          <Text style={styles.micHint}>
-            {recording
-              ? `Listening… ${Math.floor(voiceInput.durationMs / 60000)}:${String(
-                  Math.floor(voiceInput.durationMs / 1000) % 60,
-                ).padStart(2, '0')} — tap to stop and send (up to 1 min)`
-              : transcribing
-              ? 'Understanding your words…'
-              : 'Tap the microphone to speak, or type below'}
-          </Text>
-        </View>
-
-        <View style={styles.inputBar}>
-          <TextInput
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Type what you'd say…"
-            placeholderTextColor={colors.textMuted}
-            multiline
-            editable={!busy}
-            accessibilityLabel="Voice message input"
-            onSubmitEditing={() => handleSend(input)}
-          />
-          <Pressable
-            onPress={() => handleSend(input)}
-            disabled={busy || !input.trim()}
-            style={[styles.sendBtn, (busy || !input.trim()) && styles.sendDisabled]}
-            accessibilityRole="button"
-            accessibilityLabel="Send message"
-          >
-            <Text style={styles.sendText}>Send</Text>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
+        )}
+      </View>
     </Screen>
   );
 }
 
-function Bubble({ message }: { message: ChatMessage }) {
-  const isUser = message.role === 'user';
-  const text = message.parts.map((p) => p.text).join('');
-  return (
-    <View style={[styles.bubbleRow, isUser ? styles.rowEnd : styles.rowStart]}>
-      <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-        <Text style={styles.speaker}>{isUser ? 'You' : '👩🏼 Sara'}</Text>
-        <Text style={[styles.bubbleText, isUser && styles.userText]}>{text || ' '}</Text>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  header: {
-    flexDirection: 'row',
+  stage: { alignItems: 'center', paddingTop: spacing.xl, paddingHorizontal: spacing.xl },
+  avatarRing: {
+    width: 148,
+    height: 148,
+    borderRadius: 74,
+    borderWidth: 4,
+    borderColor: colors.border,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
   },
-  ttsBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  ttsToggle: { fontSize: 22, textAlign: 'right' },
-  bannerWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  emptyEmoji: { fontSize: 56, marginBottom: spacing.md },
-  emptyTitle: { fontSize: fontSize.xl, fontWeight: fontWeight.black, color: colors.textPrimary },
-  emptySub: {
+  avatarRingLive: { borderColor: colors.green },
+  avatar: { width: 132, height: 132, borderRadius: 66 },
+  stateTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.black,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  stateSub: {
     fontSize: fontSize.md,
     color: colors.textSecondary,
-    marginTop: spacing.sm,
     textAlign: 'center',
-    lineHeight: 24,
+    marginTop: spacing.sm,
+    lineHeight: 26,
   },
-  list: { padding: spacing.lg, gap: spacing.md },
-  bubbleRow: { flexDirection: 'row' },
-  rowEnd: { justifyContent: 'flex-end' },
-  rowStart: { justifyContent: 'flex-start' },
-  bubble: { maxWidth: '85%', padding: spacing.md, borderRadius: radius.lg, gap: 2 },
-  userBubble: { backgroundColor: colors.purple },
-  aiBubble: { backgroundColor: colors.surfaceSubtle, borderWidth: 1, borderColor: colors.border },
-  speaker: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, opacity: 0.7, color: colors.textSecondary },
-  bubbleText: { fontSize: fontSize.md, lineHeight: 24, color: colors.textPrimary },
-  userText: { color: colors.textOnDark },
-  status: { fontSize: fontSize.sm, color: colors.textMuted, paddingTop: spacing.sm },
-  micWrap: { alignItems: 'center', paddingVertical: spacing.md, gap: spacing.sm },
-  mic: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.purple,
-    alignItems: 'center',
-    justifyContent: 'center',
+  bannerWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  transcript: { flex: 1, marginTop: spacing.md },
+  transcriptContent: { padding: spacing.lg, gap: spacing.sm },
+  turn: { maxWidth: '88%', borderRadius: radius.lg, padding: spacing.md, gap: 2 },
+  turnUser: { alignSelf: 'flex-end', backgroundColor: colors.primary },
+  turnAgent: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  micDisabled: { opacity: 0.4 },
-  micRecording: { backgroundColor: '#F2C740' },
-  micEmoji: { fontSize: 32 },
-  micHint: { fontSize: fontSize.xs, color: colors.textMuted, textAlign: 'center', paddingHorizontal: spacing.lg },
-  inputBar: {
+  turnSpeaker: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.textSecondary,
+    opacity: 0.8,
+  },
+  turnText: { fontSize: fontSize.md, lineHeight: 24, color: colors.textPrimary },
+  turnTextUser: { color: colors.textOnDark },
+  controls: { padding: spacing.lg, paddingBottom: spacing.xl },
+  startBtn: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.sm,
-    padding: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    minHeight: 64,
+    borderRadius: radius.xl,
+    backgroundColor: colors.green,
   },
-  input: {
-    flex: 1,
-    minHeight: 48,
-    maxHeight: 120,
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+  startText: { color: '#fff', fontSize: fontSize.lg, fontWeight: fontWeight.bold },
+  endBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    minHeight: 64,
+    borderRadius: radius.xl,
+    backgroundColor: colors.danger,
+  },
+  endIcon: { transform: [{ rotate: '135deg' }] },
+  endText: { color: '#fff', fontSize: fontSize.lg, fontWeight: fontWeight.bold },
+  gate: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md },
+  gateAvatar: { width: 120, height: 120, borderRadius: 60 },
+  gateTitle: { fontSize: fontSize.xl, fontWeight: fontWeight.black, color: colors.textPrimary },
+  gateSub: {
     fontSize: fontSize.md,
-    color: colors.textPrimary,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 26,
   },
-  sendBtn: {
-    minHeight: 48,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
-    backgroundColor: colors.purple,
+  gateBtn: {
+    marginTop: spacing.sm,
+    minHeight: 56,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sendDisabled: { opacity: 0.4 },
-  sendText: { color: colors.textOnDark, fontWeight: fontWeight.bold, fontSize: fontSize.md },
+  gateBtnText: { color: colors.textOnDark, fontSize: fontSize.md, fontWeight: fontWeight.bold },
 });

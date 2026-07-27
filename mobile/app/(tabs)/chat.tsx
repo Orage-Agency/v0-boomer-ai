@@ -15,6 +15,8 @@ import {
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Audio } from 'expo-av';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { BrandHeader } from '@/components/BrandHeader';
@@ -23,7 +25,7 @@ import { TypingDots } from '@/components/Skeleton';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { MicButton } from '@/components/MicButton';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
-import { imagesApi, ApiError } from '@/api';
+import { imagesApi, ttsApi, ApiError } from '@/api';
 import { shareRemoteImage } from '@/lib/shareImage';
 import { useChatSession, makeMessageId } from '@/screens/useChat';
 import {
@@ -36,8 +38,9 @@ import { useProfile } from '@/context/ProfileContext';
 import { useEntitlement } from '@/context/EntitlementContext';
 import {
   FREE_FEATURES,
-  chatCounterStorageKey,
-  todayKey,
+  consumeChatQuota,
+  getChatRemainingToday,
+  refundChatQuota,
 } from '@/lib/freeTier';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 import type { ChatMessage } from '@/types';
@@ -45,7 +48,7 @@ import type { ChatMessage } from '@/types';
 /**
  * AI Chat — FULLY IMPLEMENTED.
  * Streams replies from /api/chat token-by-token, renders a structured message
- * list (Sara's avatar + name on AI turns), and awards stars on send (matching
+ * list (Sarah's avatar + name on AI turns), and awards stars on send (matching
  * the web reward logic: +10 + "First Chat" badge on first message, +1 after).
  *
  * Input bar affordances: photo (camera / library), voice-to-text (Whisper),
@@ -56,32 +59,55 @@ import type { ChatMessage } from '@/types';
  */
 
 /** The friendly face of the assistant across the app. */
-export const COMPANION_NAME = 'Sara';
-export const COMPANION_EMOJI = '👩🏼';
+export const COMPANION_NAME = 'Sarah';
+export const COMPANION_AVATAR = require('../../assets/sara-avatar.jpg');
 
 // ---- In-chat picture creation -------------------------------------------
 
 /**
- * Does this message ask Sara to CREATE a picture (vs. talk about one)?
+ * Does this message ask Sarah to CREATE a picture (vs. talk about one)?
  * Requires a making-verb AND an image-noun so ordinary sentences like
- * "I took a photo yesterday" don't trigger it. Photo attachments never
- * trigger it either (the caller skips detection when an image is attached).
+ * "I took a photo yesterday" don't trigger it. "show" is deliberately NOT a
+ * making-verb — "show me a photo of how to..." is a question, not an art
+ * request, and used to hijack normal questions into image generation.
+ * Photo attachments never trigger it either (the caller skips detection
+ * when an image is attached).
  */
+const ART_NOUN = 'picture|image|photo|drawing|painting|artwork|art|illustration';
+
 function isImageRequest(text: string): boolean {
-  return /\b(draw|paint|create|generate|make|design|sketch|show)\b[\s\S]{0,40}?\b(picture|image|photo|drawing|painting|artwork|art|illustration)\b/i.test(
-    text,
+  // "make me a picture of a barn", "create some art of a sunset"
+  const verbThenNoun = new RegExp(
+    `\\b(draw|paint|create|generate|make|design|sketch|illustrate)\\b[\\s\\S]{0,40}?\\b(${ART_NOUN})\\b`,
+    'i',
   );
+  // "a picture of my dog", "I'd love a painting of the lake"
+  const nounOf = new RegExp(`\\b(${ART_NOUN})\\s+(of|showing)\\b`, 'i');
+  // "paint a barn in autumn" — these verbs only ever mean art here, so the
+  // noun is optional. ("make"/"create"/"design" are excluded: "make me a
+  // sandwich" must stay a normal chat message.)
+  const artVerbLed = /^\s*(please\s+)?(can|could|will|would)?\s*(you\s+)?(please\s+)?(draw|paint|sketch|illustrate)\b/i;
+  return verbThenNoun.test(text) || nounOf.test(text) || artVerbLed.test(text);
 }
 
 /** Strip "can you draw me a picture of" style framing → the actual subject. */
 function cleanImagePrompt(text: string): string {
   let s = text.trim();
-  s = s.replace(/^(hey|hi|hello|please|sara)[,!.\s]+/i, '');
+  s = s.replace(/^(hey|hi|hello|please|sarah?)[,!.\s]+/i, '');
   s = s.replace(/^(can|could|will|would)\s+you\s+(please\s+)?/i, '');
+  // "I would like / I want / I'd love" framing before the real subject.
+  s = s.replace(/^(i\s+(would|really)?\s*(like|want|need|love)\s+(to\s+)?(see\s+)?)/i, '');
   s = s.replace(
-    /\b(draw|paint|create|generate|make|design|sketch|show)\s+(me\s+)?(us\s+)?(a|an|the)?\s*(nice\s+|pretty\s+|beautiful\s+)?(picture|image|photo|drawing|painting|artwork|art|illustration)s?\s*(of|about|with|showing)?\s*/i,
+    /\b(draw|paint|create|generate|make|design|sketch|illustrate|show)\s+(me\s+)?(us\s+)?(a|an|the|some)?\s*(nice\s+|pretty\s+|beautiful\s+)?(picture|image|photo|drawing|painting|artwork|art|illustration)s?\s*(of|about|with|showing)?\s*/i,
     '',
   );
+  // Bare "a picture of X" with no verb in front.
+  s = s.replace(
+    /^(a|an|the|some)?\s*(picture|image|photo|drawing|painting|artwork|art|illustration)s?\s+(of|showing)\s+/i,
+    '',
+  );
+  // Leading art verb with no noun after it ("paint a barn in autumn").
+  s = s.replace(/^(draw|paint|sketch|illustrate)\s+(me\s+)?(us\s+)?/i, '');
   s = s.replace(/^(please|kindly)[,!.\s]+/i, '');
   s = s.replace(/[?!.]+$/g, '').trim();
   return s.length >= 3 ? s : text.trim();
@@ -117,8 +143,16 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [attachedImage, setAttachedImage] = useState<{ uri: string; dataUrl: string } | null>(null);
   const [imageBusy, setImageBusy] = useState(false);
+  /** Free chats left today (null = unknown / still loading). Free users only. */
+  const [freeRemaining, setFreeRemaining] = useState<number | null>(null);
+  /** Which assistant message is currently being read aloud (if any). */
+  const [listeningId, setListeningId] = useState<string | null>(null);
+  const listenSoundRef = useRef<Audio.Sound | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
-  // Milestone queued while Sara is replying; shown once she finishes.
+  // Only auto-scroll while the user is already at the bottom — never yank
+  // them back down while they scrolled up to re-read something.
+  const atBottomRef = useRef(true);
+  // Milestone queued while Sarah is replying; shown once she finishes.
   const pendingUpsellRef = useRef<number | null>(null);
   // Remembers the last send that errored so "Try Again" can replay it.
   const lastAttempt = useRef<{ text: string; image?: { uri: string; dataUrl: string } } | null>(
@@ -182,35 +216,76 @@ export default function Chat() {
   }, [messages.length, profile, updateProfile]);
 
   /**
-   * Reads today's counter fresh from storage (handles app-open-across-midnight
-   * by re-keying on the current local date), and either bumps it or routes to
-   * the paywall when the cap is reached.
-   *
-   * Returns true when the message is allowed to send.
+   * Consume one free message (re-keyed on the current local date, so an app
+   * left open across midnight resets correctly). Routes to the paywall when
+   * the cap is reached. Returns true when the message is allowed to send.
    */
   const consumeFreeQuota = useCallback(async (): Promise<boolean> => {
-    const key = chatCounterStorageKey(todayKey());
-    let used = 0;
-    try {
-      const raw = await AsyncStorage.getItem(key);
-      used = raw ? Number.parseInt(raw, 10) || 0 : 0;
-    } catch {
-      used = 0;
-    }
-    if (used >= FREE_FEATURES.CHAT_DAILY_CAP) {
+    const remaining = await consumeChatQuota();
+    if (remaining == null) {
+      setFreeRemaining(0);
       router.push('/paywall?reason=chat_quota');
       return false;
     }
-    try {
-      await AsyncStorage.setItem(key, String(used + 1));
-    } catch {
-      // Swallow — counter is best-effort. Allowing the send is safer than
-      // false-positive gating on a transient storage error.
-    }
+    setFreeRemaining(remaining);
     return true;
   }, [router]);
 
-  /** Append a friendly "Go Pro" card as a Sara turn. */
+  /** Read aloud one of Sarah's replies — same ElevenLabs voice as her calls. */
+  const stopListening = useCallback(async () => {
+    const s = listenSoundRef.current;
+    listenSoundRef.current = null;
+    setListeningId(null);
+    if (s) {
+      try {
+        await s.stopAsync();
+      } catch {
+        /* already stopped */
+      }
+      try {
+        await s.unloadAsync();
+      } catch {
+        /* already unloaded */
+      }
+    }
+  }, []);
+
+  const handleListen = useCallback(
+    async (message: ChatMessage) => {
+      const wasListening = listeningId === message.id;
+      await stopListening();
+      if (wasListening) return; // tap again = stop
+      const text = message.parts.map((p) => p.text).join('').trim();
+      if (!text) return;
+      setListeningId(message.id);
+      try {
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+        const dataUri = await ttsApi.speakText(text);
+        const { sound } = await Audio.Sound.createAsync({ uri: dataUri });
+        listenSoundRef.current = sound;
+        sound.setOnPlaybackStatusUpdate((s) => {
+          if (s.isLoaded && s.didJustFinish) {
+            setListeningId((cur) => (cur === message.id ? null : cur));
+            void sound.unloadAsync();
+            if (listenSoundRef.current === sound) listenSoundRef.current = null;
+          }
+        });
+        await sound.playAsync();
+      } catch {
+        setListeningId((cur) => (cur === message.id ? null : cur));
+      }
+    },
+    [listeningId, stopListening],
+  );
+
+  // Stop any read-aloud when leaving the screen.
+  useEffect(() => {
+    return () => {
+      void stopListening();
+    };
+  }, [stopListening]);
+
+  /** Append a friendly "Go Pro" card as a Sarah turn. */
   const appendUpsellCard = useCallback(
     (kind: 'image' | 'milestone', userText?: string) => {
       const cardText =
@@ -238,7 +313,7 @@ export default function Chat() {
   );
 
   /**
-   * Sara paints INSIDE the chat: user message + "painting…" placeholder →
+   * Sarah paints INSIDE the chat: user message + "painting…" placeholder →
    * the finished artwork replaces the placeholder. No screen changes.
    */
   const runImageFlow = useCallback(
@@ -331,7 +406,7 @@ export default function Chat() {
       const image = imageOverride !== undefined ? imageOverride : attachedImage;
       if (!trimmed && !image) return;
 
-      // "Draw me a picture of…" → Sara paints right here in the chat.
+      // "Draw me a picture of…" → Sarah paints right here in the chat.
       // (Never triggered when the user attached a photo to ask about it.)
       if (!image && trimmed && isImageRequest(trimmed)) {
         setInput('');
@@ -343,22 +418,30 @@ export default function Chat() {
         return;
       }
 
-      const runSend = () => {
+      const runSend = (refundOnFailure: boolean) => {
         lastAttempt.current = { text: trimmed, image: image ?? undefined };
         awardStars();
-        void send(trimmed, image ?? undefined);
+        void (async () => {
+          const ok = await send(trimmed, image ?? undefined);
+          // A failed send shouldn't cost a free message.
+          if (!ok && refundOnFailure) {
+            await refundChatQuota();
+            setFreeRemaining(await getChatRemainingToday());
+          }
+        })();
         void maybeQueueUpsell();
         setInput('');
         setAttachedImage(null);
+        atBottomRef.current = true;
         setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
       };
       if (entitledRef.current) {
-        runSend();
+        runSend(false);
         return;
       }
       void (async () => {
         const ok = await consumeFreeQuota();
-        if (ok) runSend();
+        if (ok) runSend(true);
       })();
     },
     [
@@ -372,7 +455,7 @@ export default function Chat() {
     ],
   );
 
-  // Surface a queued milestone card once Sara finishes her current reply.
+  // Surface a queued milestone card once Sarah finishes her current reply.
   useEffect(() => {
     if (status !== 'idle' || pendingUpsellRef.current == null) return;
     pendingUpsellRef.current = null;
@@ -403,6 +486,10 @@ export default function Chat() {
   // listening" request from the GlobalChatBar mic.
   useFocusEffect(
     useCallback(() => {
+      // Keep the free-chats-left pill honest whenever the tab gains focus.
+      if (!entitledRef.current) {
+        void getChatRemainingToday().then(setFreeRemaining);
+      }
       const conversation = consumePendingConversation();
       if (conversation != null) void loadByIdRef.current(conversation);
       const queued = consumePendingPrompt();
@@ -452,7 +539,7 @@ export default function Chat() {
               accessibilityLabel="See my past conversations"
               hitSlop={6}
             >
-              <Text style={styles.historyIcon}>🕐</Text>
+              <Ionicons name="time-outline" size={22} color={colors.textSecondary} />
             </Pressable>
             {messages.length > 0 && (
               <Pressable
@@ -485,9 +572,25 @@ export default function Chat() {
           </View>
         )}
 
+        {!entitled && freeRemaining != null && (
+          <Pressable
+            onPress={() => router.push('/paywall?reason=chat_upsell')}
+            style={styles.quotaPill}
+            accessibilityRole="button"
+            accessibilityLabel={`${freeRemaining} free chats left today. See Pro options for unlimited.`}
+          >
+            <Text style={styles.quotaText}>
+              {freeRemaining > 0
+                ? `${freeRemaining} of ${FREE_FEATURES.CHAT_DAILY_CAP} free chats left today`
+                : 'No free chats left today'}
+            </Text>
+            <Text style={styles.quotaLink}>Go unlimited ›</Text>
+          </Pressable>
+        )}
+
         {messages.length === 0 ? (
           <Animated.View entering={FadeInUp.duration(300)} style={styles.empty}>
-            <Text style={styles.emptyEmoji}>{COMPANION_EMOJI}</Text>
+            <Image source={COMPANION_AVATAR} style={styles.emptyAvatar} />
             <Text style={styles.emptyTitle}>Hi, I'm {COMPANION_NAME}!</Text>
             <Text style={styles.emptySub}>
               Type, talk with the microphone, or send a photo.
@@ -516,10 +619,20 @@ export default function Chat() {
             data={messages}
             keyExtractor={(m) => m.id}
             contentContainerStyle={styles.list}
-            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+            onScroll={(e) => {
+              const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+              atBottomRef.current =
+                contentOffset.y + layoutMeasurement.height >= contentSize.height - 48;
+            }}
+            scrollEventThrottle={120}
+            onContentSizeChange={() => {
+              if (atBottomRef.current) listRef.current?.scrollToEnd({ animated: true });
+            }}
             renderItem={({ item }) => (
               <Bubble
                 message={item}
+                listening={listeningId === item.id}
+                onListen={() => void handleListen(item)}
                 onUpsellPress={() => router.push('/paywall?reason=chat_upsell')}
               />
             )}
@@ -579,7 +692,7 @@ export default function Chat() {
               accessibilityLabel="Cancel recording"
               hitSlop={6}
             >
-              <Text style={styles.recCancelText}>✕</Text>
+              <Ionicons name="close" size={22} color={colors.textSecondary} />
             </Pressable>
             <Pressable
               onPress={voice.toggle}
@@ -587,7 +700,10 @@ export default function Chat() {
               accessibilityRole="button"
               accessibilityLabel="Stop recording and send"
             >
-              <Text style={styles.recSendText}>■ Stop & Send</Text>
+              <View style={styles.recSendRow}>
+                <Ionicons name="stop" size={18} color={colors.textOnDark} />
+                <Text style={styles.recSendText}>Stop & Send</Text>
+              </View>
             </Pressable>
           </View>
         ) : (
@@ -599,7 +715,7 @@ export default function Chat() {
               accessibilityRole="button"
               accessibilityLabel="Add a photo"
             >
-              <Text style={styles.photoIcon}>📷</Text>
+              <Ionicons name="camera-outline" size={24} color={colors.textSecondary} />
             </Pressable>
             <TextInput
               style={styles.input}
@@ -611,7 +727,7 @@ export default function Chat() {
               placeholder={
                 voice.state === 'transcribing'
                   ? 'Understanding your words…'
-                  : 'Ask Sara anything…'
+                  : 'Ask Sarah anything…'
               }
               placeholderTextColor={colors.textMuted}
               multiline
@@ -683,9 +799,13 @@ function stripMarkdown(raw: string): string {
 
 function Bubble({
   message,
+  listening,
+  onListen,
   onUpsellPress,
 }: {
   message: ChatMessage;
+  listening?: boolean;
+  onListen?: () => void;
   onUpsellPress?: () => void;
 }) {
   const isUser = message.role === 'user';
@@ -716,19 +836,35 @@ function Bubble({
     );
   }
 
-  // AI turn: Sara's avatar + name make the back-and-forth easy to follow —
+  // AI turn: Sarah's avatar + name make the back-and-forth easy to follow —
   // a companion face, not an abstract symbol.
   return (
     <Animated.View entering={FadeInUp.duration(220)} style={[styles.bubbleRow, styles.rowStart]}>
-      <View style={styles.aiAvatar}>
-        <Text style={styles.aiAvatarEmoji}>{COMPANION_EMOJI}</Text>
-      </View>
+      <Image source={COMPANION_AVATAR} style={styles.aiAvatar} />
       <View style={styles.aiColumn}>
         <Text style={styles.aiName}>{COMPANION_NAME}</Text>
         <View style={[styles.bubble, styles.aiBubble]}>
           <Text style={[styles.bubbleText, styles.aiText]} selectable>
             {text || ' '}
           </Text>
+          {!!text.trim() && !message.upsell && !message.imagePending && onListen && (
+            <Pressable
+              onPress={onListen}
+              style={styles.listenBtn}
+              accessibilityRole="button"
+              accessibilityLabel={
+                listening ? 'Stop reading aloud' : "Listen to Sarah's reply out loud"
+              }
+              hitSlop={6}
+            >
+              <Ionicons
+                name={listening ? 'stop-circle-outline' : 'volume-high-outline'}
+                size={18}
+                color={colors.primary}
+              />
+              <Text style={styles.listenText}>{listening ? 'Stop' : 'Listen'}</Text>
+            </Pressable>
+          )}
           {message.imagePending && (
             <View style={styles.artPending}>
               <ActivityIndicator color={colors.primary} />
@@ -765,13 +901,11 @@ function Bubble({
   );
 }
 
-/** "Sara is thinking" skeleton — replaces the plain "Thinking…" text. */
+/** "Sarah is thinking" skeleton — replaces the plain "Thinking…" text. */
 function ThinkingBubble() {
   return (
     <Animated.View entering={FadeIn.duration(180)} style={[styles.bubbleRow, styles.rowStart]}>
-      <View style={styles.aiAvatar}>
-        <Text style={styles.aiAvatarEmoji}>{COMPANION_EMOJI}</Text>
-      </View>
+      <Image source={COMPANION_AVATAR} style={styles.aiAvatar} />
       <View style={[styles.bubble, styles.aiBubble, styles.thinkingBubble]}>
         <TypingDots />
       </View>
@@ -812,7 +946,23 @@ const styles = StyleSheet.create({
   },
   retryText: { color: colors.textOnDark, fontSize: fontSize.md, fontWeight: fontWeight.bold },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  emptyEmoji: { fontSize: 48, marginBottom: spacing.md },
+  emptyAvatar: { width: 96, height: 96, borderRadius: 48, marginBottom: spacing.md },
+  quotaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.amberSoft,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    minHeight: 40,
+  },
+  quotaText: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: '#92400E' },
+  quotaLink: { fontSize: fontSize.xs, fontWeight: fontWeight.black, color: colors.primary },
   emptyTitle: { fontSize: fontSize.xl, fontWeight: fontWeight.black, color: colors.textPrimary },
   emptySub: {
     fontSize: fontSize.md,
@@ -840,12 +990,21 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginRight: spacing.xs,
     marginTop: 18,
   },
-  aiAvatarEmoji: { fontSize: 15 },
+  listenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+    minHeight: 32,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primarySoft,
+  },
+  listenText: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: colors.primary },
   aiColumn: { flexShrink: 1, maxWidth: '85%' },
   aiName: {
     fontSize: fontSize.xs,
@@ -918,7 +1077,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  photoIcon: { fontSize: 22 },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -986,8 +1144,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  recSendRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   recSendText: { color: colors.textOnDark, fontWeight: fontWeight.bold, fontSize: fontSize.md },
-  // Inline artwork from Sara
+  // Inline artwork from Sarah
   artPending: {
     flexDirection: 'row',
     alignItems: 'center',

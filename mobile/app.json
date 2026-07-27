@@ -64,6 +64,7 @@
     ],
     "extra": {
       "apiBaseUrl": "https://boomerai.orage.agency",
+      "elevenLabsAgentId": "agent_6101k4dk0e58ftfv7ytgg9wexevp",
       "revenueCatApiKeyIos": "appl_gfKZNVBQtIXGZkABPKGPtfasgZz",
       "revenueCatApiKeyAndroid": "__REPLACE_ME__",
       "router": {
