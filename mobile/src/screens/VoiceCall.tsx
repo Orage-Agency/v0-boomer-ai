@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -26,22 +26,32 @@ import { InfoBanner } from '@/components/InfoBanner';
 import { useProfile } from '@/context/ProfileContext';
 import { useEntitlement } from '@/context/EntitlementContext';
 import { env } from '@/config/env';
-import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
+import {
+  addNote,
+  buildMemoryPrompt,
+  lastTopic,
+  loadMemory,
+  type SarahMemory,
+} from '@/lib/sarahMemory';
+import { summarizeCall, type CallTurn } from '@/lib/summarizeCall';
+import { colors, fontSize, fontWeight, layout, radius, spacing } from '@/theme/theme';
 
 /**
- * Voice screen — a REAL-TIME conversation with Sarah.
+ * Sarah — a real-time voice conversation, presented as her own standalone
+ * companion rather than another screen of the app.
  *
- * Powered by the dedicated ElevenLabs conversational agent (WebRTC via
- * @elevenlabs/react-native). One tap starts a live call: Sarah listens
- * continuously (no tap-to-stop), replies in about a second in her own voice,
- * and can be interrupted naturally just by speaking — the walkie-talkie
- * record → transcribe → chat → TTS chain is gone.
+ * Powered by the dedicated ElevenLabs agent over WebRTC. One tap starts a
+ * live call: Sarah listens continuously, answers in about a second in her own
+ * voice, and can be interrupted just by speaking.
  *
- * This module is loaded LAZILY by app/voice.tsx. The ElevenLabs SDK calls
- * `registerGlobals()` (native WebRTC) at import time, so importing it from the
- * root layout meant any failure in that native module crashed the app before
- * it could render a single screen. Keeping it behind a dynamic import means a
- * broken voice stack costs the user the Voice screen, not the whole app.
+ * MEMORY: the agent itself is stateless between calls, so continuity comes
+ * from us. Notes about previous conversations are kept on the device and sent
+ * as dynamic variables when the call starts, so Sarah opens by name and can
+ * pick up where they left off. When a call ends we summarise it (after
+ * hanging up, so the user never waits) and keep it for next time.
+ *
+ * This module is loaded LAZILY by app/voice.tsx — the SDK initialises native
+ * WebRTC at import time, so it must never be pulled into app startup.
  */
 
 type TranscriptTurn = { id: string; role: 'user' | 'agent'; text: string };
@@ -52,15 +62,51 @@ function turnId(): string {
   return `turn_${Date.now()}_${turnCounter}`;
 }
 
-/** The live-call UI. Must render inside a ConversationProvider. */
 function VoiceCallInner() {
   const router = useRouter();
   const { profile, updateProfile } = useProfile();
   const { entitled } = useEntitlement();
   const [transcript, setTranscript] = useState<TranscriptTurn[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [memory, setMemory] = useState<SarahMemory | null>(null);
   const listRef = useRef<FlatList<TranscriptTurn>>(null);
   const awardedStar = useRef(false);
+  // Read inside cleanup, where React state would be stale.
+  const transcriptRef = useRef<TranscriptTurn[]>([]);
+  transcriptRef.current = transcript;
+  const savedThisCall = useRef(false);
+
+  const firstName = useMemo(() => {
+    const raw = (profile.name || profile.userName || '').trim();
+    return raw ? raw.split(/\s+/)[0] : '';
+  }, [profile.name, profile.userName]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const m = await loadMemory();
+      if (!cancelled) setMemory(m);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /**
+   * Remember this conversation. Runs after the call ends so the summariser
+   * never delays hanging up.
+   */
+  const rememberCall = useCallback(async () => {
+    if (savedThisCall.current) return;
+    savedThisCall.current = true;
+    const turns: CallTurn[] = transcriptRef.current.map((t) => ({ role: t.role, text: t.text }));
+    const summary = await summarizeCall(turns);
+    if (summary) {
+      await addNote(summary);
+      const refreshed = await loadMemory();
+      setMemory(refreshed);
+    }
+  }, []);
 
   const conversation = useConversation({
     onMessage: ({ message, role }) => {
@@ -79,6 +125,7 @@ function VoiceCallInner() {
       if (details?.reason === 'error') {
         setError('The call dropped. Please tap the button to talk to Sarah again.');
       }
+      void rememberCall();
     },
   });
 
@@ -106,19 +153,33 @@ function VoiceCallInner() {
       awardedStar.current = true;
       updateProfile({ stars: profile.stars + 2 });
     }
-    startSession({ agentId: env.elevenLabsAgentId });
-  }, [startSession, profile.stars, updateProfile]);
+    savedThisCall.current = false;
+    setTranscript([]);
+    const current = memory ?? (await loadMemory());
+    startSession({
+      agentId: env.elevenLabsAgentId,
+      // Sarah's prompt reads these — they are what make her feel continuous.
+      dynamicVariables: {
+        user_name: firstName || 'there',
+        memory: buildMemoryPrompt(current),
+      },
+    });
+  }, [startSession, profile.stars, updateProfile, memory, firstName]);
 
   const endCall = useCallback(() => {
     endSession();
   }, [endSession]);
 
-  // Never leave a live call running after the screen is gone.
+  // Never leave a live call running after the screen is gone, and keep
+  // whatever was said.
   const endSessionRef = useRef(endSession);
   endSessionRef.current = endSession;
   useEffect(() => {
-    return () => endSessionRef.current();
-  }, []);
+    return () => {
+      endSessionRef.current();
+      void rememberCall();
+    };
+  }, [rememberCall]);
 
   // Gentle pulsing ring around Sarah while the call is live — stronger while
   // she is speaking, subtle while she listens.
@@ -144,13 +205,13 @@ function VoiceCallInner() {
   if (!entitled) {
     return (
       <Screen centered edges={['top', 'bottom']}>
-        <BrandHeader title="Talk with Sarah" onBack={() => router.back()} />
+        <BrandHeader title="Sarah" onBack={() => router.back()} />
         <View style={styles.gate}>
           <Image source={require('../../assets/sara-avatar.jpg')} style={styles.gateAvatar} />
           <Text style={styles.gateTitle}>Talk with Sarah, live</Text>
           <Text style={styles.gateSub}>
-            Have a real back-and-forth voice conversation — no typing, no waiting.
-            Voice calls are part of Boomer AI Pro.
+            Have a real back-and-forth voice conversation — no typing, no waiting. Voice
+            calls are part of Boomer AI Pro.
           </Text>
           <Pressable
             onPress={() => router.push('/paywall?reason=voice')}
@@ -165,9 +226,12 @@ function VoiceCallInner() {
     );
   }
 
+  const remembered = memory ? lastTopic(memory) : null;
+  const idle = !connected && !connecting;
+
   return (
-    <Screen centered edges={['top', 'bottom']}>
-      <BrandHeader title="Talk with Sarah" onBack={() => router.back()} />
+    <Screen edges={['top', 'bottom']}>
+      <BrandHeader title="Sarah" onBack={() => router.back()} />
 
       <View style={styles.stage}>
         <Animated.View style={[styles.avatarRing, connected && styles.avatarRingLive, ringStyle]}>
@@ -176,6 +240,15 @@ function VoiceCallInner() {
             style={styles.avatar}
             accessibilityLabel="Sarah, your AI companion"
           />
+          {connected && (
+            <View style={[styles.statusDot, isSpeaking ? styles.dotSpeaking : styles.dotListening]}>
+              <Ionicons
+                name={isSpeaking ? 'volume-high' : 'mic'}
+                size={18}
+                color={colors.textOnDark}
+              />
+            </View>
+          )}
         </Animated.View>
 
         <Text style={styles.stateTitle}>
@@ -185,7 +258,9 @@ function VoiceCallInner() {
               ? isSpeaking
                 ? 'Sarah is speaking'
                 : "I'm listening…"
-              : `Hi ${profile.name || profile.userName || 'there'}!`}
+              : firstName
+                ? `Hi ${firstName}!`
+                : 'Hi there!'}
         </Text>
         <Text style={styles.stateSub}>
           {connecting
@@ -196,6 +271,16 @@ function VoiceCallInner() {
                 : 'Speak whenever you like — Sarah hears you'
               : 'Tap the button below and simply start talking. Sarah answers out loud, like a phone call.'}
         </Text>
+
+        {idle && remembered && (
+          <View style={styles.memoryCard}>
+            <View style={styles.memoryHeader}>
+              <Ionicons name="heart" size={16} color={colors.purple} />
+              <Text style={styles.memoryLabel}>Sarah remembers</Text>
+            </View>
+            <Text style={styles.memoryText}>{remembered}</Text>
+          </View>
+        )}
       </View>
 
       {error && (
@@ -207,28 +292,19 @@ function VoiceCallInner() {
       {transcript.length > 0 && (
         <FlatList
           ref={listRef}
-          data={transcript}
-          keyExtractor={(t) => t.id}
           style={styles.transcript}
           contentContainerStyle={styles.transcriptContent}
-          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+          data={transcript}
+          keyExtractor={(t) => t.id}
           renderItem={({ item }) => (
-            <View
-              style={[
-                styles.turn,
-                item.role === 'user' ? styles.turnUser : styles.turnAgent,
-              ]}
-            >
-              <Text style={styles.turnSpeaker}>
+            <View style={styles.turn}>
+              <Text style={item.role === 'user' ? styles.speakerYou : styles.speakerSarah}>
                 {item.role === 'user' ? 'You' : 'Sarah'}
               </Text>
-              <Text
-                style={[styles.turnText, item.role === 'user' && styles.turnTextUser]}
-              >
-                {item.text}
-              </Text>
+              <Text style={styles.turnText}>{item.text}</Text>
             </View>
           )}
+          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
         />
       )}
 
@@ -236,123 +312,32 @@ function VoiceCallInner() {
         {connected || connecting ? (
           <Pressable
             onPress={endCall}
-            style={styles.endBtn}
+            style={[styles.callBtn, styles.endBtn]}
             accessibilityRole="button"
-            accessibilityLabel="End the conversation"
+            accessibilityLabel="End the call with Sarah"
           >
-            <Ionicons name="call" size={26} color="#fff" style={styles.endIcon} />
-            <Text style={styles.endText}>End Conversation</Text>
+            {connecting ? (
+              <ActivityIndicator color={colors.textOnDark} />
+            ) : (
+              <Ionicons name="close" size={26} color={colors.textOnDark} />
+            )}
+            <Text style={styles.callBtnText}>{connecting ? 'Connecting…' : 'End Call'}</Text>
           </Pressable>
         ) : (
           <Pressable
             onPress={startCall}
-            style={styles.startBtn}
+            style={[styles.callBtn, styles.startBtn]}
             accessibilityRole="button"
             accessibilityLabel="Start talking with Sarah"
           >
-            {connecting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="mic" size={28} color="#fff" />
-                <Text style={styles.startText}>Start Talking with Sarah</Text>
-              </>
-            )}
+            <Ionicons name="mic" size={26} color={colors.textOnDark} />
+            <Text style={styles.callBtnText}>Start Talking with Sarah</Text>
           </Pressable>
         )}
       </View>
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  stage: { alignItems: 'center', paddingTop: spacing.xl, paddingHorizontal: spacing.xl },
-  avatarRing: {
-    width: 148,
-    height: 148,
-    borderRadius: 74,
-    borderWidth: 4,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-  },
-  avatarRingLive: { borderColor: colors.green },
-  avatar: { width: 132, height: 132, borderRadius: 66 },
-  stateTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.black,
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
-  stateSub: {
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-    lineHeight: 26,
-  },
-  bannerWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-  transcript: { flex: 1, marginTop: spacing.md },
-  transcriptContent: { padding: spacing.lg, gap: spacing.sm },
-  turn: { maxWidth: '88%', borderRadius: radius.lg, padding: spacing.md, gap: 2 },
-  turnUser: { alignSelf: 'flex-end', backgroundColor: colors.primary },
-  turnAgent: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  turnSpeaker: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold,
-    color: colors.textSecondary,
-    opacity: 0.8,
-  },
-  turnText: { fontSize: fontSize.md, lineHeight: 24, color: colors.textPrimary },
-  turnTextUser: { color: colors.textOnDark },
-  controls: { padding: spacing.lg, paddingBottom: spacing.xl },
-  startBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    minHeight: 64,
-    borderRadius: radius.xl,
-    backgroundColor: colors.green,
-  },
-  startText: { color: '#fff', fontSize: fontSize.lg, fontWeight: fontWeight.bold },
-  endBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    minHeight: 64,
-    borderRadius: radius.xl,
-    backgroundColor: colors.danger,
-  },
-  endIcon: { transform: [{ rotate: '135deg' }] },
-  endText: { color: '#fff', fontSize: fontSize.lg, fontWeight: fontWeight.bold },
-  gate: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md },
-  gateAvatar: { width: 120, height: 120, borderRadius: 60 },
-  gateTitle: { fontSize: fontSize.xl, fontWeight: fontWeight.black, color: colors.textPrimary },
-  gateSub: {
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 26,
-  },
-  gateBtn: {
-    marginTop: spacing.sm,
-    minHeight: 56,
-    paddingHorizontal: spacing.xl,
-    borderRadius: radius.lg,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gateBtnText: { color: colors.textOnDark, fontSize: fontSize.md, fontWeight: fontWeight.bold },
-});
 
 /**
  * Default export: the call UI wrapped in its own ConversationProvider, so the
@@ -365,3 +350,133 @@ export default function VoiceCall() {
     </ConversationProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  stage: { alignItems: 'center', paddingTop: spacing.lg, paddingHorizontal: spacing.xl },
+  avatarRing: {
+    width: 168,
+    height: 168,
+    borderRadius: 84,
+    borderWidth: 4,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarRingLive: { borderColor: colors.purple },
+  avatar: { width: 148, height: 148, borderRadius: 74 },
+  statusDot: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: colors.background,
+  },
+  dotSpeaking: { backgroundColor: colors.purple },
+  dotListening: { backgroundColor: colors.green },
+  stateTitle: {
+    marginTop: spacing.lg,
+    fontSize: fontSize.xxl,
+    fontWeight: fontWeight.black,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  stateSub: {
+    marginTop: spacing.sm,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 26,
+  },
+  memoryCard: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    width: '100%',
+  },
+  memoryHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  memoryLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.purple,
+    textTransform: 'uppercase',
+  },
+  memoryText: {
+    marginTop: spacing.xs,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 24,
+  },
+  bannerWrap: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg },
+  transcript: { flex: 1, marginTop: spacing.lg },
+  transcriptContent: { paddingHorizontal: spacing.xl, paddingBottom: spacing.lg, gap: spacing.lg },
+  turn: { gap: spacing.xs },
+  speakerYou: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+    textTransform: 'uppercase',
+  },
+  speakerSarah: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.purple,
+    textTransform: 'uppercase',
+  },
+  turnText: { fontSize: fontSize.md, color: colors.textPrimary, lineHeight: 28 },
+  controls: { padding: spacing.xl, paddingTop: spacing.lg },
+  callBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    minHeight: layout.touchTarget + 8,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.xl,
+  },
+  startBtn: { backgroundColor: colors.purple },
+  endBtn: { backgroundColor: colors.danger },
+  callBtnText: {
+    color: colors.textOnDark,
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+  },
+  gate: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    gap: spacing.md,
+  },
+  gateAvatar: { width: 120, height: 120, borderRadius: 60, marginBottom: spacing.sm },
+  gateTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.black,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  gateSub: {
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 26,
+  },
+  gateBtn: {
+    marginTop: spacing.md,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.lg,
+    minHeight: layout.touchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gateBtnText: { color: colors.textOnDark, fontSize: fontSize.md, fontWeight: fontWeight.bold },
+});
