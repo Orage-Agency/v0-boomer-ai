@@ -52,3 +52,10 @@ export type GenerateImageResult = {
   error?: string;
   errorType?: string;
 };
+
+export type ImageProviderAvailability = {
+  providers: {
+    fal: boolean;
+    openaiCodex: boolean;
+  };
+};
