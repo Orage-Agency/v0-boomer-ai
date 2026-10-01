@@ -18,16 +18,7 @@ import { PROFILE_BACKGROUNDS } from '@boomer-ai/shared';
 
 /** The mobile onboarding mirrors the web flow with platform-native controls. */
 
-type Step = 'avatar' | 'age' | 'level';
-
-const AVATARS = [
-  { name: 'Otter', image: '/avatars/otter.webp', source: require('../../assets/avatars/otter.webp') },
-  { name: 'Giraffe', image: '/avatars/giraffe.webp', source: require('../../assets/avatars/giraffe.webp') },
-  { name: 'Eagle', image: '/avatars/eagle.webp', source: require('../../assets/avatars/eagle.webp') },
-  { name: 'Elephant', image: '/avatars/elephant.webp', source: require('../../assets/avatars/elephant.webp') },
-  { name: 'Dog', image: '/avatars/dog.webp', source: require('../../assets/avatars/dog.webp') },
-  { name: 'Wolf', image: '/avatars/wolf.webp', source: require('../../assets/avatars/wolf.webp') },
-];
+type Step = 'profile' | 'age' | 'level';
 
 const ASSISTANTS = [
   { name: 'Assistant woman', image: '/assistants/assistant_woman.png', source: require('../../assets/assistants/assistant_woman.png') },
@@ -51,26 +42,23 @@ export default function Onboarding() {
   const router = useRouter();
   const { profile, updateProfile, setView } = useProfile();
 
-  const [step, setStep] = useState<Step>('avatar');
+  const [step, setStep] = useState<Step>('profile');
   const [name, setName] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [selectedAssistant, setSelectedAssistant] = useState(ASSISTANTS[0].image);
-  const [avatarBackground, setAvatarBackground] = useState<string>('peach');
   const [assistantBackground, setAssistantBackground] = useState<string>('white');
   const [selectedLevel, setSelectedLevel] = useState('Beginner');
 
-  const stepNumber = { avatar: 1, age: 2, level: 3 }[step];
+  const stepNumber = { profile: 1, age: 2, level: 3 }[step];
 
-  const completeAvatar = () => {
-    const avatar = AVATARS.find((a) => a.name === selectedAvatar);
-    if (!avatar || !name.trim()) return;
+  const completeProfile = () => {
+    if (!name.trim()) return;
     const assistant = ASSISTANTS.find((item) => item.image === selectedAssistant) ?? ASSISTANTS[0];
     updateProfile({
-      persona: avatar.name,
-      userTitle: avatar.name,
-      avatarSrc: avatar.image,
+      persona: null,
+      userTitle: null,
+      avatarSrc: null,
       assistantSrc: assistant.image,
-      avatarBackground,
+      avatarBackground: 'white',
       assistantBackground,
       userName: name.trim(),
       name: name.trim(),
@@ -110,10 +98,10 @@ export default function Onboarding() {
         </Pressable>
       </View>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {step === 'avatar' && (
+        {step === 'profile' && (
           <View style={styles.section}>
             <Text style={styles.bigTitle}>Personalize your profile</Text>
-            <Text style={styles.subtitle}>Choose a picture for your profile and one for the assistant.</Text>
+            <Text style={styles.subtitle}>Choose your name and an assistant picture.</Text>
             <Text style={styles.fieldTitle}>Your name</Text>
             <TextInput
               style={styles.input}
@@ -124,28 +112,6 @@ export default function Onboarding() {
               autoCapitalize="words"
               accessibilityLabel="Your name"
             />
-            <Text style={styles.fieldTitle}>Your avatar</Text>
-            <View style={styles.avatarGrid}>
-              {AVATARS.map((a) => {
-                const active = selectedAvatar === a.name;
-                return (
-                  <Pressable
-                    key={a.name}
-                    onPress={() => setSelectedAvatar(a.name)}
-                    style={[styles.avatarCard, active && styles.avatarCardActive]}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Choose ${a.name}`}
-                    accessibilityState={{ selected: active }}
-                  >
-                    <LinearGradient colors={getBackground(avatarBackground).colors} style={styles.avatarImageBg}>
-                      <Image source={a.source} style={styles.avatarImg} />
-                    </LinearGradient>
-                    <Text style={styles.avatarName}>{a.name}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <BackgroundPicker label="Avatar background" value={avatarBackground} onChange={setAvatarBackground} />
             <Text style={styles.fieldTitle}>Assistant picture</Text>
             <View style={styles.assistantRow}>
               {ASSISTANTS.map((assistant) => {
@@ -154,15 +120,15 @@ export default function Onboarding() {
                   <Pressable
                     key={assistant.image}
                     onPress={() => setSelectedAssistant(assistant.image)}
-                    style={[styles.assistantCard, active && styles.avatarCardActive]}
+                    style={[styles.assistantCard, active && styles.selectionCardActive]}
                     accessibilityRole="button"
                     accessibilityLabel={`Choose ${assistant.name}`}
                     accessibilityState={{ selected: active }}
                   >
-                    <LinearGradient colors={getBackground(assistantBackground).colors} style={styles.avatarImageBg}>
-                      <Image source={assistant.source} style={styles.avatarImg} />
+                    <LinearGradient colors={getBackground(assistantBackground).colors} style={styles.assistantImageBg}>
+                      <Image source={assistant.source} style={styles.assistantImg} />
                     </LinearGradient>
-                    <Text style={styles.avatarName}>{assistant.name}</Text>
+                    <Text style={styles.assistantName}>{assistant.name}</Text>
                   </Pressable>
                 );
               })}
@@ -170,8 +136,8 @@ export default function Onboarding() {
             <BackgroundPicker label="Assistant background" value={assistantBackground} onChange={setAssistantBackground} />
             <Button
               title="Continue"
-              onPress={completeAvatar}
-              disabled={!selectedAvatar || !name.trim()}
+              onPress={completeProfile}
+              disabled={!name.trim()}
             />
           </View>
         )}
@@ -328,19 +294,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   fieldTitle: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.textPrimary },
-  avatarRow: { flexDirection: 'row', gap: spacing.md },
-  avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center' },
   assistantRow: { flexDirection: 'row', gap: spacing.md },
-  avatarCard: {
-    width: '31%',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: radius.lg,
-    borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    gap: spacing.sm,
-  },
   assistantCard: {
     flex: 1,
     alignItems: 'center',
@@ -351,10 +305,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     gap: spacing.sm,
   },
-  avatarCardActive: { borderColor: colors.primary },
-  avatarImageBg: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  avatarImg: { width: 76, height: 76, borderRadius: 38 },
-  avatarName: {
+  selectionCardActive: { borderColor: colors.primary },
+  assistantImageBg: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  assistantImg: { width: 76, height: 76, borderRadius: 38 },
+  assistantName: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.bold,
     color: colors.textPrimary,

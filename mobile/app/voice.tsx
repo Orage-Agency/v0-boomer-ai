@@ -26,25 +26,11 @@ import type { ChatMessage } from '@/types';
  * contract (`/api/chat`) is shared. The difference here is the experience:
  *  - The AI's replies are SPOKEN ALOUD via `expo-speech` (TTS), which works in
  *    Expo managed / Expo Go with no native config.
- *  - A large microphone button is the primary affordance, plus a type-to-send
- *    fallback that always works.
+ *  - Text entry remains available on devices without speech recognition.
  *
- * SPEECH-TO-TEXT (the "speak -> transcribe" half):
- * Expo's managed workflow has no built-in on-device speech recognition, and the
- * hosted backend exposes no STT endpoint (the web app used the browser
- * SpeechRecognition API + ElevenLabs, neither available in React Native). So
- * the mic button currently records intent and prompts the user to type, and the
- * full record->transcribe path is stubbed below.
- *
- * TODO(owner): Wire real speech-to-text. Recommended options, in order:
- *   1. `@react-native-voice/voice` (on-device STT, iOS + Android). Requires a
- *      custom dev client (not Expo Go) and the config plugin. Lowest latency,
- *      free, no backend.
- *   2. `expo-av` recording -> POST the audio to a NEW backend STT endpoint
- *      (e.g. /api/transcribe using OpenAI Whisper). Add the route to
- *      v0-boomer-ai, then a `transcribeAudio()` client in src/api.
- * Until then, TTS output + type-to-send gives a reliable, shippable voice-style
- * experience.
+ * Speech input is not available in the current Expo app. The screen keeps text
+ * entry available and can read assistant replies aloud; it does not show a
+ * microphone control that would imply unsupported transcription.
  */
 
 export default function VoiceScreen() {
@@ -105,12 +91,6 @@ export default function VoiceScreen() {
     });
   }, []);
 
-  const handleMicPress = useCallback(() => {
-    // TODO(owner): replace with real STT (see file header). For now, focus the
-    // text field so the experience stays usable without speech recognition.
-    void Speech.stop();
-  }, []);
-
   return (
     <Screen centered edges={['top', 'bottom']}>
       <View style={styles.header}>
@@ -150,11 +130,11 @@ export default function VoiceScreen() {
 
         {messages.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🎙️</Text>
+            <Text style={styles.emptyEmoji}>🔊</Text>
             <Text style={styles.emptyTitle}>Hi {profile.name || profile.userName || 'there'}!</Text>
             <Text style={styles.emptySub}>
-              Tap the microphone and ask your question, or type it below. I'll read my answer
-              out loud.
+              Type a question below and I'll read my answer out loud. You can also use dictation
+              from your keyboard if it is available.
             </Text>
           </View>
         ) : (
@@ -179,18 +159,11 @@ export default function VoiceScreen() {
           </View>
         )}
 
-        {/* Big mic button (STT stub) */}
-        <View style={styles.micWrap}>
-          <Pressable
-            onPress={handleMicPress}
-            disabled={busy}
-            style={[styles.mic, busy && styles.micDisabled]}
-            accessibilityRole="button"
-            accessibilityLabel="Hold to speak (type your question below)"
-          >
-            <Text style={styles.micEmoji}>🎤</Text>
-          </Pressable>
-          <Text style={styles.micHint}>Type your question below to talk to the AI</Text>
+        <View style={styles.voiceNote}>
+          <Text style={styles.voiceNoteTitle}>Type your question below</Text>
+          <Text style={styles.voiceHint}>
+            Replies can be read aloud. If your keyboard offers dictation, you can use it to enter your question.
+          </Text>
         </View>
 
         <View style={styles.inputBar}>
@@ -270,18 +243,9 @@ const styles = StyleSheet.create({
   bubbleText: { fontSize: fontSize.md, lineHeight: 24, color: colors.textPrimary },
   userText: { color: colors.textOnDark },
   status: { fontSize: fontSize.sm, color: colors.textMuted, paddingTop: spacing.sm },
-  micWrap: { alignItems: 'center', paddingVertical: spacing.md, gap: spacing.sm },
-  mic: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.purple,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  micDisabled: { opacity: 0.4 },
-  micEmoji: { fontSize: 32 },
-  micHint: { fontSize: fontSize.xs, color: colors.textMuted, textAlign: 'center', paddingHorizontal: spacing.lg },
+  voiceNote: { alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: spacing.xs },
+  voiceNoteTitle: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.textPrimary, textAlign: 'center' },
+  voiceHint: { fontSize: fontSize.xs, color: colors.textMuted, textAlign: 'center', paddingHorizontal: spacing.lg },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',

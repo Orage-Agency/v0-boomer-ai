@@ -293,26 +293,32 @@ export default function Chat() {
 
         {messages.length === 0 ? (
           <Animated.View entering={FadeInUp.duration(300)} style={styles.empty}>
-            <Text style={styles.emptyEmoji}>✨</Text>
-            <Text style={styles.emptyTitle}>Let's Chat!</Text>
-            <Text style={styles.emptySub}>What can I help you with today?</Text>
-            <View style={styles.starters}>
-              {STARTER_PROMPTS.map((p, i) => (
-                <Animated.View
-                  key={p}
-                  entering={FadeInDown.duration(280).delay(80 + i * 50)}
-                >
-                  <AnimatedPressable
-                    pressedScale={0.97}
-                    style={styles.starter}
-                    onPress={() => handleSend(p)}
-                    accessibilityRole="button"
+            <ScrollView
+              contentContainerStyle={styles.emptyContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.emptyEmoji}>✨</Text>
+              <Text style={styles.emptyTitle}>Let's Chat!</Text>
+              <Text style={styles.emptySub}>What can I help you with today?</Text>
+              <View style={styles.starters}>
+                {STARTER_PROMPTS.map((p, i) => (
+                  <Animated.View
+                    key={p}
+                    entering={FadeInDown.duration(280).delay(80 + i * 50)}
                   >
-                    <Text style={styles.starterText}>{p}</Text>
-                  </AnimatedPressable>
-                </Animated.View>
-              ))}
-            </View>
+                    <AnimatedPressable
+                      pressedScale={0.97}
+                      style={styles.starter}
+                      onPress={() => handleSend(p)}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.starterText}>{p}</Text>
+                    </AnimatedPressable>
+                  </Animated.View>
+                ))}
+              </View>
+            </ScrollView>
           </Animated.View>
         ) : (
           <FlatList
@@ -447,7 +453,13 @@ const styles = StyleSheet.create({
   historyItemPreview: { fontSize: fontSize.sm, color: colors.textSecondary, lineHeight: 23 },
   historyItemDate: { fontSize: fontSize.xs, color: colors.textMuted },
   bannerWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+  empty: { flex: 1, minHeight: 0 },
+  emptyContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
   emptyEmoji: { fontSize: 48, marginBottom: spacing.md },
   emptyTitle: { fontSize: fontSize.xl, fontWeight: fontWeight.black, color: colors.textPrimary },
   emptySub: { fontSize: fontSize.md, color: colors.textSecondary, marginTop: spacing.xs },
@@ -511,6 +523,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
     minHeight: 48,
     maxHeight: 120,
     backgroundColor: colors.surfaceMuted,

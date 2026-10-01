@@ -41,17 +41,25 @@ describe('onboarding route', () => {
   it('keeps age optional and continues to level selection without storing an age', () => {
     render(<Onboarding />);
 
-    const continueButton = screen.getByRole('button', { name: "Let's Get Started!" });
+    const continueButton = screen.getByRole('button', { name: 'Continue' });
     expect(continueButton.props.accessibilityState.disabled).toBe(true);
+    expect(screen.queryByLabelText(/Choose (Otter|Giraffe|Eagle|Elephant|Dog|Wolf)/)).toBeNull();
+    expect(screen.queryByText('Profile color')).toBeNull();
 
     fireEvent.changeText(screen.getByLabelText('Your name'), 'Sam');
-    fireEvent.press(screen.getByLabelText('Choose Angela'));
     expect(continueButton.props.accessibilityState.disabled).toBe(false);
 
     fireEvent.press(continueButton);
     expect(screen.getByText('Would you like to share your age range?')).toBeTruthy();
     expect(updateProfile).toHaveBeenCalledWith(
-      expect.objectContaining({ userName: 'Sam', name: 'Sam', persona: 'Angela' }),
+      expect.objectContaining({
+        userName: 'Sam',
+        name: 'Sam',
+        persona: null,
+        userTitle: null,
+        avatarSrc: null,
+        avatarBackground: 'white',
+      }),
     );
 
     fireEvent.press(screen.getByRole('button', { name: 'Prefer not to say' }));

@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -9,22 +9,42 @@ import { useAuth } from '@/context/AuthContext';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 import { PROFILE_BACKGROUNDS } from '@boomer-ai/shared';
 
-const AVATAR_SOURCES: Record<string, number> = {
-  '/avatars/otter.webp': require('../../assets/avatars/otter.webp'),
-  '/avatars/giraffe.webp': require('../../assets/avatars/giraffe.webp'),
-  '/avatars/eagle.webp': require('../../assets/avatars/eagle.webp'),
-  '/avatars/elephant.webp': require('../../assets/avatars/elephant.webp'),
-  '/avatars/dog.webp': require('../../assets/avatars/dog.webp'),
-  '/avatars/wolf.webp': require('../../assets/avatars/wolf.webp'),
-};
+const ASSISTANTS = [
+  { name: 'Assistant woman', image: '/assistants/assistant_woman.png', source: require('../../assets/assistants/assistant_woman.png') },
+  { name: 'Assistant man', image: '/assistants/assistant_man.png', source: require('../../assets/assistants/assistant_man.png') },
+];
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { profile, resetOnboarding, deleteAccount } = useProfile();
+  const { profile, updateProfile, resetOnboarding, deleteAccount } = useProfile();
   const { user, signOut } = useAuth();
   const displayName = profile.name || profile.userName || 'User';
   const completedLessons = profile.lessonsCompleted?.length ?? 0;
-  const avatarBackground = PROFILE_BACKGROUNDS.find((background) => background.id === profile.avatarBackground) ?? PROFILE_BACKGROUNDS[0];
+  const [editorVisible, setEditorVisible] = useState(false);
+  const [draftName, setDraftName] = useState(displayName);
+  const [draftAssistant, setDraftAssistant] = useState(profile.assistantSrc ?? ASSISTANTS[0].image);
+  const [draftAssistantBackground, setDraftAssistantBackground] = useState(profile.assistantBackground ?? 'white');
+
+  const openEditor = useCallback(() => {
+    setDraftName(displayName);
+    setDraftAssistant(profile.assistantSrc ?? ASSISTANTS[0].image);
+    setDraftAssistantBackground(profile.assistantBackground ?? 'white');
+    setEditorVisible(true);
+  }, [displayName, profile]);
+
+  const saveCustomization = useCallback(() => {
+    updateProfile({
+      name: draftName.trim() || displayName,
+      userName: draftName.trim() || displayName,
+      persona: null,
+      userTitle: null,
+      avatarSrc: null,
+      avatarBackground: 'white',
+      assistantSrc: draftAssistant,
+      assistantBackground: draftAssistantBackground,
+    });
+    setEditorVisible(false);
+  }, [displayName, draftName, draftAssistant, draftAssistantBackground, updateProfile]);
 
   const confirmReset = useCallback(() => {
     Alert.alert('Start over?', 'This will return you to onboarding and reset the profile and progress on this device.', [
@@ -57,14 +77,57 @@ export default function ProfileScreen() {
     <Screen centered edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.identity}>
-          <LinearGradient colors={avatarBackground.colors} style={styles.avatar}>
-            {profile.avatarSrc
-              ? <Image source={AVATAR_SOURCES[profile.avatarSrc] ?? { uri: profile.avatarSrc }} style={styles.avatarImage} />
-              : <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>}
-          </LinearGradient>
           <Text style={styles.name}>{displayName}</Text>
-          <Text style={styles.title}>Your Profile</Text>
+          <Pressable
+            onPress={editorVisible ? () => setEditorVisible(false) : openEditor}
+            style={styles.customizeButton}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: editorVisible }}
+          >
+            <Text style={styles.customizeButtonText}>{editorVisible ? 'Close personalization' : 'Personalize profile'}</Text>
+          </Pressable>
         </View>
+
+        {editorVisible && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Personalize your profile</Text>
+            <Text style={styles.cardHint}>Change your name or choose an assistant picture.</Text>
+            <Text style={styles.editorLabel}>Your name</Text>
+            <TextInput
+              style={styles.nameInput}
+              value={draftName}
+              onChangeText={setDraftName}
+              placeholder="Your name"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="words"
+              accessibilityLabel="Your name"
+            />
+            <Text style={styles.editorLabel}>Assistant picture</Text>
+            <View style={styles.assistantChoices}>
+              {ASSISTANTS.map((assistant) => {
+                const selected = draftAssistant === assistant.image;
+                const background = PROFILE_BACKGROUNDS.find((item) => item.id === draftAssistantBackground) ?? PROFILE_BACKGROUNDS[0];
+                return (
+                  <Pressable
+                    key={assistant.image}
+                    onPress={() => setDraftAssistant(assistant.image)}
+                    style={[styles.assistantChoice, selected && styles.choiceSelected]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Choose ${assistant.name}`}
+                    accessibilityState={{ selected }}
+                  >
+                    <LinearGradient colors={background.colors} style={styles.choiceImageBg}>
+                      <Image source={assistant.source} style={styles.choiceImage} />
+                    </LinearGradient>
+                    <Text style={styles.choiceName}>{assistant.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <BackgroundPicker label="Assistant background" value={draftAssistantBackground} onChange={setDraftAssistantBackground} />
+            <Button title="Save profile" onPress={saveCustomization} />
+          </View>
+        )}
 
         <View style={styles.accountCard}>
           <Text style={styles.cardTitle}>Your account</Text>
@@ -90,7 +153,6 @@ export default function ProfileScreen() {
           </Text>
           <View style={styles.rows}>
             <ProfileRow label="Starting point" value={profile.level || 'Beginner'} />
-            <ProfileRow label="Companion" value={profile.persona || 'Not set'} />
             <ProfileRow label="Age range" value={profile.age || 'Not shared'} />
             <ProfileRow label="Lessons completed" value={String(completedLessons)} last />
           </View>
@@ -114,18 +176,56 @@ function ProfileRow({ label, value, last = false }: { label: string; value: stri
   );
 }
 
+function BackgroundPicker({ label, value, onChange }: { label: string; value: string; onChange: (id: string) => void }) {
+  return (
+    <View style={styles.backgroundPicker}>
+      <Text style={styles.editorLabel}>{label}</Text>
+      <View style={styles.backgroundOptions}>
+        {PROFILE_BACKGROUNDS.map((background) => {
+          const selected = background.id === value;
+          return (
+            <Pressable
+              key={background.id}
+              onPress={() => onChange(background.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`${background.label} background`}
+              accessibilityState={{ selected }}
+              style={[styles.backgroundOption, selected && styles.backgroundSelected]}
+            >
+              <LinearGradient colors={background.colors} style={styles.backgroundSwatch} />
+              <Text style={styles.backgroundName}>{background.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   scroll: { padding: spacing.xl, gap: spacing.xl },
   identity: { alignItems: 'center', gap: spacing.xs },
-  avatar: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: spacing.sm },
-  avatarImage: { width: '100%', height: '100%' },
-  avatarText: { fontSize: fontSize.xxl, fontWeight: fontWeight.bold, color: colors.textPrimary },
+  customizeButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md },
+  customizeButtonText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.primary, textDecorationLine: 'underline' },
   name: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.textPrimary },
-  title: { fontSize: fontSize.md, color: colors.textSecondary },
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
   accountCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
   cardTitle: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.textPrimary },
   cardHint: { fontSize: fontSize.sm, lineHeight: 23, color: colors.textSecondary },
+  editorLabel: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textPrimary, marginTop: spacing.sm },
+  nameInput: { minHeight: 52, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: fontSize.md, color: colors.textPrimary },
+  assistantChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  assistantChoice: { minWidth: 112, alignItems: 'center', padding: spacing.xs, borderWidth: 1, borderColor: 'transparent', borderRadius: radius.md },
+  choiceSelected: { borderColor: colors.ink },
+  choiceImageBg: { width: 64, height: 64, borderRadius: 32, overflow: 'hidden' },
+  choiceImage: { width: '100%', height: '100%' },
+  choiceName: { marginTop: spacing.xs, textAlign: 'center', fontSize: fontSize.xs, color: colors.textPrimary },
+  backgroundPicker: { gap: spacing.xs },
+  backgroundOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  backgroundOption: { minWidth: 52, minHeight: 56, alignItems: 'center', justifyContent: 'center', padding: spacing.xs, borderRadius: radius.sm, borderWidth: 1, borderColor: 'transparent' },
+  backgroundSelected: { borderColor: colors.ink },
+  backgroundSwatch: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: colors.border },
+  backgroundName: { fontSize: 10, color: colors.textSecondary, marginTop: 2 },
   rows: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, overflow: 'hidden' },
   row: { minHeight: 52, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
