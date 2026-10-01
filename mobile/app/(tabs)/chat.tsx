@@ -29,9 +29,7 @@ import type { ChatMessage } from '@/types';
 
 /**
  * AI Chat — FULLY IMPLEMENTED.
- * Streams replies from /api/chat, renders a message list, and awards stars on
- * send (matching the web reward logic: +10 + "First Chat" badge on first
- * message, +1 thereafter).
+ * Streams replies from /api/chat and renders a message list with starter ideas.
  */
 const STARTER_PROMPTS = [
   'How do I create a strong password I can remember?',
@@ -43,7 +41,7 @@ const STARTER_PROMPTS = [
 export default function Chat() {
   const router = useRouter();
   const { messages, status, error, send } = useChatSession();
-  const { profile, updateProfile, apiConfigured } = useProfile();
+  const { apiConfigured } = useProfile();
   const { entitled } = useEntitlement();
   const [input, setInput] = useState('');
   const listRef = useRef<FlatList<ChatMessage>>(null);
@@ -51,17 +49,6 @@ export default function Chat() {
   // Keep latest entitled inside callbacks without re-creating subscriptions.
   const entitledRef = useRef(entitled);
   entitledRef.current = entitled;
-
-  const awardStars = useCallback(() => {
-    if (messages.length === 0 && !profile.badges.includes('First Chat')) {
-      updateProfile({
-        stars: profile.stars + 10,
-        badges: [...profile.badges, 'First Chat'],
-      });
-    } else {
-      updateProfile({ stars: profile.stars + 1 });
-    }
-  }, [messages.length, profile, updateProfile]);
 
   /**
    * Reads today's counter fresh from storage (handles app-open-across-midnight
@@ -97,7 +84,6 @@ export default function Chat() {
       const trimmed = text.trim();
       if (!trimmed) return;
       const runSend = () => {
-        awardStars();
         void send(trimmed);
         setInput('');
         setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
@@ -111,7 +97,7 @@ export default function Chat() {
         if (ok) runSend();
       })();
     },
-    [awardStars, consumeFreeQuota, send],
+    [consumeFreeQuota, send],
   );
 
   // Keep a stable ref so focus/subscription handlers always call the latest
@@ -139,7 +125,6 @@ export default function Chat() {
     <Screen centered edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Chat</Text>
-        <Text style={styles.stars}>⭐ {profile.stars}</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -265,7 +250,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   title: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.textPrimary },
-  stars: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textPrimary },
   bannerWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   emptyEmoji: { fontSize: 48, marginBottom: spacing.md },

@@ -3,11 +3,8 @@
 import { useState } from "react"
 import { Wand2, Download, Share2, Loader2, AlertTriangle, ArrowLeft, Sparkles, RefreshCw } from "lucide-react"
 import { containsProhibitedContent, SAFETY_MESSAGE } from "@/lib/content-moderation"
-import type { UserProfile } from "@/app/page"
 
 interface AiArtTabProps {
-  userProfile: UserProfile
-  updateProfile: (updates: Partial<UserProfile>) => void
   onBack: () => void
 }
 
@@ -27,7 +24,7 @@ const PROMPT_SUGGESTIONS = [
   "Mountain view",
 ]
 
-export function AiArtTab({ userProfile, updateProfile, onBack }: AiArtTabProps) {
+export function AiArtTab({ onBack }: AiArtTabProps) {
   const [prompt, setPrompt] = useState("")
   const [selectedStyle, setSelectedStyle] = useState("realistic")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -69,7 +66,6 @@ export function AiArtTab({ userProfile, updateProfile, onBack }: AiArtTabProps) 
       }
 
       setGeneratedImage(data.imageUrl)
-      updateProfile({ stars: userProfile.stars + 1 })
     } catch (err) {
       setError("Connection error. Please try again.")
     } finally {

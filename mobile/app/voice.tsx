@@ -50,13 +50,12 @@ import type { ChatMessage } from '@/types';
 export default function VoiceScreen() {
   const router = useRouter();
   const { messages, status, error, send } = useChatSession();
-  const { profile, updateProfile } = useProfile();
+  const { profile } = useProfile();
   const [input, setInput] = useState('');
   const [speaking, setSpeaking] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const lastSpokenId = useRef<string | null>(null);
-  const awardedStar = useRef(false);
 
   const busy = status === 'streaming' || status === 'submitted';
 
@@ -91,16 +90,11 @@ export default function VoiceScreen() {
       if (!trimmed || busy) return;
       void Speech.stop();
       setSpeaking(false);
-      // Award +2 stars on the first voice interaction (matches web reward).
-      if (!awardedStar.current) {
-        awardedStar.current = true;
-        updateProfile({ stars: profile.stars + 2 });
-      }
       void send(trimmed);
       setInput('');
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     },
-    [busy, send, profile.stars, updateProfile],
+    [busy, send],
   );
 
   const toggleTts = useCallback(() => {

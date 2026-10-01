@@ -46,7 +46,7 @@ export default function PrivacyPage() {
                 </li>
                 <li>
                   <strong>Usage Data:</strong> We collect data on how you interact with the app, such as the lessons you
-                  complete and the features you use (e.g., Stars earned).
+                  complete and the features you use (e.g., lessons completed).
                 </li>
                 <li>
                   <strong>User Content:</strong> We process the text and audio inputs you provide to generate AI
@@ -60,7 +60,7 @@ export default function PrivacyPage() {
               <p className="text-gray-700 mb-2">We use your information to:</p>
               <ul className="list-disc pl-6 space-y-2 text-gray-700">
                 <li>Provide, maintain, and improve the App.</li>
-                <li>Personalize your experience (e.g., remembering your name and stars).</li>
+                <li>Personalize your experience (e.g., remembering your name and learning preferences).</li>
                 <li>Generate AI content based on your requests.</li>
               </ul>
             </section>

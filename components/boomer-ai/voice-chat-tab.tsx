@@ -7,11 +7,10 @@ import type { UserProfile } from "@/app/page"
 
 interface VoiceChatTabProps {
   userProfile: UserProfile
-  updateProfile: (updates: Partial<UserProfile>) => void
   onBack: () => void
 }
 
-export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTabProps) {
+export function VoiceChatTab({ userProfile, onBack }: VoiceChatTabProps) {
   const [hasStarted, setHasStarted] = useState(false)
   const [conversationMessages, setConversationMessages] = useState<Array<{ role: string; content: string }>>([])
   const [textInput, setTextInput] = useState("")
@@ -160,9 +159,6 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
         agentId: process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "",
       })
 
-      updateProfile({
-        stars: userProfile.stars + 2,
-      })
     } catch (error) {
       console.error("[v0] Failed to start voice assistant:", error)
       alert("Please allow microphone access to use the voice assistant.")
@@ -219,10 +215,10 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
           </div>
 
           <div className="max-w-sm text-center">
-            <h2 className="text-xl font-black text-slate-900 mb-2">Hi {userProfile.name}!</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-2">Hi {userProfile.name || userProfile.userName || "there"}!</h2>
             <p className="text-base text-slate-700 font-semibold mb-1">Ready to chat with AI?</p>
             <p className="text-sm text-slate-600">
-              Tap below and start talking - you'll see your words appear on screen!
+              Tap below and start talking - you&apos;ll see your words appear on screen!
             </p>
           </div>
 
@@ -232,7 +228,7 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-black text-base shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 touch-manipulation min-h-[48px]"
           >
             <Mic className="w-5 h-5" />
-            Start Talking (+2 Stars)
+            Start talking
           </button>
         </div>
       ) : (

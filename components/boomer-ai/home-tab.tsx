@@ -5,7 +5,6 @@ import type { UserProfile } from "@/app/page"
 
 interface HomeTabProps {
   userProfile: UserProfile
-  updateProfile: (updates: Partial<UserProfile>) => void
   onStartChat: (prompt?: string) => void
   onOpenLessons: () => void
   onOpenTips: () => void

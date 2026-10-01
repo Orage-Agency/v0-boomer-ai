@@ -28,13 +28,6 @@ export type UserProfile = {
   isLoggedIn: boolean
 }
 
-function calculateLevelFromStars(stars: number): string {
-  if (stars < 200) return "Basic"
-  if (stars < 600) return "Intermediate"
-  if (stars < 1400) return "Advanced"
-  return "Expert"
-}
-
 const DEFAULT_PROFILE: UserProfile = {
   persona: null,
   age: null,
@@ -133,11 +126,6 @@ export default function BoomerAIPage() {
   }
 
   const updateProfile = (updates: Partial<UserProfile>) => {
-    if (updates.stars !== undefined) {
-      const correctLevel = calculateLevelFromStars(updates.stars)
-      updates.level = correctLevel
-    }
-
     const newProfile = { ...userProfile, ...updates }
     setUserProfile(newProfile)
     if (mounted) {

@@ -35,13 +35,6 @@ import {
 
 export type AppView = 'loading' | 'onboarding' | 'app';
 
-function calculateLevelFromStars(stars: number): string {
-  if (stars < 200) return 'Basic';
-  if (stars < 600) return 'Intermediate';
-  if (stars < 1400) return 'Advanced';
-  return 'Expert';
-}
-
 type ProfileContextValue = {
   view: AppView;
   profile: UserProfile;
@@ -77,9 +70,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     (updates: Partial<UserProfile>) => {
       setProfile((prev) => {
         const merged: UserProfile = { ...prev, ...updates };
-        if (updates.stars !== undefined) {
-          merged.level = calculateLevelFromStars(updates.stars);
-        }
         void persist(merged);
         return merged;
       });
@@ -164,5 +154,3 @@ export function useProfile(): ProfileContextValue {
   if (!ctx) throw new Error('useProfile must be used within ProfileProvider');
   return ctx;
 }
-
-export { calculateLevelFromStars };

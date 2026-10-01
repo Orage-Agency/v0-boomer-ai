@@ -37,11 +37,9 @@ import {
   Key,
   Smartphone,
 } from "lucide-react"
-import type { UserProfile } from "@/app/page"
 import { useState } from "react"
 
 interface TipsTabProps {
-  userProfile: UserProfile
   onTryPrompt: (prompt: string) => void
 }
 
@@ -407,7 +405,7 @@ const TIPS_CATEGORIES = [
   },
 ]
 
-export function TipsTab({ userProfile, onTryPrompt }: TipsTabProps) {
+export function TipsTab({ onTryPrompt }: TipsTabProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>(["cyber-security"])
 
   const toggleSection = (sectionId: string) => {
@@ -419,15 +417,9 @@ export function TipsTab({ userProfile, onTryPrompt }: TipsTabProps) {
   return (
     <div className="flex flex-col h-full bg-white overflow-hidden">
       <div className="flex-shrink-0 px-4 py-3 border-b border-slate-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">AI Tips & Guides</h2>
-            <p className="text-sm text-slate-600">Tap any tip to try it in chat</p>
-          </div>
-          <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-lg">
-            <span className="text-sm">⭐</span>
-            <span className="text-sm font-bold text-yellow-600">{userProfile.stars}</span>
-          </div>
+        <div>
+          <h2 className="text-xl font-semibold text-slate-950">AI Tips & Guides</h2>
+          <p className="text-base text-slate-600">Choose a tip to try it in chat.</p>
         </div>
       </div>
 

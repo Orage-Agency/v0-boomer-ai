@@ -16,7 +16,6 @@ import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { InfoBanner } from '@/components/InfoBanner';
 import { imagesApi, ApiError } from '@/api';
-import { useProfile } from '@/context/ProfileContext';
 import { isApiConfigured } from '@/config/env';
 import { colors, fontSize, fontWeight, gradients, radius, spacing } from '@/theme/theme';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,7 +29,6 @@ import { LinearGradient } from 'expo-linear-gradient';
  *  - "Improve" enhances the prompt via /api/improve-prompt
  *  - "Create Image" generates and shows the result
  *  - loading + error + content-safety states
- * Awards +1 star on a successful generation (matches web reward logic).
  */
 
 const STYLE_PRESETS = [
@@ -51,7 +49,6 @@ const PROMPT_IDEAS = [
 
 export default function ImageGenScreen() {
   const router = useRouter();
-  const { profile, updateProfile } = useProfile();
 
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState<string>('realistic');
@@ -94,7 +91,6 @@ export default function ImageGenScreen() {
       const res = await imagesApi.generateImage(fullPrompt);
       if (res.imageUrl) {
         setImageUrl(res.imageUrl);
-        updateProfile({ stars: profile.stars + 1 });
       } else {
         setError(res.error ?? 'Could not create the image. Please try again.');
       }
@@ -107,7 +103,7 @@ export default function ImageGenScreen() {
     } finally {
       setGenerating(false);
     }
-  }, [prompt, style, profile.stars, updateProfile]);
+  }, [prompt, style]);
 
   const handleNewImage = useCallback(() => {
     setImageUrl(null);

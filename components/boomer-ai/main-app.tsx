@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Home, MessageSquare, BookOpen, Star, Mic, MicOff, Send, Lightbulb, History, Menu, RotateCcw, X, Gamepad2, User, Palette, ImagePlus, Camera } from "lucide-react"
+import { Home, MessageSquare, BookOpen, Mic, MicOff, Send, Lightbulb, History, Menu, RotateCcw, X, User, ImagePlus, Camera } from "lucide-react"
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
 import { LessonsTab } from "./lessons-tab"
@@ -10,8 +10,6 @@ import { TipsTab } from "./tips-tab"
 import { ChatHistoryView } from "./chat-history-view"
 import { QuestionsTab } from "./questions-tab"
 import { VoiceChatTab } from "./voice-chat-tab"
-import { PlayTab } from "./play-tab"
-import { CelebrationModal } from "./celebration-modal"
 import { AiArtTab } from "./ai-art-tab"
 import { QuickQuestionsTab } from "./quick-questions"
 import type { UserProfile } from "@/app/page"
@@ -22,20 +20,9 @@ interface MainAppProps {
   onReset?: () => void
 }
 
-const REWARD_LEARNING_PROMPTS = [
-  "Teach me something fascinating about AI that I can share with my friends!",
-  "What's a fun and easy way I can use AI in my daily life?",
-  "Tell me an interesting fact about technology that would surprise me!",
-  "What's a creative way to use AI that most people don't know about?",
-  "Explain something new in technology like I'm just getting started!",
-  "What's a simple AI trick I can try right now?",
-  "Share a fun tip about using AI that will make me look tech-savvy!",
-  "What's something amazing AI can do that sounds like science fiction?",
-]
-
 export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
   const [activeTab, setActiveTab] = useState<
-    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "play" | "aiart" | "askme"
+    "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "aiart" | "askme"
   >("home")
   const [inputValue, setInputValue] = useState("")
   const [isListening, setIsListening] = useState(false)
@@ -50,10 +37,6 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | null>(null)
-  const [showCelebration, setShowCelebration] = useState(false)
-  const [celebrationStars, setCelebrationStars] = useState(5)
-  const [lastMilestone, setLastMilestone] = useState(() => Math.floor(userProfile.stars / 5) * 5)
-  const [starPop, setStarPop] = useState(false)
 
   useEffect(() => {
     if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
@@ -171,23 +154,6 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
     loadLastConversation()
   }, [])
 
-  useEffect(() => {
-    const currentMilestone = Math.floor(userProfile.stars / 5) * 5
-    if (currentMilestone > lastMilestone && currentMilestone > 0) {
-      if (activeTab !== "chat" && activeTab !== "voice") {
-        setCelebrationStars(5)
-        setShowCelebration(true)
-      }
-      setLastMilestone(currentMilestone)
-    }
-  }, [userProfile.stars, lastMilestone, activeTab])
-
-  useEffect(() => {
-    setStarPop(true)
-    const timer = setTimeout(() => setStarPop(false), 300)
-    return () => clearTimeout(timer)
-  }, [userProfile.stars])
-
   const toggleVoiceRecognition = () => {
     if (!recognitionRef.current) {
       alert("Voice recognition is not supported in your browser. Please try Chrome or Safari.")
@@ -248,14 +214,8 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
     setActiveTab("chat")
   }
 
-  const handleCollectReward = () => {
-    const randomPrompt = REWARD_LEARNING_PROMPTS[Math.floor(Math.random() * REWARD_LEARNING_PROMPTS.length)]
-    setPendingChatPrompt(randomPrompt)
-    setActiveTab("chat")
-  }
-
-  const handleStartChat = (prompt: string) => {
-    setPendingChatPrompt(prompt)
+  const handleStartChat = (prompt?: string) => {
+    if (prompt) setPendingChatPrompt(prompt)
     setActiveTab("chat")
   }
 
@@ -265,14 +225,6 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-white overflow-hidden">
-      <CelebrationModal
-        isOpen={showCelebration}
-        onClose={() => setShowCelebration(false)}
-        onCollectReward={handleCollectReward}
-        message="Milestone Reached!"
-        starsEarned={celebrationStars}
-      />
-      
       {isMenuOpen && (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
@@ -370,10 +322,6 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
       <aside className="hidden lg:flex flex-col w-56 flex-shrink-0 border-r border-slate-200 bg-white">
         <div className="p-4 pt-5 border-b border-slate-100 flex items-center justify-between">
           <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-10 w-auto object-contain" />
-          <div className={`flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-100 to-amber-100 rounded-full border border-yellow-200 transition-transform ${starPop ? "scale-125" : "scale-100"}`}>
-            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-            <span className="text-sm font-bold text-slate-900">{userProfile.stars}</span>
-          </div>
         </div>
         <div className="flex-1 overflow-y-auto py-2 px-2">
           {[
@@ -438,14 +386,6 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           </button>
         </div>
 
-        <div
-          className={`flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-yellow-100 to-amber-100 rounded-full shadow-md border border-yellow-200 transition-transform ${
-            starPop ? "scale-125" : "scale-100"
-          }`}
-        >
-          <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-          <span className="text-base font-bold text-slate-900">{userProfile.stars} Stars</span>
-        </div>
 
         <div className="flex items-center gap-2">
           <button
@@ -453,11 +393,9 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             className="relative group touch-manipulation flex items-center gap-2 min-h-[44px]"
             aria-label="Talk to AI Assistant"
           >
-            <div className="w-[44px] h-[44px] rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 p-[2px] shadow-lg hover:shadow-xl transition-all hover:scale-105">
-              <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+              <div className="w-[44px] h-[44px] rounded-full border border-slate-300 overflow-hidden">
                 <img src="/voice-assistant-avatar.jpg" alt="Voice Assistant" className="w-full h-full object-cover" />
               </div>
-            </div>
           </button>
 
           <button
@@ -474,7 +412,6 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
         {activeTab === "home" && (
           <HomeTab
             userProfile={userProfile}
-            updateProfile={updateProfile}
             onStartChat={handleStartChat}
             onOpenLessons={() => setActiveTab("lessons")}
             onOpenTips={() => setActiveTab("tips")}
@@ -487,8 +424,6 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
 
         {activeTab === "chat" && (
           <ChatTab
-            userProfile={userProfile}
-            updateProfile={updateProfile}
             pendingMessage={pendingMessage}
             setPendingMessage={setPendingMessage}
             capturedImage={capturedImage}
@@ -508,12 +443,12 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           />
         )}
 
-        {activeTab === "tips" && <TipsTab userProfile={userProfile} onTryPrompt={handleNavigateWithPrompt} />}
+        {activeTab === "tips" && <TipsTab onTryPrompt={handleNavigateWithPrompt} />}
 
         {activeTab === "profile" && (
           <ProfileView
             userProfile={userProfile}
-            onReset={onReset}
+            onReset={() => onReset?.()}
             onBack={() => setActiveTab("home")}
 
           />
@@ -523,25 +458,19 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           <ChatHistoryView
             userProfile={userProfile}
             onBack={() => setActiveTab("home")}
-            onLoadConversation={(id, messages) => {
+            onLoadConversation={(id) => {
               setCurrentConversationId(id)
               setActiveTab("chat")
             }}
           />
         )}
 
-        {activeTab === "questions" && <QuestionsTab userProfile={userProfile} updateProfile={updateProfile} />}
+        {activeTab === "questions" && <QuestionsTab onAskQuestion={handleStartChat} />}
 
-        {activeTab === "voice" && (
-          <VoiceChatTab userProfile={userProfile} updateProfile={updateProfile} onBack={() => setActiveTab("home")} />
-        )}
-
-        {activeTab === "play" && <PlayTab userProfile={userProfile} updateProfile={updateProfile} />}
+        {activeTab === "voice" && <VoiceChatTab userProfile={userProfile} onBack={() => setActiveTab("home")} />}
 
   {activeTab === "aiart" && (
   <AiArtTab
-  userProfile={userProfile}
-  updateProfile={updateProfile}
   onBack={() => setActiveTab("home")}
   />
   )}

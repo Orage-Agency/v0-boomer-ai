@@ -14,7 +14,7 @@ import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 /**
  * Lessons (Learn) tab — list view.
  * Mirrors the web `lessons-tab.tsx`: a list of video lessons with completion
- * state, a streak/stars header, and an encouragement banner. Tapping a lesson
+ * state. Tapping a lesson
  * opens the detail route `/lesson/[id]`.
  */
 export default function LessonsScreen() {
@@ -39,25 +39,9 @@ export default function LessonsScreen() {
           <Text style={styles.title}>Video Lessons</Text>
           <Text style={styles.subtitle}>Real people, real help!</Text>
         </View>
-        <View style={styles.stats}>
-          <View style={styles.statPill}>
-            <Text style={styles.statText}>🔥 {profile.streak}</Text>
-          </View>
-          <View style={[styles.statPill, styles.starPill]}>
-            <Text style={styles.statText}>⭐ {profile.stars}</Text>
-          </View>
-        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {profile.stars < 100 && (
-          <Animated.View entering={FadeInDown.duration(260)} style={styles.encourage}>
-            <Text style={styles.encourageText}>
-              🎯 You're doing great! Complete lessons to earn stars. 🌟
-            </Text>
-          </Animated.View>
-        )}
-
         {hydrating
           ? Array.from({ length: 4 }).map((_, i) => <LessonSkeleton key={i} />)
           : LESSONS.map((lesson, index) => {
@@ -139,33 +123,13 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.textPrimary },
   subtitle: { fontSize: fontSize.sm, color: colors.textSecondary, marginTop: 2 },
-  stats: { flexDirection: 'row', gap: spacing.sm },
-  statPill: {
-    backgroundColor: colors.amberSoft,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  starPill: { backgroundColor: colors.amberSoft },
-  statText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.textPrimary },
   scroll: { padding: spacing.lg, gap: spacing.md },
-  encourage: {
-    backgroundColor: colors.amberSoft,
-    borderRadius: radius.md,
-    padding: spacing.md,
-  },
-  encourageText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.bold,
-    color: '#92400E',
-    textAlign: 'center',
-  },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     backgroundColor: colors.surface,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.lg,
     padding: spacing.lg,
@@ -177,7 +141,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     backgroundColor: colors.surface,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.lg,
     padding: spacing.lg,
@@ -191,10 +155,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconTodo: { backgroundColor: colors.primary },
-  iconDone: { backgroundColor: colors.green },
-  iconLocked: { backgroundColor: colors.textMuted },
-  iconEmoji: { fontSize: 20, color: colors.textOnDark, fontWeight: fontWeight.bold },
+  iconTodo: { backgroundColor: colors.surfaceMuted },
+  iconDone: { backgroundColor: colors.surfaceMuted },
+  iconLocked: { backgroundColor: colors.surfaceMuted },
+  iconEmoji: { fontSize: 20, color: colors.textPrimary, fontWeight: fontWeight.bold },
   cardBody: { flex: 1, gap: 2 },
   cardMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   lessonNum: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: colors.textSecondary },
@@ -202,13 +166,13 @@ const styles = StyleSheet.create({
   doneTag: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.bold,
-    color: colors.green,
+    color: colors.textSecondary,
     marginLeft: spacing.xs,
   },
   proTag: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.black,
-    color: colors.primary,
+    color: colors.textSecondary,
     marginLeft: spacing.xs,
     letterSpacing: 0.5,
   },

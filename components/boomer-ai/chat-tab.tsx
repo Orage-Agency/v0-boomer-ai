@@ -3,13 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Sparkles, X, ChevronDown, ChevronUp, Lightbulb, Star, RefreshCw, AlertCircle, Volume2, Loader2 } from "lucide-react"
+import { Sparkles, X, ChevronDown, ChevronUp, Lightbulb, RefreshCw, AlertCircle, Volume2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { UserProfile } from "@/app/page"
 
 interface ChatTabProps {
-  userProfile: UserProfile
-  updateProfile: (updates: Partial<UserProfile>) => void
   pendingMessage: string | null
   setPendingMessage: (message: string | null) => void
   capturedImage: string | null
@@ -159,8 +156,6 @@ const PROMPT_LIBRARY = [
 ]
 
 export function ChatTab({
-  userProfile,
-  updateProfile,
   pendingMessage,
   setPendingMessage,
   capturedImage,
@@ -178,8 +173,6 @@ export function ChatTab({
   const conversationLoadedRef = useRef(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [lastUserQuestion, setLastUserQuestion] = useState<string>("")
-  const [showStarAnimation, setShowStarAnimation] = useState(false)
-  const prevStarsRef = useRef(userProfile.stars)
   const [chatError, setChatError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const [speakingId, setSpeakingId] = useState<string | null>(null)
@@ -314,44 +307,16 @@ export function ChatTab({
       setLastUserQuestion(pendingChatPrompt)
       safeSendMessage(pendingChatPrompt)
       setPendingChatPrompt(null)
-
-      const newStars = userProfile.stars + 1
-      updateProfile({
-        stars: newStars,
-      })
     }
-  }, [pendingChatPrompt, safeSendMessage])
+  }, [pendingChatPrompt, safeSendMessage, setPendingChatPrompt])
 
   useEffect(() => {
     if (pendingMessage) {
       setLastUserQuestion(pendingMessage)
       safeSendMessage(pendingMessage)
       setPendingMessage(null)
-
-      if (messages.length === 0 && !userProfile.badges.includes("First Chat")) {
-        const newStars = userProfile.stars + 10
-        updateProfile({
-          stars: newStars,
-          badges: [...userProfile.badges, "First Chat"],
-        })
-      } else {
-        const newStars = userProfile.stars + 1
-        updateProfile({
-          stars: newStars,
-        })
-      }
     }
-  }, [pendingMessage, safeSendMessage])
-
-  useEffect(() => {
-    if (userProfile.stars > prevStarsRef.current) {
-      setShowStarAnimation(true)
-      const timer = setTimeout(() => setShowStarAnimation(false), 1500)
-      prevStarsRef.current = userProfile.stars
-      return () => clearTimeout(timer)
-    }
-    prevStarsRef.current = userProfile.stars
-  }, [userProfile.stars])
+  }, [pendingMessage, safeSendMessage, setPendingMessage])
 
   const loadConversation = async (id: string) => {
     try {
@@ -404,14 +369,6 @@ export function ChatTab({
     setLastUserQuestion(promptText)
     safeSendMessage(promptText)
     setShowPromptLibrary(false)
-
-    if (!userProfile.badges.includes("Prompt Explorer")) {
-      const newStars = userProfile.stars + 1
-      updateProfile({
-        stars: newStars,
-        badges: [...userProfile.badges, "Prompt Explorer"],
-      })
-    }
   }
 
   const handleNewConversation = () => {
@@ -444,15 +401,6 @@ export function ChatTab({
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-slate-50 to-white relative">
-      {showStarAnimation && (
-        <div className="absolute top-4 right-4 z-50 animate-in fade-in zoom-in duration-300">
-          <div className="flex items-center gap-1 bg-yellow-100 border-2 border-yellow-400 rounded-full px-3 py-1.5 shadow-lg">
-            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 animate-pulse" />
-            <span className="text-sm font-bold text-yellow-700">+1</span>
-          </div>
-        </div>
-      )}
-
       {chatError && (
         <div className="flex-shrink-0 px-3 pt-2">
           <div className="flex items-center justify-between bg-red-50 border-2 border-red-200 rounded-xl p-3">
