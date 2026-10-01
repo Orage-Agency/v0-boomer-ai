@@ -22,7 +22,7 @@ interface MainAppProps {
 }
 
 export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
-  const assistantBackground = PROFILE_BACKGROUNDS.find((background) => background.id === userProfile.assistantBackground)?.css ?? PROFILE_BACKGROUNDS[1].css
+  const assistantBackground = PROFILE_BACKGROUNDS.find((background) => background.id === userProfile.assistantBackground)?.css ?? "#FFFFFF"
   const [activeTab, setActiveTab] = useState<
     "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "aiart" | "askme"
   >("home")
@@ -350,28 +350,6 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
               </button>
             )
           })}
-        </div>
-        <div className="p-3 border-t border-slate-100 space-y-1">
-          <button
-            onClick={() => setActiveTab("voice")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all touch-manipulation ${
-              activeTab === "voice"
-                ? "text-purple-600 bg-purple-50 font-bold"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-            }`}
-          >
-              <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-purple-200" style={{ background: assistantBackground }}>
-              <img src={userProfile.assistantSrc || "/assistants/assistant_woman.png"} alt="" className="w-full h-full object-cover" />
-            </div>
-            <span className="text-base font-semibold">Voice Chat</span>
-          </button>
-          <button
-            onClick={() => setIsMenuOpen(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all touch-manipulation"
-          >
-            <Menu className="w-5 h-5 flex-shrink-0" />
-            <span className="text-base font-semibold">Menu</span>
-          </button>
         </div>
       </aside>
 

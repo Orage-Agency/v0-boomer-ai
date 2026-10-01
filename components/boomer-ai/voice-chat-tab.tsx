@@ -12,7 +12,7 @@ interface VoiceChatTabProps {
 }
 
 export function VoiceChatTab({ userProfile, onBack }: VoiceChatTabProps) {
-  const assistantBackground = PROFILE_BACKGROUNDS.find((background) => background.id === userProfile.assistantBackground)?.css ?? PROFILE_BACKGROUNDS[1].css
+  const assistantBackground = PROFILE_BACKGROUNDS.find((background) => background.id === userProfile.assistantBackground)?.css ?? "#FFFFFF"
   const [hasStarted, setHasStarted] = useState(false)
   const [conversationMessages, setConversationMessages] = useState<Array<{ role: string; content: string }>>([])
   const [textInput, setTextInput] = useState("")

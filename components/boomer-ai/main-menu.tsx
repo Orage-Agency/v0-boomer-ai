@@ -9,14 +9,14 @@ interface MainMenuProps {
 }
 
 export function MainMenu({ userProfile, onNavigate }: MainMenuProps) {
-  const displayName = userProfile.userTitle || "friend"
-  const hasProfile = userProfile.persona && userProfile.level
+  const displayName = userProfile.name || userProfile.userName || "friend"
+  const hasProfile = Boolean(userProfile.level)
 
   return (
     <section className="animate-in fade-in slide-in-from-bottom-4 duration-300 h-[calc(100vh-8rem)] flex flex-col">
       <div className="flex-shrink-0 p-8 text-center border-b border-slate-200/70">
         <h2 className="text-3xl font-bold text-slate-900 mb-2">
-          {hasProfile ? `Welcome, ${displayName}!` : "Welcome to your AI companion"}
+          {hasProfile ? `Welcome, ${displayName}!` : "Welcome to Boomer AI"}
         </h2>
         <p className="text-lg text-slate-600">
           {hasProfile

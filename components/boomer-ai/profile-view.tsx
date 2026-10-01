@@ -6,7 +6,6 @@ import type { UserProfile } from "@/app/page"
 import { useUser } from "@/contexts/user-context"
 import { createUser, loginUser } from "@/lib/auth-service"
 import Link from "next/link"
-import { PROFILE_BACKGROUNDS } from "@boomer-ai/shared"
 
 interface ProfileViewProps {
   userProfile: UserProfile
@@ -16,7 +15,6 @@ interface ProfileViewProps {
 }
 
 export function ProfileView({ userProfile, updateProfile, onReset, onBack }: ProfileViewProps) {
-  const avatarBackground = PROFILE_BACKGROUNDS.find((background) => background.id === userProfile.avatarBackground)?.css ?? PROFILE_BACKGROUNDS[0].css
   const { email, galleryCount, chatHistory, isLoading, isLoggedIn, login, logout, refreshData } = useUser()
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
   const [name, setName] = useState("")
@@ -60,18 +58,7 @@ export function ProfileView({ userProfile, updateProfile, onReset, onBack }: Pro
     <section className="h-full overflow-y-auto bg-white px-5 py-7 sm:px-8">
       <div className="mx-auto w-full max-w-xl space-y-7">
         <header className="text-center">
-          <span className="mx-auto mb-4 flex h-20 w-20 overflow-hidden rounded-full" style={{ background: avatarBackground }}>
-            {userProfile.avatarSrc ? (
-              <img src={userProfile.avatarSrc} alt="Your selected avatar" className="h-full w-full object-cover" />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-slate-700">
-                {displayName.charAt(0).toUpperCase()}
-              </span>
-            )}
-          </span>
-          <h1 className="text-2xl font-bold text-slate-950">Your Profile</h1>
-          <p className="mt-1 text-base text-slate-600">{displayName}</p>
-          {email && <p className="mt-1 text-sm text-slate-500">{email}</p>}
+          <h1 className="text-2xl font-bold text-slate-950">{displayName}</h1>
         </header>
 
         <section aria-labelledby="account-heading" className="rounded-2xl border border-slate-200 p-5">
@@ -127,7 +114,6 @@ export function ProfileView({ userProfile, updateProfile, onReset, onBack }: Pro
           </p>
           <dl className="mt-5 divide-y divide-slate-200 rounded-xl border border-slate-200">
             <ProfileRow label="Starting point" value={userProfile.level || "Beginner"} />
-            <ProfileRow label="Companion" value={userProfile.persona || "Not set"} />
             <ProfileRow label="Age range" value={userProfile.age || "Not shared"} />
             <ProfileRow label="Lessons completed" value={String(completedLessons)} />
           </dl>

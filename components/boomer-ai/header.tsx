@@ -1,11 +1,10 @@
 "use client"
 
 import { ArrowLeft } from "lucide-react"
-import type { UserProfile, ViewType } from "@/app/page"
-import { PROFILE_BACKGROUNDS } from "@boomer-ai/shared"
+import type { UserProfile } from "@/app/page"
 
 interface HeaderProps {
-  currentView: ViewType
+  currentView: string
   userProfile: UserProfile
   onBack: () => void
   onProfile: () => void
@@ -24,7 +23,7 @@ const VIEW_TITLES: Record<string, string> = {
 }
 
 export function Header({ currentView, userProfile, onBack, onProfile }: HeaderProps) {
-  const avatarBackground = PROFILE_BACKGROUNDS.find((background) => background.id === userProfile.avatarBackground)?.css ?? PROFILE_BACKGROUNDS[0].css
+  const displayName = userProfile.name || userProfile.userName || "Profile"
   const showBackButton = currentView !== "main-menu"
   const title = VIEW_TITLES[currentView] || "Boomer AI"
 
@@ -47,17 +46,10 @@ export function Header({ currentView, userProfile, onBack, onProfile }: HeaderPr
 
       <button
         onClick={onProfile}
-        className="w-11 h-11 flex-shrink-0 rounded-full overflow-hidden ring-2 ring-slate-200 hover:ring-slate-300 transition-all"
-        aria-label="Open profile"
-        style={{ background: avatarBackground }}
+        className="min-h-11 max-w-28 flex-shrink-0 truncate rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"
+        aria-label={`Open ${displayName}'s profile`}
       >
-        {userProfile.avatarSrc ? (
-          <img src={userProfile.avatarSrc} alt="Profile" className="w-full h-full object-cover" />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-700">
-            {(userProfile.name || userProfile.userName || "U").charAt(0).toUpperCase()}
-          </span>
-        )}
+        {displayName}
       </button>
     </header>
   )
