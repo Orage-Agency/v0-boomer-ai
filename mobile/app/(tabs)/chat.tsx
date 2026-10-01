@@ -15,7 +15,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -37,7 +36,7 @@ import {
   todayKey,
 } from '@/lib/freeTier';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
-import { PROFILE_BACKGROUNDS } from '@boomer-ai/shared';
+import { MarkdownMessage } from '@/components/MarkdownMessage';
 import type { ChatMessage } from '@/types';
 
 /**
@@ -198,16 +197,15 @@ export default function Chat() {
   );
 
   const busy = status === 'streaming' || status === 'submitted';
-  const assistantBackground = PROFILE_BACKGROUNDS.find((background) => background.id === profile.assistantBackground) ?? PROFILE_BACKGROUNDS[0];
   const assistantSource = ASSISTANT_SOURCES[profile.assistantSrc ?? ''] ?? ASSISTANT_SOURCES['/assistants/assistant_woman.png'];
 
   return (
     <Screen centered edges={['top']}>
       <View style={styles.header}>
         <View style={styles.chatIdentity}>
-          <LinearGradient colors={assistantBackground.colors} style={styles.assistantAvatar}>
+          <View style={styles.assistantAvatar}>
             <Image source={assistantSource} style={styles.assistantAvatarImage} accessibilityLabel="Your assistant" />
-          </LinearGradient>
+          </View>
           <Text style={styles.title}>Chat</Text>
         </View>
         <View style={styles.headerActions}>
@@ -405,9 +403,7 @@ function Bubble({ message }: { message: ChatMessage }) {
       style={[styles.bubbleRow, isUser ? styles.rowEnd : styles.rowStart]}
     >
       <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-        <Text style={[styles.bubbleText, isUser && styles.userText]}>
-          {text || ' '}
-        </Text>
+        <MarkdownMessage text={text} isUser={isUser} />
       </View>
     </Animated.View>
   );
@@ -485,8 +481,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  bubbleText: { fontSize: fontSize.md, lineHeight: 24, color: colors.textPrimary },
-  userText: { color: colors.textOnDark },
   thinking: { fontSize: fontSize.sm, color: colors.textMuted, paddingTop: spacing.sm },
   thinkingBubble: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, minHeight: 36 },
   inputBar: {

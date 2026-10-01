@@ -13,6 +13,7 @@ import * as Speech from 'expo-speech';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { InfoBanner } from '@/components/InfoBanner';
+import { MarkdownMessage } from '@/components/MarkdownMessage';
 import { useChatSession } from '@/screens/useChat';
 import { useProfile } from '@/context/ProfileContext';
 import { isApiConfigured } from '@/config/env';
@@ -200,7 +201,7 @@ function Bubble({ message }: { message: ChatMessage }) {
     <View style={[styles.bubbleRow, isUser ? styles.rowEnd : styles.rowStart]}>
       <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
         <Text style={styles.speaker}>{isUser ? 'You' : 'AI'}</Text>
-        <Text style={[styles.bubbleText, isUser && styles.userText]}>{text || ' '}</Text>
+        <MarkdownMessage text={text} isUser={isUser} />
       </View>
     </View>
   );
@@ -240,8 +241,6 @@ const styles = StyleSheet.create({
   userBubble: { backgroundColor: colors.purple },
   aiBubble: { backgroundColor: colors.surfaceSubtle, borderWidth: 1, borderColor: colors.border },
   speaker: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, opacity: 0.7, color: colors.textSecondary },
-  bubbleText: { fontSize: fontSize.md, lineHeight: 24, color: colors.textPrimary },
-  userText: { color: colors.textOnDark },
   status: { fontSize: fontSize.sm, color: colors.textMuted, paddingTop: spacing.sm },
   voiceNote: { alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: spacing.xs },
   voiceNoteTitle: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.textPrimary, textAlign: 'center' },

@@ -5,6 +5,7 @@ import { DefaultChatTransport } from "ai"
 import { useState } from "react"
 import { Mic, Send, ArrowLeft } from "lucide-react"
 import { API_PATHS } from "@boomer-ai/shared"
+import { MarkdownMessage } from "./markdown-message"
 
 interface AIChatInterfaceProps {
   onBack?: () => void
@@ -78,7 +79,7 @@ export function AIChatInterface({ onBack }: AIChatInterfaceProps) {
           <>
             {/* Avatar and Greeting */}
             <div className="text-center mb-8 animate-in fade-in duration-300">
-              <div className="w-20 h-20 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-4 bg-white border border-slate-200 rounded-full flex items-center justify-center">
                 <svg
                   className="w-10 h-10 text-blue-600"
                   fill="none"
@@ -140,9 +141,7 @@ export function AIChatInterface({ onBack }: AIChatInterfaceProps) {
                   {message.parts.map((part, index) => {
                     if (part.type === "text") {
                       return (
-                        <p key={index} className="text-base leading-relaxed whitespace-pre-wrap">
-                          {part.text}
-                        </p>
+                        <MarkdownMessage key={index} text={part.text} isUser={message.role === "user"} />
                       )
                     }
                     return null

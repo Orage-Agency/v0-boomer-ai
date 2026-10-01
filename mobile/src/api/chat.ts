@@ -29,8 +29,6 @@ import type { ChatMessage } from '@/types';
  * plain text endpoint. The current approach delivers the full message at once.
  */
 
-const MODEL = 'openai/gpt-4o-mini';
-
 export type SendChatOptions = {
   messages: ChatMessage[];
   capturedImage?: string;
@@ -83,7 +81,6 @@ export async function sendChat(opts: SendChatOptions): Promise<string> {
     },
     body: JSON.stringify({
       messages: toBackendMessages(opts.messages),
-      model: MODEL,
       capturedImage: opts.capturedImage,
       conversationId: opts.conversationId ?? undefined,
     }),
@@ -124,5 +121,4 @@ export async function sendChat(opts: SendChatOptions): Promise<string> {
   return cumulative;
 }
 
-export const CHAT_MODEL = MODEL;
 export const CHAT_API_ORIGIN = env.apiBaseUrl;

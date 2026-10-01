@@ -13,7 +13,7 @@ import { VoiceChatTab } from "./voice-chat-tab"
 import { AiArtTab } from "./ai-art-tab"
 import { QuickQuestionsTab } from "./quick-questions"
 import type { UserProfile } from "@/app/page"
-import { API_PATHS, PROFILE_BACKGROUNDS } from "@boomer-ai/shared"
+import { API_PATHS } from "@boomer-ai/shared"
 
 interface MainAppProps {
   userProfile: UserProfile
@@ -22,7 +22,6 @@ interface MainAppProps {
 }
 
 export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
-  const assistantBackground = PROFILE_BACKGROUNDS.find((background) => background.id === userProfile.assistantBackground)?.css ?? "#FFFFFF"
   const [activeTab, setActiveTab] = useState<
     "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "aiart" | "askme"
   >("home")
@@ -374,7 +373,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             className="relative group touch-manipulation flex items-center gap-2 min-h-[44px]"
             aria-label="Talk to AI Assistant"
           >
-              <div className="w-[44px] h-[44px] rounded-full border border-slate-300 overflow-hidden" style={{ background: assistantBackground }}>
+              <div className="w-[44px] h-[44px] rounded-full border border-slate-300 bg-white overflow-hidden">
                 <img src={userProfile.assistantSrc || "/assistants/assistant_woman.png"} alt="Voice Assistant" className="w-full h-full object-cover" />
               </div>
           </button>

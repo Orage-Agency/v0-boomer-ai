@@ -3,7 +3,6 @@
 import { useState } from "react"
 import Image from "next/image"
 import { Input } from "@/components/ui/input"
-import { PROFILE_BACKGROUNDS } from "@boomer-ai/shared"
 
 const ASSISTANTS = [
   { name: "Assistant woman", image: "/assistants/assistant_woman.png" },
@@ -26,7 +25,6 @@ interface AvatarSelectionProps {
 
 export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
   const [selectedAssistant, setSelectedAssistant] = useState<string>(ASSISTANTS[0].image)
-  const [assistantBackground, setAssistantBackground] = useState<string>("white")
   const [userName, setUserName] = useState("")
 
   const handleContinue = () => {
@@ -37,7 +35,7 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
       avatarSrc: null,
       assistantSrc: selectedAssistant,
       avatarBackground: "white",
-      assistantBackground,
+      assistantBackground: "white",
       userName: userName.trim(),
     })
   }
@@ -72,7 +70,7 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
                   aria-pressed={active}
                   className={`flex min-h-24 items-center gap-3 rounded-xl border-2 p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 ${active ? "border-slate-900 bg-slate-50" : "border-slate-200 hover:border-slate-400"}`}
                 >
-                  <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full" style={{ background: backgroundCss(assistantBackground) }}>
+                  <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white">
                     <Image src={assistant.image} alt="" width={64} height={64} className="h-full w-full object-cover" />
                   </span>
                   <span className="text-sm font-semibold text-slate-900">{assistant.name}</span>
@@ -81,8 +79,6 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
             })}
           </div>
         </fieldset>
-
-        <BackgroundPicker label="Assistant background" value={assistantBackground} onChange={setAssistantBackground} />
 
         <button
           type="button"
@@ -94,35 +90,5 @@ export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
         </button>
       </div>
     </section>
-  )
-}
-
-function backgroundCss(id: string) {
-  return PROFILE_BACKGROUNDS.find((background) => background.id === id)?.css ?? PROFILE_BACKGROUNDS[0].css
-}
-
-function BackgroundPicker({ label, value, onChange }: { label: string; value: string; onChange: (id: string) => void }) {
-  return (
-    <fieldset className="mt-5">
-      <legend className="text-sm font-semibold text-slate-800">{label}</legend>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {PROFILE_BACKGROUNDS.map((background) => {
-          const active = value === background.id
-          return (
-            <button
-              key={background.id}
-              type="button"
-              onClick={() => onChange(background.id)}
-              aria-label={`${label}: ${background.label}`}
-              aria-pressed={active}
-              className={`flex min-h-11 items-center gap-2 rounded-lg border px-2 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 ${active ? "border-slate-900" : "border-slate-200 hover:border-slate-400"}`}
-            >
-              <span aria-hidden="true" className="h-7 w-7 rounded-md border border-black/10" style={{ background: background.css }} />
-              <span className="text-xs font-medium text-slate-800">{background.label}</span>
-            </button>
-          )
-        })}
-      </div>
-    </fieldset>
   )
 }

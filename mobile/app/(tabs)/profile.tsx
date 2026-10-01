@@ -1,13 +1,11 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
 import { useAuth } from '@/context/AuthContext';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
-import { PROFILE_BACKGROUNDS } from '@boomer-ai/shared';
 
 const ASSISTANTS = [
   { name: 'Assistant woman', image: '/assistants/assistant_woman.png', source: require('../../assets/assistants/assistant_woman.png') },
@@ -23,12 +21,10 @@ export default function ProfileScreen() {
   const [editorVisible, setEditorVisible] = useState(false);
   const [draftName, setDraftName] = useState(displayName);
   const [draftAssistant, setDraftAssistant] = useState(profile.assistantSrc ?? ASSISTANTS[0].image);
-  const [draftAssistantBackground, setDraftAssistantBackground] = useState(profile.assistantBackground ?? 'white');
 
   const openEditor = useCallback(() => {
     setDraftName(displayName);
     setDraftAssistant(profile.assistantSrc ?? ASSISTANTS[0].image);
-    setDraftAssistantBackground(profile.assistantBackground ?? 'white');
     setEditorVisible(true);
   }, [displayName, profile]);
 
@@ -41,10 +37,10 @@ export default function ProfileScreen() {
       avatarSrc: null,
       avatarBackground: 'white',
       assistantSrc: draftAssistant,
-      assistantBackground: draftAssistantBackground,
+      assistantBackground: 'white',
     });
     setEditorVisible(false);
-  }, [displayName, draftName, draftAssistant, draftAssistantBackground, updateProfile]);
+  }, [displayName, draftName, draftAssistant, updateProfile]);
 
   const confirmReset = useCallback(() => {
     Alert.alert('Start over?', 'This will return you to onboarding and reset the profile and progress on this device.', [
@@ -106,7 +102,6 @@ export default function ProfileScreen() {
             <View style={styles.assistantChoices}>
               {ASSISTANTS.map((assistant) => {
                 const selected = draftAssistant === assistant.image;
-                const background = PROFILE_BACKGROUNDS.find((item) => item.id === draftAssistantBackground) ?? PROFILE_BACKGROUNDS[0];
                 return (
                   <Pressable
                     key={assistant.image}
@@ -116,15 +111,14 @@ export default function ProfileScreen() {
                     accessibilityLabel={`Choose ${assistant.name}`}
                     accessibilityState={{ selected }}
                   >
-                    <LinearGradient colors={background.colors} style={styles.choiceImageBg}>
+                    <View style={styles.choiceImageBg}>
                       <Image source={assistant.source} style={styles.choiceImage} />
-                    </LinearGradient>
+                    </View>
                     <Text style={styles.choiceName}>{assistant.name}</Text>
                   </Pressable>
                 );
               })}
             </View>
-            <BackgroundPicker label="Assistant background" value={draftAssistantBackground} onChange={setDraftAssistantBackground} />
             <Button title="Save profile" onPress={saveCustomization} />
           </View>
         )}
@@ -176,32 +170,6 @@ function ProfileRow({ label, value, last = false }: { label: string; value: stri
   );
 }
 
-function BackgroundPicker({ label, value, onChange }: { label: string; value: string; onChange: (id: string) => void }) {
-  return (
-    <View style={styles.backgroundPicker}>
-      <Text style={styles.editorLabel}>{label}</Text>
-      <View style={styles.backgroundOptions}>
-        {PROFILE_BACKGROUNDS.map((background) => {
-          const selected = background.id === value;
-          return (
-            <Pressable
-              key={background.id}
-              onPress={() => onChange(background.id)}
-              accessibilityRole="button"
-              accessibilityLabel={`${background.label} background`}
-              accessibilityState={{ selected }}
-              style={[styles.backgroundOption, selected && styles.backgroundSelected]}
-            >
-              <LinearGradient colors={background.colors} style={styles.backgroundSwatch} />
-              <Text style={styles.backgroundName}>{background.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   scroll: { padding: spacing.xl, gap: spacing.xl },
   identity: { alignItems: 'center', gap: spacing.xs },
@@ -217,15 +185,9 @@ const styles = StyleSheet.create({
   assistantChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   assistantChoice: { minWidth: 112, alignItems: 'center', padding: spacing.xs, borderWidth: 1, borderColor: 'transparent', borderRadius: radius.md },
   choiceSelected: { borderColor: colors.ink },
-  choiceImageBg: { width: 64, height: 64, borderRadius: 32, overflow: 'hidden' },
+  choiceImageBg: { width: 64, height: 64, borderRadius: 32, overflow: 'hidden', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: colors.border },
   choiceImage: { width: '100%', height: '100%' },
   choiceName: { marginTop: spacing.xs, textAlign: 'center', fontSize: fontSize.xs, color: colors.textPrimary },
-  backgroundPicker: { gap: spacing.xs },
-  backgroundOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  backgroundOption: { minWidth: 52, minHeight: 56, alignItems: 'center', justifyContent: 'center', padding: spacing.xs, borderRadius: radius.sm, borderWidth: 1, borderColor: 'transparent' },
-  backgroundSelected: { borderColor: colors.ink },
-  backgroundSwatch: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: colors.border },
-  backgroundName: { fontSize: 10, color: colors.textSecondary, marginTop: 2 },
   rows: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, overflow: 'hidden' },
   row: { minHeight: 52, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },

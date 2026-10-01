@@ -1,4 +1,4 @@
-import { streamText } from "ai"
+import { gateway, streamText } from "ai"
 
 export const maxDuration = 30
 
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     }
 
     const { text } = await streamText({
-      model: "openai/gpt-4o-mini",
+      model: gateway("openai/gpt-4o-mini"),
       prompt: `You are an expert at creating detailed, vivid image generation prompts. 
       
 Take this simple prompt and enhance it to create a better image. Add specific details about:

@@ -4,7 +4,7 @@ import { useConversation } from "@elevenlabs/react"
 import { useState, useEffect, useRef } from "react"
 import { PhoneOff, Mic, Volume2, VolumeX, ArrowLeft, Send } from "lucide-react"
 import type { UserProfile } from "@/app/page"
-import { PROFILE_BACKGROUNDS } from "@boomer-ai/shared"
+import { MarkdownMessage } from "./markdown-message"
 
 interface VoiceChatTabProps {
   userProfile: UserProfile
@@ -12,7 +12,6 @@ interface VoiceChatTabProps {
 }
 
 export function VoiceChatTab({ userProfile, onBack }: VoiceChatTabProps) {
-  const assistantBackground = PROFILE_BACKGROUNDS.find((background) => background.id === userProfile.assistantBackground)?.css ?? "#FFFFFF"
   const [hasStarted, setHasStarted] = useState(false)
   const [conversationMessages, setConversationMessages] = useState<Array<{ role: string; content: string }>>([])
   const [textInput, setTextInput] = useState("")
@@ -210,7 +209,7 @@ export function VoiceChatTab({ userProfile, onBack }: VoiceChatTabProps) {
       {!hasStarted ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 pb-4">
           <div className="relative">
-            <div className="w-28 h-28 rounded-full overflow-hidden shadow-xl border-2 border-white ring-2 ring-blue-200" style={{ background: assistantBackground }}>
+            <div className="w-28 h-28 rounded-full overflow-hidden shadow-xl border-2 border-white ring-2 ring-blue-200 bg-white">
               <img src={userProfile.assistantSrc || "/assistants/assistant_woman.png"} alt="Boomer AI Assistant" className="w-full h-full object-cover" />
             </div>
             <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400/20 to-purple-400/20 animate-pulse" />
@@ -238,7 +237,7 @@ export function VoiceChatTab({ userProfile, onBack }: VoiceChatTabProps) {
           {/* Logo & Status */}
           <div className="flex-shrink-0 flex flex-col items-center gap-3 py-4">
             <div className="relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-white" style={{ background: assistantBackground }}>
+              <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-white bg-white">
                 <img src={userProfile.assistantSrc || "/assistants/assistant_woman.png"} alt="AI Assistant" className="w-full h-full object-cover" />
               </div>
               {conversation.isSpeaking && (
@@ -273,7 +272,7 @@ export function VoiceChatTab({ userProfile, onBack }: VoiceChatTabProps) {
                     }`}
                   >
                     <div className="text-xs font-bold mb-1 opacity-70">{msg.role === "user" ? "You" : "AI"}</div>
-                    <div className="text-sm font-semibold leading-relaxed">{msg.content}</div>
+                    <MarkdownMessage text={msg.content} isUser={msg.role === "user"} />
                   </div>
                 ))}
 

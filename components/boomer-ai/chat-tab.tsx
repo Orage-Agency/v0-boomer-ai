@@ -5,6 +5,7 @@ import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { Sparkles, X, ChevronDown, ChevronUp, Lightbulb, RefreshCw, AlertCircle, Volume2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { MarkdownMessage } from "./markdown-message"
 import { API_PATHS } from "@boomer-ai/shared"
 
 interface ChatTabProps {
@@ -183,7 +184,6 @@ export function ChatTab({
       api: API_PATHS.chat,
     }),
     body: {
-      model: "openai/gpt-4o-mini",
       capturedImage: capturedImage || undefined,
       conversationId: conversationId || undefined,
     },
@@ -538,18 +538,12 @@ export function ChatTab({
                     {message.parts && message.parts.length > 0 ? (
                       message.parts.map((part, index) => {
                         if (part.type === "text") {
-                          return (
-                            <p key={index} className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
-                              {part.text}
-                            </p>
-                          )
+                          return <MarkdownMessage key={index} text={part.text} isUser={message.role === "user"} />
                         }
                         return null
                       })
                     ) : (
-                      <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
-                        {message.content || ""}
-                      </p>
+                      <MarkdownMessage text={message.content || ""} isUser={message.role === "user"} />
                     )}
                   </div>
                   {message.role === "assistant" && (() => {

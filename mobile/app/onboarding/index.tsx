@@ -9,12 +9,10 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
-import { PROFILE_BACKGROUNDS } from '@boomer-ai/shared';
 
 /** The mobile onboarding mirrors the web flow with platform-native controls. */
 
@@ -45,7 +43,6 @@ export default function Onboarding() {
   const [step, setStep] = useState<Step>('profile');
   const [name, setName] = useState('');
   const [selectedAssistant, setSelectedAssistant] = useState(ASSISTANTS[0].image);
-  const [assistantBackground, setAssistantBackground] = useState<string>('white');
   const [selectedLevel, setSelectedLevel] = useState('Beginner');
 
   const stepNumber = { profile: 1, age: 2, level: 3 }[step];
@@ -59,7 +56,7 @@ export default function Onboarding() {
       avatarSrc: null,
       assistantSrc: assistant.image,
       avatarBackground: 'white',
-      assistantBackground,
+      assistantBackground: 'white',
       userName: name.trim(),
       name: name.trim(),
     });
@@ -125,15 +122,14 @@ export default function Onboarding() {
                     accessibilityLabel={`Choose ${assistant.name}`}
                     accessibilityState={{ selected: active }}
                   >
-                    <LinearGradient colors={getBackground(assistantBackground).colors} style={styles.assistantImageBg}>
+                    <View style={styles.assistantImageBg}>
                       <Image source={assistant.source} style={styles.assistantImg} />
-                    </LinearGradient>
+                    </View>
                     <Text style={styles.assistantName}>{assistant.name}</Text>
                   </Pressable>
                 );
               })}
             </View>
-            <BackgroundPicker label="Assistant background" value={assistantBackground} onChange={setAssistantBackground} />
             <Button
               title="Continue"
               onPress={completeProfile}
@@ -211,36 +207,6 @@ function Stepper({ current, total }: { current: number; total: number }) {
   );
 }
 
-function getBackground(id: string) {
-  return PROFILE_BACKGROUNDS.find((background) => background.id === id) ?? PROFILE_BACKGROUNDS[0];
-}
-
-function BackgroundPicker({ label, value, onChange }: { label: string; value: string; onChange: (id: string) => void }) {
-  return (
-    <View style={styles.palette}>
-      <Text style={styles.paletteTitle}>{label}</Text>
-      <View style={styles.paletteOptions}>
-        {PROFILE_BACKGROUNDS.map((background) => {
-          const active = value === background.id;
-          return (
-            <Pressable
-              key={background.id}
-              onPress={() => onChange(background.id)}
-              style={[styles.colorOption, active && styles.colorOptionActive]}
-              accessibilityRole="button"
-              accessibilityLabel={`${label}: ${background.label}`}
-              accessibilityState={{ selected: active }}
-            >
-              <LinearGradient colors={background.colors} style={styles.colorSwatch} />
-              <Text style={styles.colorName}>{background.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl },
@@ -306,20 +272,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   selectionCardActive: { borderColor: colors.primary },
-  assistantImageBg: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  assistantImageBg: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: colors.border },
   assistantImg: { width: 76, height: 76, borderRadius: 38 },
   assistantName: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.bold,
     color: colors.textPrimary,
   },
-  palette: { gap: spacing.sm },
-  paletteTitle: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textPrimary },
-  paletteOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  colorOption: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
-  colorOptionActive: { borderWidth: 2, borderColor: colors.ink },
-  colorSwatch: { width: 24, height: 24, borderRadius: 6 },
-  colorName: { fontSize: fontSize.xs, color: colors.textPrimary },
   optionList: { gap: spacing.md },
   optionRow: {
     minHeight: 56,
