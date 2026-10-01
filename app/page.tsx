@@ -16,18 +16,6 @@ export default function BoomerAIPage() {
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_PROFILE)
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
-    let deviceId = localStorage.getItem("boomer-device-id")
-    if (!deviceId) {
-      deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      localStorage.setItem("boomer-device-id", deviceId)
-    }
-
-    // Try to load existing profile
-    loadProfile(deviceId)
-  }, [])
-
   const loadProfile = async (deviceId: string) => {
     try {
       const response = await fetch(`${API_PATHS.profile}?deviceId=${deviceId}`)
@@ -75,6 +63,30 @@ export default function BoomerAIPage() {
     }
   }
 
+  useEffect(() => {
+    let active = true
+
+    const bootstrap = async () => {
+      const newDeviceId = `device_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
+      let deviceId = newDeviceId
+
+      try {
+        deviceId = localStorage.getItem("boomer-device-id") || newDeviceId
+        localStorage.setItem("boomer-device-id", deviceId)
+      } catch {
+        // Continue with an in-memory ID when browser storage is unavailable.
+      }
+
+      await loadProfile(deviceId)
+      if (active) setMounted(true)
+    }
+
+    void bootstrap()
+    return () => {
+      active = false
+    }
+  }, [])
+
   const saveToDatabase = async (profile: UserProfile) => {
     try {
       await fetch(API_PATHS.profile, {
@@ -115,10 +127,10 @@ export default function BoomerAIPage() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center" role="status" aria-live="polite" aria-busy="true">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-          <p className="text-slate-600 font-medium">Loading Boomer AI...</p>
+          <div className="w-12 h-12 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" aria-hidden="true" />
+          <p className="text-slate-700 text-lg font-medium">Preparando tu espacio…</p>
         </div>
       </div>
     )
