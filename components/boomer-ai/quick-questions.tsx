@@ -3,64 +3,13 @@
 import React from "react"
 import { useState, useCallback, useEffect, useRef } from "react"
 import { MessageCircle } from "lucide-react"
+import { QUICK_QUESTIONS as QUESTIONS } from "@boomer-ai/shared"
 
 interface QuickQuestionsProps {
   onQuestionSelect: (question: string) => void
   isTab?: boolean
 }
 
-const QUESTIONS = [
-  "What are some easy recipes for beginners?",
-  "How can I stay active at home?",
-  "What are the best exercises for joint health?",
-  "Can you help me find local community events?",
-  "What are some tips for safe internet browsing?",
-  "How can I manage my medications effectively?",
-  "What are some brain games to improve memory?",
-  "How do I set up video calls with family?",
-  "What are the signs of common health issues?",
-  "Can you suggest hobbies that are easy to start?",
-  "What are some tips for improving sleep quality?",
-  "How can I stay connected with friends and family?",
-  "What are some fun activities with grandchildren?",
-  "How do I create a budget on a fixed income?",
-  "What are the benefits of meditation?",
-  "Can you recommend some good books for seniors?",
-  "What should I know about healthcare directives?",
-  "How can I protect myself from scams?",
-  "What are some easy ways to improve my diet?",
-  "How can I find volunteer opportunities?",
-  "What are some low-impact sports I can try?",
-  "How do I access online medical resources?",
-  "What are some tips for home safety?",
-  "How can I maintain my independence as I age?",
-  "What are the signs of depression in seniors?",
-  "Can you give me local support groups?",
-  "What are some ways to stay mentally sharp?",
-  "How can I use social media safely?",
-  "What are the benefits of joining a club?",
-  "How do I navigate Medicare options?",
-  "What are some healthy snacks to make at home?",
-  "How can I reduce stress in my daily life?",
-  "What are some good exercises for balance?",
-  "How do I file my taxes as a senior?",
-  "What are the best ways to manage chronic pain?",
-  "How can I find a reliable handyman?",
-  "What should I consider when downsizing?",
-  "Tips for organizing important documents?",
-  "How can I stay informed about local news?",
-  "What are some good walking routes nearby?",
-  "How can I improve my posture?",
-  "Tips for using smartphones effectively?",
-  "How can I find senior discounts?",
-  "What are creative ways to stay engaged?",
-  "How do I plan for long-term care?",
-  "What are some fun crafts to do at home?",
-  "How can I learn new technology skills?",
-  "What are some tips for staying hydrated?",
-  "How can I make new friends in my community?",
-  "How can I make my home more accessible?",
-]
 
 const BUBBLE_COLORS = [
   "bg-white/25",

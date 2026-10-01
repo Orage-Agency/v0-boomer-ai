@@ -6,14 +6,13 @@ import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
 import { setPendingPrompt } from '@/screens/pendingPrompt';
 import { LESSONS } from '@/data/content';
-import { colors, fontSize, fontWeight, gradients, radius, spacing } from '@/theme/theme';
-import { LinearGradient } from 'expo-linear-gradient';
+import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
 /**
  * Lesson detail. Shows the lesson, a button to play the video (opens the MP4 in
  * the device's native player via Linking — avoids a heavy native video
  * dependency in the Expo managed workflow), a "Try in chat" action that hands
- * the suggested prompt to the Chat tab, and a "Mark complete" reward action.
+ * the suggested prompt to the Chat tab, and a "Mark complete" action.
  *
  * TODO(owner): For inline in-app playback, add `expo-video` (SDK 52) and a
  * config plugin, then render <VideoView> here instead of the open-in-player CTA.
@@ -40,8 +39,6 @@ export default function LessonDetail() {
     if (!lesson || isDone) return;
     updateProfile({
       lessonsCompleted: [...(profile.lessonsCompleted ?? []), lesson.id],
-      stars: profile.stars + 10,
-      streak: profile.streak + 1,
     });
     router.back();
   }, [lesson, isDone, profile, updateProfile, router]);
@@ -84,10 +81,10 @@ export default function LessonDetail() {
           accessibilityLabel="Play lesson video"
           style={styles.videoWrap}
         >
-          <LinearGradient colors={gradients.lessons} style={styles.video}>
+          <View style={styles.video}>
             <Text style={styles.playIcon}>▶</Text>
             <Text style={styles.playText}>Watch the Video</Text>
-          </LinearGradient>
+          </View>
         </Pressable>
 
         <View style={styles.tryCard}>
@@ -97,7 +94,7 @@ export default function LessonDetail() {
         </View>
 
         <Button
-          title={isDone ? 'Completed ✓' : 'Mark as Complete (+10 ⭐)'}
+          title={isDone ? 'Lesson completed' : 'Mark lesson complete'}
           onPress={handleComplete}
           disabled={isDone}
           variant={isDone ? 'secondary' : 'primary'}
@@ -125,13 +122,16 @@ const styles = StyleSheet.create({
   duration: { fontSize: fontSize.sm, color: colors.textSecondary },
   videoWrap: { borderRadius: radius.lg, overflow: 'hidden' },
   video: {
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
     minHeight: 160,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  playIcon: { fontSize: 40, color: colors.textOnDark },
-  playText: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textOnDark },
+  playIcon: { fontSize: 40, color: colors.textPrimary },
+  playText: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textPrimary },
   tryCard: {
     backgroundColor: colors.primarySoft,
     borderRadius: radius.lg,

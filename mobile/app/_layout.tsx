@@ -20,8 +20,8 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ProfileProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <ProfileProvider>
           <EntitlementProvider>
             <StatusBar style="dark" />
             <Stack
@@ -32,7 +32,7 @@ export default function RootLayout() {
               }}
             >
               <Stack.Screen name="index" />
-              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="onboarding/index" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="voice" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="image-gen" options={{ animation: 'slide_from_right' }} />
@@ -54,8 +54,8 @@ export default function RootLayout() {
               />
             </Stack>
           </EntitlementProvider>
-        </AuthProvider>
-      </ProfileProvider>
+        </ProfileProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

@@ -1,20 +1,25 @@
-import { neon } from "@neondatabase/serverless"
 import { NextResponse } from "next/server"
+import { sql } from "@/lib/neon-client"
+import { getAuthenticatedUser } from "@/lib/server-auth"
 
-const sql = neon(process.env.DATABASE_URL!)
+export const runtime = "nodejs"
 
 export async function POST(request: Request) {
   try {
-    const { email, stars, level } = await request.json()
+    const user = await getAuthenticatedUser(request)
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Sign in to continue" }, { status: 401 })
+    }
 
-    if (!email) {
-      return NextResponse.json({ success: false, error: "Email is required" }, { status: 400 })
+    const { stars, level } = await request.json()
+    if (!Number.isFinite(stars) || typeof level !== "string") {
+      return NextResponse.json({ success: false, error: "Invalid profile update" }, { status: 400 })
     }
 
     const updatedUser = await sql`
       UPDATE boomer_users
       SET stars = ${stars}, level = ${level}, updated_at = CURRENT_TIMESTAMP
-      WHERE email = ${email.toLowerCase()}
+      WHERE id = ${user.id}
       RETURNING id, email, name, stars, level, created_at, updated_at
     `
 
@@ -22,20 +27,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "User not found" }, { status: 404 })
     }
 
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: updatedUser[0].id,
-        email: updatedUser[0].email,
-        name: updatedUser[0].name,
-        stars: updatedUser[0].stars,
-        level: updatedUser[0].level,
-        createdAt: updatedUser[0].created_at,
-        updatedAt: updatedUser[0].updated_at,
-      },
-    })
+    return NextResponse.json({ success: true, user: updatedUser[0] })
   } catch (error) {
-    console.error("Update stars error:", error)
-    return NextResponse.json({ success: false, error: "Failed to update stars" }, { status: 500 })
+    console.error("Update user error:", error)
+    return NextResponse.json({ success: false, error: "Failed to update account" }, { status: 500 })
   }
 }

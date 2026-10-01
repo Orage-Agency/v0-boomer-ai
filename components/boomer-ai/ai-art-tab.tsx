@@ -1,45 +1,67 @@
 "use client"
 
-import { useState } from "react"
-import { Wand2, Download, Share2, Loader2, AlertTriangle, ArrowLeft, Sparkles, RefreshCw } from "lucide-react"
+import { useEffect, useState } from "react"
+import Image from "next/image"
+import { AlertTriangle, ArrowLeft, Download, Loader2, RefreshCw, Share2, Wand2 } from "lucide-react"
 import { containsProhibitedContent, SAFETY_MESSAGE } from "@/lib/content-moderation"
-import type { UserProfile } from "@/app/page"
+import { API_PATHS } from "@boomer-ai/shared"
 
 interface AiArtTabProps {
-  userProfile: UserProfile
-  updateProfile: (updates: Partial<UserProfile>) => void
   onBack: () => void
 }
 
+type ImageProvider = "fal" | "openai-codex"
+
 const STYLE_PRESETS = [
-  { id: "realistic", label: "Real", emoji: "📷" },
-  { id: "artistic", label: "Art", emoji: "🎨" },
-  { id: "cartoon", label: "Toon", emoji: "🎪" },
-  { id: "vintage", label: "Retro", emoji: "📻" },
+  { id: "realistic", label: "Realistic" },
+  { id: "artistic", label: "Illustration" },
+  { id: "cartoon", label: "Cartoon" },
+  { id: "vintage", label: "Vintage" },
 ]
 
-const PROMPT_SUGGESTIONS = [
-  "Cozy cottage",
-  "Sunset lake",
-  "Friendly dog",
-  "Vintage car",
-  "Spring flowers",
-  "Mountain view",
-]
+const PROMPT_SUGGESTIONS = ["Cozy cottage", "Sunset lake", "Friendly dog", "Vintage car", "Spring flowers", "Mountain view"]
 
-export function AiArtTab({ userProfile, updateProfile, onBack }: AiArtTabProps) {
+export function AiArtTab({ onBack }: AiArtTabProps) {
   const [prompt, setPrompt] = useState("")
   const [selectedStyle, setSelectedStyle] = useState("realistic")
+  const [provider, setProvider] = useState<ImageProvider>("fal")
+  const [codexAvailable, setCodexAvailable] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isImproving, setIsImproving] = useState(false)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showSafetyModal, setShowSafetyModal] = useState(false)
 
+  useEffect(() => {
+    fetch(API_PATHS.generateImage)
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => setCodexAvailable(Boolean(data?.providers?.openaiCodex)))
+      .catch(() => setCodexAvailable(false))
+  }, [])
+
+  const handleImprove = async () => {
+    if (!prompt.trim() || isImproving) return
+    setIsImproving(true)
+    setError(null)
+    try {
+      const response = await fetch(API_PATHS.improvePrompt, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: prompt.trim() }),
+      })
+      const data = await response.json()
+      if (!response.ok) setError(data.error || "We couldn't improve the description. You can keep editing it yourself.")
+      else if (data.improvedPrompt) setPrompt(data.improvedPrompt.trim())
+    } catch {
+      setError("We couldn't reach the prompt helper. You can keep editing your description yourself.")
+    } finally {
+      setIsImproving(false)
+    }
+  }
+
   const handleGenerate = async () => {
     if (!prompt.trim()) return
-
-    const moderationResult = containsProhibitedContent(prompt)
-    if (moderationResult.isProhibited) {
+    if (containsProhibitedContent(prompt).isProhibited) {
       setShowSafetyModal(true)
       return
     }
@@ -49,29 +71,23 @@ export function AiArtTab({ userProfile, updateProfile, onBack }: AiArtTabProps) 
     setGeneratedImage(null)
 
     try {
-      const fullPrompt = `${prompt}, ${selectedStyle} style, high quality, beautiful lighting`
-      
-      const response = await fetch("/api/generate-image", {
+      const fullPrompt = `Create an image of ${prompt.trim()}, ${selectedStyle} style, high quality, beautiful lighting.`
+      const response = await fetch(API_PATHS.generateImage, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: fullPrompt }),
+        body: JSON.stringify({ prompt: fullPrompt, provider }),
       })
-
       const data = await response.json()
 
       if (!response.ok) {
-        if (data.errorType === "content_safety") {
-          setShowSafetyModal(true)
-        } else {
-          setError(data.error || "Failed to generate. Try again.")
-        }
+        if (data.errorType === "content_safety") setShowSafetyModal(true)
+        else setError(data.error || "We couldn't create the image. Your description is still here; you can try again.")
         return
       }
 
       setGeneratedImage(data.imageUrl)
-      updateProfile({ stars: userProfile.stars + 1 })
-    } catch (err) {
-      setError("Connection error. Please try again.")
+    } catch {
+      setError("We couldn't reach the image service. Your description is still here; check your connection and try again.")
     } finally {
       setIsGenerating(false)
     }
@@ -79,225 +95,124 @@ export function AiArtTab({ userProfile, updateProfile, onBack }: AiArtTabProps) 
 
   const handleDownload = async () => {
     if (!generatedImage) return
-    
     try {
       const response = await fetch(generatedImage)
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `boomer-ai-art-${Date.now()}.png`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `boomer-ai-art-${Date.now()}.png`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
       window.URL.revokeObjectURL(url)
-    } catch (err) {
-      alert("Could not download. Try right-clicking the image to save.")
+    } catch {
+      setError("The image couldn't be downloaded. Try saving it from the image menu instead.")
     }
   }
 
   const handleShare = async () => {
     if (!generatedImage || !navigator.share) {
-      alert("Sharing not available on this device.")
+      setError("Sharing isn't available on this device. You can save the image instead.")
       return
     }
-
     try {
-      await navigator.share({
-        title: "My AI Art",
-        text: "I made this with Boomer AI!",
-        url: generatedImage,
-      })
-    } catch (err) {
-      // User cancelled
+      await navigator.share({ title: "My AI Art", text: "I made this with Boomer AI!", url: generatedImage })
+    } catch {
+      // A cancelled share is an ordinary way to leave this action.
     }
   }
 
-  const handleNewImage = () => {
+  const startAnother = () => {
     setGeneratedImage(null)
-    setPrompt("")
     setError(null)
   }
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 overflow-hidden">
-      {/* Safety Modal */}
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white text-slate-900">
       {showSafetyModal && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="bg-white rounded-2xl p-5 max-w-[300px] w-full text-center shadow-2xl">
-            <div className="w-12 h-12 mx-auto mb-3 bg-amber-100 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-amber-600" />
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="presentation">
+          <section className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="safety-title">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-50">
+              <AlertTriangle className="h-5 w-5 text-slate-700" aria-hidden="true" />
             </div>
-            <h3 className="text-base font-bold text-slate-900 mb-2">Cannot Complete</h3>
-            <p className="text-slate-600 text-sm mb-4">{SAFETY_MESSAGE}</p>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => {
-                  setShowSafetyModal(false)
-                  setPrompt("")
-                }}
-                className="w-full min-h-[44px] py-2.5 bg-blue-600 text-white font-bold text-sm rounded-xl touch-manipulation active:scale-95"
-              >
-                Try Something Else
-              </button>
-              <button
-                onClick={() => {
-                  setShowSafetyModal(false)
-                  onBack()
-                }}
-                className="w-full min-h-[44px] py-2.5 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl touch-manipulation active:scale-95"
-              >
-                Go Back
-              </button>
+            <h2 id="safety-title" className="text-lg font-semibold">Try a different description</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{SAFETY_MESSAGE}</p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              <button onClick={() => setShowSafetyModal(false)} className="min-h-12 flex-1 rounded-xl bg-slate-900 px-4 font-semibold text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900">Edit description</button>
+              <button onClick={() => { setShowSafetyModal(false); onBack() }} className="min-h-12 flex-1 rounded-xl border border-slate-300 px-4 font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700">Go back</button>
             </div>
-          </div>
+          </section>
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 border-b border-slate-700/50">
-        <button
-          onClick={onBack}
-          className="min-w-[40px] min-h-[40px] p-2 rounded-xl bg-slate-800 flex items-center justify-center touch-manipulation active:scale-95"
-        >
-          <ArrowLeft className="w-5 h-5 text-white" />
+      <header className="flex flex-shrink-0 items-center gap-3 border-b border-slate-200 px-4 py-3 sm:px-6">
+        <button onClick={onBack} aria-label="Go back" className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700">
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </button>
-        <div className="flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-pink-400" />
-          <h1 className="text-base font-bold text-white">Create AI Art</h1>
+        <div>
+          <h1 className="text-lg font-semibold sm:text-xl">Create an image</h1>
+          <p className="text-sm text-slate-600">Describe an idea and choose a visual style.</p>
         </div>
-        <div className="w-[40px]" /> {/* Spacer for centering */}
-      </div>
+      </header>
 
-      {/* Content - No side scroll, fits in view */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3">
-        {generatedImage ? (
-          /* Generated Image View */
-          <div className="flex flex-col gap-3">
-            {/* Image - Constrained size */}
-            <div className="relative w-full aspect-square max-h-[50vh] rounded-2xl overflow-hidden shadow-xl bg-slate-800 mx-auto">
-              <img
-                src={generatedImage || "/placeholder.svg"}
-                alt="AI Art"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            
-            {/* Action Buttons - Compact */}
-            <div className="flex gap-2">
-              <button
-                onClick={handleDownload}
-                className="flex-1 flex items-center justify-center gap-1.5 min-h-[44px] py-2.5 bg-green-600 text-white font-bold text-sm rounded-xl touch-manipulation active:scale-95"
-              >
-                <Download className="w-4 h-4" />
-                Save
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+          {generatedImage ? (
+            <section aria-label="Generated image" className="flex flex-col gap-4">
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                <Image src={generatedImage} alt={`AI-generated image: ${prompt}`} width={1024} height={1024} unoptimized className="mx-auto max-h-[62vh] w-full object-contain" />
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button onClick={handleDownload} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 font-semibold hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"><Download className="h-4 w-4" aria-hidden="true" />Save image</button>
+                <button onClick={handleShare} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 font-semibold hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"><Share2 className="h-4 w-4" aria-hidden="true" />Share</button>
+              </div>
+              <button onClick={startAnother} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 font-semibold text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"><RefreshCw className="h-4 w-4" aria-hidden="true" />Make another image</button>
+            </section>
+          ) : (
+            <section className="flex flex-col gap-6">
+              <div>
+                <label htmlFor="image-prompt" className="block text-base font-semibold">What would you like to see?</label>
+                <p id="image-prompt-help" className="mt-1 text-sm leading-6 text-slate-600">A subject and setting are enough to begin. You can add colors or a mood if you like.</p>
+                <textarea id="image-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="A small cottage beside a lake at sunset" aria-describedby="image-prompt-help" className="mt-3 min-h-32 w-full resize-y rounded-xl border border-slate-300 bg-white p-4 text-base leading-6 placeholder:text-slate-500 focus:border-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200" />
+                <button type="button" onClick={handleImprove} disabled={!prompt.trim() || isImproving || isGenerating} className="mt-2 min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 disabled:cursor-not-allowed disabled:text-slate-500">{isImproving ? "Improving description…" : "Improve my description"}</button>
+              </div>
+
+              <fieldset>
+                <legend className="text-base font-semibold">Choose a style</legend>
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {STYLE_PRESETS.map((style) => {
+                    const selected = selectedStyle === style.id
+                    return <button key={style.id} type="button" aria-pressed={selected} onClick={() => setSelectedStyle(style.id)} className={`min-h-12 rounded-xl border px-3 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 ${selected ? "border-slate-900 bg-slate-100 text-slate-950" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}>{style.label}{selected && <span className="sr-only">, selected</span>}</button>
+                  })}
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend className="text-base font-semibold">Image service</legend>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <button type="button" aria-pressed={provider === "fal"} onClick={() => setProvider("fal")} className={`min-h-14 rounded-xl border px-4 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 ${provider === "fal" ? "border-slate-900 bg-slate-100" : "border-slate-300 hover:bg-slate-50"}`}><span className="block font-semibold">Fal.ai</span><span className="mt-0.5 block text-sm text-slate-600">Current image service</span></button>
+                  <button type="button" aria-pressed={provider === "openai-codex"} disabled={!codexAvailable} onClick={() => setProvider("openai-codex")} className={`min-h-14 rounded-xl border px-4 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 ${provider === "openai-codex" ? "border-slate-900 bg-slate-100" : "border-slate-300"} ${codexAvailable ? "hover:bg-slate-50" : "cursor-not-allowed bg-slate-50 text-slate-500"}`}><span className="block font-semibold">OpenAI Codex · test</span><span className="mt-0.5 block text-sm text-slate-600">{codexAvailable ? "Uses the authorized ChatGPT plan" : "Not configured on this server"}</span></button>
+                </div>
+                {!codexAvailable && <p className="mt-2 text-sm leading-6 text-slate-600">To test this option, configure an authorized ChatGPT plan access token on the server. It is never sent to this screen.</p>}
+              </fieldset>
+
+              <div>
+                <p className="text-sm font-medium text-slate-700">Or start with an idea</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {PROMPT_SUGGESTIONS.map((suggestion) => <button key={suggestion} type="button" onClick={() => setPrompt(suggestion)} className="min-h-11 rounded-full border border-slate-300 px-4 text-sm text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700">{suggestion}</button>)}
+                </div>
+              </div>
+
+              {error && <p role="alert" className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-800">{error}</p>}
+
+              <button type="button" onClick={handleGenerate} disabled={!prompt.trim() || isGenerating || isImproving} className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-base font-semibold text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
+                {isGenerating ? <><Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />Creating your image…</> : <><Wand2 className="h-5 w-5" aria-hidden="true" />Create image</>}
               </button>
-              <button
-                onClick={handleShare}
-                className="flex-1 flex items-center justify-center gap-1.5 min-h-[44px] py-2.5 bg-blue-600 text-white font-bold text-sm rounded-xl touch-manipulation active:scale-95"
-              >
-                <Share2 className="w-4 h-4" />
-                Share
-              </button>
-            </div>
-
-            {/* Create Another - Compact */}
-            <button
-              onClick={handleNewImage}
-              className="w-full min-h-[48px] py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-base rounded-xl touch-manipulation active:scale-95 flex items-center justify-center gap-2"
-            >
-              <RefreshCw className="w-5 h-5" />
-              Create Another
-            </button>
-          </div>
-        ) : (
-          /* Creation View - Compact for mobile */
-          <div className="flex flex-col gap-3">
-            {/* Prompt Input - Smaller */}
-            <div>
-              <label className="block text-white font-semibold mb-1.5 text-sm">
-                Describe your image
-              </label>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="A beautiful sunset..."
-                className="w-full h-20 p-3 bg-slate-800 text-white text-base rounded-xl border-2 border-slate-700 focus:border-purple-500 focus:outline-none resize-none placeholder-slate-500"
-                style={{ fontSize: "16px" }}
-              />
-            </div>
-
-            {/* Quick Suggestions - Horizontal scroll */}
-            <div>
-              <p className="text-slate-400 font-medium mb-1.5 text-xs">Quick ideas:</p>
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 scrollbar-hide">
-                {PROMPT_SUGGESTIONS.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    onClick={() => setPrompt(suggestion)}
-                    className="flex-shrink-0 px-3 py-2 min-h-[36px] bg-slate-800 text-slate-300 text-xs rounded-lg touch-manipulation active:scale-95 active:bg-slate-700 whitespace-nowrap"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Style Selection - Compact 4-grid */}
-            <div>
-              <label className="block text-white font-semibold mb-1.5 text-sm">
-                Style
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {STYLE_PRESETS.map((style) => (
-                  <button
-                    key={style.id}
-                    onClick={() => setSelectedStyle(style.id)}
-                    className={`min-h-[56px] p-2 rounded-xl border-2 flex flex-col items-center justify-center touch-manipulation active:scale-95 ${
-                      selectedStyle === style.id
-                        ? "bg-purple-600 border-purple-400 text-white"
-                        : "bg-slate-800 border-slate-700 text-slate-300"
-                    }`}
-                  >
-                    <span className="text-lg">{style.emoji}</span>
-                    <span className="font-medium text-[10px]">{style.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="p-2.5 bg-red-900/50 border border-red-700 rounded-xl">
-                <p className="text-red-200 text-xs text-center">{error}</p>
-              </div>
-            )}
-
-            {/* Generate Button */}
-            <button
-              onClick={handleGenerate}
-              disabled={!prompt.trim() || isGenerating}
-              className={`w-full min-h-[52px] py-3 rounded-xl font-bold text-base flex items-center justify-center gap-2 touch-manipulation active:scale-95 ${
-                !prompt.trim() || isGenerating
-                  ? "bg-slate-700 text-slate-500 cursor-not-allowed active:scale-100"
-                  : "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-              }`}
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="w-5 h-5" />
-                  Create Image
-                </>
-              )}
-            </button>
-          </div>
-        )}
-      </div>
+            </section>
+          )}
+        </div>
+      </main>
     </div>
   )
 }

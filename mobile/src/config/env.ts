@@ -1,4 +1,11 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+import {
+  resolveApiEnvironment,
+  resolveApiBaseUrl,
+  type ApiEnvironment,
+  type RuntimePlatform,
+} from './api-environment';
 
 /**
  * Centralized runtime configuration.
@@ -11,12 +18,13 @@ import Constants from 'expo-constants';
  * Both default to the sentinel `__REPLACE_ME__` so the app is safe in dev /
  * Expo Go (every purchases call becomes a no-op via `isRevenueCatConfigured`).
  *
- * TODO(owner): Replace `apiBaseUrl` with the real Vercel PRODUCTION URL for
- * the v0-boomer-ai deployment (e.g. https://boomer-ai.vercel.app).
  */
 
 type Extra = {
+  apiEnvironment?: ApiEnvironment;
   apiBaseUrl?: string;
+  productionApiBaseUrl?: string;
+  defaultDevelopmentApiBaseUrl?: string;
   revenueCatApiKeyIos?: string;
   revenueCatApiKeyAndroid?: string;
 };
@@ -24,7 +32,24 @@ type Extra = {
 const extra = (Constants.expoConfig?.extra ?? {}) as Extra;
 
 const RC_PLACEHOLDER = '__REPLACE_ME__';
-const PLACEHOLDER_API = 'https://CHANGE-ME.vercel.app';
+const PRODUCTION_API_ORIGIN = 'https://boomerai.orage.agency';
+const apiEnvironment = resolveApiEnvironment(
+  process.env.EXPO_PUBLIC_API_ENV ?? extra.apiEnvironment,
+  undefined,
+);
+const runtimePlatform: RuntimePlatform =
+  Platform.OS === 'android' ? 'android' : Platform.OS === 'web' ? 'web' : 'ios';
+const productionApiBaseUrl =
+  extra.productionApiBaseUrl ?? extra.apiBaseUrl ?? PRODUCTION_API_ORIGIN;
+const apiBaseUrl = resolveApiBaseUrl({
+  environment: apiEnvironment,
+  platform: runtimePlatform,
+  configuredUrl:
+    apiEnvironment === 'development'
+      ? process.env.EXPO_PUBLIC_API_BASE_URL
+      : process.env.EXPO_PUBLIC_API_BASE_URL ?? extra.apiBaseUrl,
+  productionUrl: productionApiBaseUrl,
+});
 
 const iosKey =
   process.env.EXPO_PUBLIC_RC_IOS_KEY ??
@@ -37,8 +62,9 @@ const androidKey =
   RC_PLACEHOLDER;
 
 export const env = {
-  /** Origin of the hosted Next.js backend that serves /api/* routes. */
-  apiBaseUrl: extra.apiBaseUrl ?? PLACEHOLDER_API,
+  /** Origin selected for the active EAS build environment. */
+  apiBaseUrl,
+  apiEnvironment,
   revenueCat: {
     iosApiKey: iosKey,
     androidApiKey: androidKey,
@@ -49,9 +75,10 @@ function isRealKey(key: string): boolean {
   return key !== RC_PLACEHOLDER && !key.includes('PLACEHOLDER');
 }
 
-/** True when the API base URL has not yet been configured by the owner. */
-export const isApiConfigured = !env.apiBaseUrl.includes('CHANGE-ME');
+/** API origins are validated at build time and again at runtime. */
+export const isApiConfigured = true;
 
 /** True when a real RevenueCat key has been supplied for the current platform. */
 export const isRevenueCatConfigured =
-  isRealKey(env.revenueCat.iosApiKey) || isRealKey(env.revenueCat.androidApiKey);
+  (Platform.OS === 'ios' && isRealKey(env.revenueCat.iosApiKey)) ||
+  (Platform.OS === 'android' && isRealKey(env.revenueCat.androidApiKey));

@@ -25,8 +25,12 @@ export default function Index() {
     return (
       <View style={styles.splash}>
         <Text style={styles.logo}>Boomer AI</Text>
-        <ActivityIndicator color={colors.textOnDark} style={{ marginTop: spacing.lg }} />
-        <Text style={styles.sub}>Getting things ready…</Text>
+        <ActivityIndicator
+          accessibilityLabel="Preparando tu espacio"
+          color={colors.ink}
+          style={{ marginTop: spacing.lg }}
+        />
+        <Text style={styles.sub} accessibilityLiveRegion="polite">Preparando tu espacio…</Text>
       </View>
     );
   }
@@ -41,15 +45,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.ink,
+    backgroundColor: colors.background,
   },
   logo: {
-    color: colors.textOnDark,
+    color: colors.textPrimary,
     fontSize: fontSize.display,
     fontWeight: '800',
   },
   sub: {
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.textSecondary,
     fontSize: fontSize.sm,
     marginTop: spacing.md,
   },

@@ -1,4 +1,5 @@
 import { apiFetchRaw } from './client';
+import { API_PATHS } from '@boomer-ai/shared';
 import { env } from '@/config/env';
 import type { ChatMessage } from '@/types';
 
@@ -27,8 +28,6 @@ import type { ChatMessage } from '@/types';
  * `react-native-fetch-api` / `expo/fetch` streaming or switch the backend to a
  * plain text endpoint. The current approach delivers the full message at once.
  */
-
-const MODEL = 'openai/gpt-4o-mini';
 
 export type SendChatOptions = {
   messages: ChatMessage[];
@@ -74,7 +73,7 @@ function parsePayload(payload: string): string {
  * Calls `onDelta` with cumulative text as chunks are parsed.
  */
 export async function sendChat(opts: SendChatOptions): Promise<string> {
-  const res = await apiFetchRaw('/api/chat', {
+  const res = await apiFetchRaw(API_PATHS.chat, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -82,7 +81,6 @@ export async function sendChat(opts: SendChatOptions): Promise<string> {
     },
     body: JSON.stringify({
       messages: toBackendMessages(opts.messages),
-      model: MODEL,
       capturedImage: opts.capturedImage,
       conversationId: opts.conversationId ?? undefined,
     }),
@@ -123,5 +121,4 @@ export async function sendChat(opts: SendChatOptions): Promise<string> {
   return cumulative;
 }
 
-export const CHAT_MODEL = MODEL;
 export const CHAT_API_ORIGIN = env.apiBaseUrl;

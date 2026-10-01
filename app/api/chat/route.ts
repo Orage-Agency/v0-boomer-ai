@@ -1,5 +1,6 @@
-import { consumeStream, convertToModelMessages, streamText, type UIMessage } from "ai"
+import { consumeStream, convertToModelMessages, gateway, streamText, type UIMessage } from "ai"
 import { containsProhibitedContent } from "@/lib/content-moderation"
+import { BOOMER_AI_CHAT_SYSTEM_PROMPT } from "@/lib/chat-system-prompt"
 
 export const maxDuration = 60
 
@@ -11,11 +12,10 @@ export async function POST(req: Request) {
     
     const {
       messages,
-      model = "openai/gpt-4o-mini",
       capturedImage,
-    }: { messages: UIMessage[]; model?: string; capturedImage?: string } = body
+    }: { messages: UIMessage[]; capturedImage?: string } = body
     
-    console.log("[v0] Messages count:", messages?.length, "Model:", model)
+    console.log("[v0] Messages count:", messages?.length)
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "Invalid messages format" }), {
@@ -70,12 +70,11 @@ export async function POST(req: Request) {
     // v6: convertToModelMessages is now async
     const prompt = await convertToModelMessages(processedMessages)
 
-    console.log("[v0] Calling streamText with model:", model)
+    console.log("[v0] Calling streamText through AI Gateway")
     
     const result = streamText({
-      model: model,
-      system:
-        "You are a friendly and helpful AI companion named Boomer AI. You specialize in helping older adults learn about and use technology. Always provide clear, concise, and easy-to-understand answers. Be patient, encouraging, and supportive. When explaining technical concepts, use simple language and relatable examples. Break down complex topics into simple steps. When analyzing images, describe what you see in detail and provide helpful context. You must refuse any requests for inappropriate, harmful, violent, sexual, or illegal content.",
+      model: gateway("openai/gpt-4o-mini"),
+      system: BOOMER_AI_CHAT_SYSTEM_PROMPT,
       messages: prompt,
       abortSignal: req.signal,
     })

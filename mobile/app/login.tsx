@@ -27,7 +27,7 @@ import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
  * `account.isPro` and treats the user as Pro.
  */
 
-type Tab = 'login' | 'code';
+type Tab = 'login' | 'signup' | 'code';
 
 /**
  * Codes that bypass email/password requirements client-side. Source of truth
@@ -45,13 +45,14 @@ const KNOWN_BYPASS_CODES = new Set<string>([
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, redeem, user } = useAuth();
+  const { signIn, signUp, redeem, user } = useAuth();
   const { refresh } = useEntitlement();
   const [tab, setTab] = useState<Tab>('login');
 
   // Login fields
   const [email, setEmail] = useState(user?.email ?? '');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
 
   // Code fields
   const [codeEmail, setCodeEmail] = useState(user?.email ?? '');
@@ -114,6 +115,24 @@ export default function LoginScreen() {
     }
   };
 
+  const onSignUp = async () => {
+    setError(null);
+    if (!name.trim() || !email.trim() || password.length < 12) {
+      setError('Enter your name and email, and choose a password with at least 12 characters.');
+      return;
+    }
+    try {
+      setBusy(true);
+      await signUp(email.trim(), password, name.trim());
+      await refresh();
+      router.replace('/(tabs)');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Account creation failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Screen background={colors.background}>
       <KeyboardAvoidingView
@@ -143,6 +162,14 @@ export default function LoginScreen() {
               onPress={() => {
                 setError(null);
                 setTab('login');
+              }}
+            />
+            <TabButton
+              label="Create account"
+              active={tab === 'signup'}
+              onPress={() => {
+                setError(null);
+                setTab('signup');
               }}
             />
             <TabButton
@@ -180,12 +207,47 @@ export default function LoginScreen() {
                 loading={busy}
               />
             </View>
+          ) : tab === 'signup' ? (
+            <View style={styles.form}>
+              <Text style={styles.help}>
+                An account lets you keep your learning progress when you move to another device.
+              </Text>
+              <Field
+                label="Name"
+                value={name}
+                onChangeText={setName}
+                placeholder="Your name"
+                autoComplete="name"
+                autoCapitalize="words"
+              />
+              <Field
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="you@example.com"
+                autoComplete="email"
+                keyboardType="email-address"
+              />
+              <Field
+                label="Password"
+                value={password}
+                onChangeText={setPassword}
+                placeholder="At least 12 characters"
+                secureTextEntry
+                autoComplete="new-password"
+              />
+              <Button
+                title={busy ? 'Creating account…' : 'Create account'}
+                onPress={onSignUp}
+                disabled={busy}
+                loading={busy}
+              />
+            </View>
           ) : (
             <View style={styles.form}>
               <Text style={styles.help}>
-                Enter your access code below. VIP / guest codes unlock Pro on
-                this device instantly — no email or password needed. For codes
-                tied to an account, also enter the email + password you used.
+                Enter an access code below. Guest codes unlock Pro on this
+                device. For codes linked to an account, sign in first.
               </Text>
               <Field
                 label="Email"
@@ -217,8 +279,7 @@ export default function LoginScreen() {
                 loading={busy}
               />
               <Text style={styles.helpSmall}>
-                Don't have an account yet? You'll need to create one first — close this
-                window, tap "Start free", finish onboarding, then come back here.
+                Create an account from the tab above before redeeming an account-linked code.
               </Text>
             </View>
           )}

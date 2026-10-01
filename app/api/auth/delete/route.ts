@@ -1,23 +1,21 @@
-import { neon } from "@neondatabase/serverless"
 import { NextResponse } from "next/server"
+import { sql } from "@/lib/neon-client"
+import { clearSessionCookie, getAuthenticatedUser } from "@/lib/server-auth"
 
-const sql = neon(process.env.DATABASE_URL!)
+export const runtime = "nodejs"
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json()
-
-    if (!email) {
-      return NextResponse.json({ success: false, error: "Email is required" }, { status: 400 })
+    const user = await getAuthenticatedUser(request)
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Sign in to continue" }, { status: 401 })
     }
-
-    await sql`
-      DELETE FROM boomer_users WHERE email = ${email.toLowerCase()}
-    `
-
-    return NextResponse.json({ success: true })
+    await sql`DELETE FROM boomer_users WHERE id = ${user.id}`
+    const response = NextResponse.json({ success: true })
+    clearSessionCookie(response)
+    return response
   } catch (error) {
-    console.error("Delete user error:", error)
+    console.error("Delete account error:", error)
     return NextResponse.json({ success: false, error: "Failed to delete account" }, { status: 500 })
   }
 }

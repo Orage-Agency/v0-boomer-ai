@@ -1,9 +1,5 @@
-import { apiPost } from './client';
-
-/**
- * Auth + entitlement endpoints. Mirror the contracts in
- * v0-boomer-ai/app/api/{auth,redeem}/route.ts.
- */
+import { API_PATHS } from '@boomer-ai/shared';
+import { apiGet, apiPost } from './client';
 
 export type AccountUser = {
   id: string;
@@ -16,49 +12,67 @@ export type AccountUser = {
   proExpiresAt: string | null;
 };
 
-export async function login(email: string, password: string): Promise<AccountUser> {
-  const res = await apiPost<{ success: boolean; user: AccountUser; error?: string }>(
-    '/api/auth/login',
-    { email, password },
-  );
-  if (!res.success) throw new Error(res.error ?? 'Login failed');
-  return res.user;
+export type AuthSession = { user: AccountUser; sessionToken: string };
+
+type AuthResponse = {
+  success: boolean;
+  user: AccountUser;
+  sessionToken?: string;
+  error?: string;
+};
+
+const mobileHeaders = { 'X-Boomer-Client': 'mobile' };
+
+async function requireSession(response: Promise<AuthResponse>): Promise<AuthSession> {
+  const result = await response;
+  if (!result.success) throw new Error(result.error ?? 'Authentication failed');
+  if (!result.sessionToken) throw new Error('The server did not return a secure session.');
+  return { user: result.user, sessionToken: result.sessionToken };
 }
 
-export async function signup(
+export function login(email: string, password: string): Promise<AuthSession> {
+  return requireSession(
+    apiPost<AuthResponse>(API_PATHS.login, { email, password }, mobileHeaders),
+  );
+}
+
+export function signup(
   email: string,
   password: string,
   name: string,
-): Promise<AccountUser> {
-  const res = await apiPost<{ success: boolean; user: AccountUser; error?: string }>(
-    '/api/auth/signup',
-    { email, password, name },
+): Promise<AuthSession> {
+  return requireSession(
+    apiPost<AuthResponse>(API_PATHS.signup, { email, password, name }, mobileHeaders),
   );
-  if (!res.success) throw new Error(res.error ?? 'Signup failed');
-  // /signup currently returns the new user without isPro fields; coerce.
-  return { ...res.user, isPro: false, proSource: null, proExpiresAt: null };
 }
 
-export async function refreshMe(email: string, password: string): Promise<AccountUser> {
-  const res = await apiPost<{ success: boolean; user: AccountUser; error?: string }>(
-    '/api/auth/me',
-    { email, password },
+export async function refreshMe(sessionToken: string): Promise<AccountUser> {
+  const response = await apiGet<{ success: boolean; user: AccountUser; error?: string }>(
+    API_PATHS.me,
+    { Authorization: `Bearer ${sessionToken}` },
   );
-  if (!res.success) throw new Error(res.error ?? 'Refresh failed');
-  return res.user;
+  if (!response.success) throw new Error(response.error ?? 'Session refresh failed');
+  return response.user;
 }
 
-export async function redeemCode(
-  email: string,
-  password: string,
-  code: string,
-): Promise<AccountUser> {
-  const res = await apiPost<{
+export async function redeemCode(sessionToken: string, code: string): Promise<AccountUser> {
+  const response = await apiPost<{
     success: boolean;
-    alreadyRedeemed?: boolean;
     user: AccountUser;
     error?: string;
-  }>('/api/redeem', { email, password, code });
-  if (!res.success) throw new Error(res.error ?? 'Redeem failed');
-  return res.user;
+  }>(
+    API_PATHS.redeem,
+    { code },
+    { Authorization: `Bearer ${sessionToken}` },
+  );
+  if (!response.success) throw new Error(response.error ?? 'Code redemption failed');
+  return response.user;
+}
+
+export async function logout(sessionToken: string): Promise<void> {
+  await apiPost(
+    API_PATHS.logout,
+    {},
+    { Authorization: `Bearer ${sessionToken}` },
+  );
 }

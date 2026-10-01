@@ -26,4 +26,10 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# local skill registry
+.atl/
 next-env.d.ts
+
+# Database services
+.neon

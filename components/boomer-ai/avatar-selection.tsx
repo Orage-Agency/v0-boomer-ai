@@ -1,91 +1,93 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Input } from "@/components/ui/input"
 
-interface AvatarSelectionProps {
-  onSelect: (persona: string, userTitle: string, avatarSrc: string, userName: string) => void
+const ASSISTANTS = [
+  { name: "Assistant woman", image: "/assistants/assistant_woman.png" },
+  { name: "Assistant man", image: "/assistants/assistant_man.png" },
+] as const
+
+export type ProfileAppearance = {
+  persona: null
+  userTitle: null
+  avatarSrc: null
+  assistantSrc: string
+  avatarBackground: string
+  assistantBackground: string
+  userName: string
 }
 
-const AVATARS = [
-  {
-    name: "Angela",
-    userTitle: "Ms. Amis",
-    image: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/68cc6833d74f6bc1c662a144.jpeg",
-  },
-  {
-    name: "Dave",
-    userTitle: "Dave",
-    image: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/68cc69bd09fa3e4671b9618e.jpeg",
-  },
-]
+interface AvatarSelectionProps {
+  onSelect: (appearance: ProfileAppearance) => void
+}
 
 export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selectedAssistant, setSelectedAssistant] = useState<string>(ASSISTANTS[0].image)
   const [userName, setUserName] = useState("")
 
   const handleContinue = () => {
-    if (!selected || !userName.trim()) return
-    const avatar = AVATARS.find((a) => a.name === selected)
-    if (avatar) {
-      onSelect(avatar.name, avatar.userTitle, avatar.image, userName.trim())
-    }
+    if (!userName.trim()) return
+    onSelect({
+      persona: null,
+      userTitle: null,
+      avatarSrc: null,
+      assistantSrc: selectedAssistant,
+      avatarBackground: "white",
+      assistantBackground: "white",
+      userName: userName.trim(),
+    })
   }
 
   return (
-    <section className="flex flex-col items-center justify-center text-center p-4 h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="w-full max-w-sm">
-        <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-48 w-auto object-contain mx-auto mb-4" />
+    <section className="mx-auto w-full max-w-2xl px-5 py-7 text-left">
+      <div className="mx-auto max-w-xl">
+        <h2 className="text-2xl font-bold text-slate-900">Personalize your profile</h2>
+        <p className="mt-2 text-base leading-6 text-slate-600">Choose your name and an assistant picture.</p>
 
-        <div className="mb-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-4 shadow-lg">
-          <p className="text-xl font-bold text-blue-900 leading-tight">Come On In, the AI Waters Are Just Fine! 🌊</p>
-        </div>
+        <label className="mt-6 block text-base font-semibold text-slate-900" htmlFor="profile-name">Your name</label>
+        <Input
+          id="profile-name"
+          type="text"
+          autoComplete="given-name"
+          placeholder="Enter your name"
+          value={userName}
+          onChange={(event) => setUserName(event.target.value)}
+          className="mt-2 min-h-12 text-base"
+        />
 
-        <h2 className="text-2xl font-bold text-slate-900 mb-1">Choose Your Friendly Guide</h2>
-        <p className="text-base text-slate-600 mb-4">Pick a companion for your AI adventure!</p>
-
-        <div className="mb-4">
-          <Input
-            type="text"
-            placeholder="Enter your name"
-            value={userName}
-            onChange={(e) => setUserName(e.target.value)}
-            className="text-lg py-6 text-center font-medium"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          {AVATARS.map((avatar) => (
-            <button
-              key={avatar.name}
-              onClick={() => setSelected(avatar.name)}
-              className={`group p-2 text-center rounded-2xl bg-white border-2 transition-all duration-200 ${
-                selected === avatar.name
-                  ? avatar.name === "Angela"
-                    ? "border-pink-500 shadow-lg scale-105"
-                    : "border-blue-500 shadow-lg scale-105"
-                  : "border-slate-200 hover:border-blue-500 hover:shadow-lg hover:scale-105"
-              }`}
-            >
-              <img
-                src={avatar.image || "/placeholder.svg"}
-                alt={`${avatar.name} avatar`}
-                className="w-20 h-20 object-cover rounded-full mx-auto shadow-md group-hover:shadow-xl transition-shadow"
-              />
-              <p className="mt-2 font-bold text-base text-slate-900">{avatar.name}</p>
-            </button>
-          ))}
-        </div>
+        <fieldset className="mt-7">
+          <legend className="text-lg font-semibold text-slate-900">Assistant picture</legend>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            {ASSISTANTS.map((assistant) => {
+              const active = selectedAssistant === assistant.image
+              return (
+                <button
+                  key={assistant.image}
+                  type="button"
+                  onClick={() => setSelectedAssistant(assistant.image)}
+                  aria-pressed={active}
+                  className={`flex min-h-24 items-center gap-3 rounded-xl border-2 p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 ${active ? "border-slate-900 bg-slate-50" : "border-slate-200 hover:border-slate-400"}`}
+                >
+                  <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white">
+                    <Image src={assistant.image} alt="" width={64} height={64} className="h-full w-full object-cover" />
+                  </span>
+                  <span className="text-sm font-semibold text-slate-900">{assistant.name}</span>
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
 
         <button
+          type="button"
           onClick={handleContinue}
-          disabled={!selected || !userName.trim()}
-          className="mt-4 w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed text-white font-bold text-lg py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+          disabled={!userName.trim()}
+          className="mt-8 min-h-12 w-full rounded-xl bg-slate-900 px-6 py-3 text-base font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"
         >
-          Let's Get Started! 🚀
+          Continue
         </button>
-
-        <p className="mt-3 text-sm text-slate-500">You can change this anytime.</p>
       </div>
     </section>
   )

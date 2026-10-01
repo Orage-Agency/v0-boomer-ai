@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router';
 import { colors, fontSize, fontWeight } from '@/theme/theme';
 
 /**
- * Bottom tab navigator. Mirrors the web app's bottom nav:
+ * Bottom tab navigator. Mirrors the web app's primary navigation:
  * Home · Chat · Learn · Tips · Profile.
  * Emoji icons keep the foundation dependency-free (swap for vector icons later).
  */
@@ -19,7 +19,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
+      tabBarActiveTintColor: colors.ink,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
           borderTopColor: colors.border,

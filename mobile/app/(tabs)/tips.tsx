@@ -4,7 +4,6 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
-import { useProfile } from '@/context/ProfileContext';
 import { setPendingPrompt } from '@/screens/pendingPrompt';
 import { TIP_CATEGORIES, type Tip } from '@/data/content';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
@@ -16,7 +15,6 @@ import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
  */
 export default function TipsScreen() {
   const router = useRouter();
-  const { profile } = useProfile();
   const [expanded, setExpanded] = useState<string[]>([TIP_CATEGORIES[0]?.id]);
 
   const toggle = useCallback((id: string) => {
@@ -35,13 +33,10 @@ export default function TipsScreen() {
 
   return (
     <Screen centered edges={['top']}>
-      <View style={styles.header}>
+        <View style={styles.header}>
         <View>
           <Text style={styles.title}>AI Tips & Guides</Text>
-          <Text style={styles.subtitle}>Tap any tip to try it in chat</Text>
-        </View>
-        <View style={styles.starPill}>
-          <Text style={styles.starText}>⭐ {profile.stars}</Text>
+          <Text style={styles.subtitle}>Choose a tip to try it in chat.</Text>
         </View>
       </View>
 
@@ -110,13 +105,6 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.textPrimary },
   subtitle: { fontSize: fontSize.sm, color: colors.textSecondary, marginTop: 2 },
-  starPill: {
-    backgroundColor: colors.amberSoft,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  starText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.textPrimary },
   scroll: { padding: spacing.lg, gap: spacing.md },
   category: {
     borderWidth: 2,

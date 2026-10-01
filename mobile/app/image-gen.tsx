@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -16,10 +16,9 @@ import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { InfoBanner } from '@/components/InfoBanner';
 import { imagesApi, ApiError } from '@/api';
-import { useProfile } from '@/context/ProfileContext';
+import type { ImageProvider } from '@/api/images';
 import { isApiConfigured } from '@/config/env';
-import { colors, fontSize, fontWeight, gradients, radius, spacing } from '@/theme/theme';
-import { LinearGradient } from 'expo-linear-gradient';
+import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
 /**
  * AI Art / Image generation screen.
@@ -30,14 +29,13 @@ import { LinearGradient } from 'expo-linear-gradient';
  *  - "Improve" enhances the prompt via /api/improve-prompt
  *  - "Create Image" generates and shows the result
  *  - loading + error + content-safety states
- * Awards +1 star on a successful generation (matches web reward logic).
  */
 
 const STYLE_PRESETS = [
-  { id: 'realistic', label: 'Real', emoji: '📷' },
-  { id: 'artistic', label: 'Art', emoji: '🎨' },
-  { id: 'cartoon', label: 'Toon', emoji: '🎪' },
-  { id: 'vintage', label: 'Retro', emoji: '📻' },
+  { id: 'realistic', label: 'Realistic' },
+  { id: 'artistic', label: 'Illustration' },
+  { id: 'cartoon', label: 'Cartoon' },
+  { id: 'vintage', label: 'Vintage' },
 ] as const;
 
 const PROMPT_IDEAS = [
@@ -51,16 +49,24 @@ const PROMPT_IDEAS = [
 
 export default function ImageGenScreen() {
   const router = useRouter();
-  const { profile, updateProfile } = useProfile();
 
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState<string>('realistic');
+  const [provider, setProvider] = useState<ImageProvider>('fal');
+  const [codexAvailable, setCodexAvailable] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [improving, setImproving] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const canGenerate = !!prompt.trim() && !generating && isApiConfigured;
+
+  useEffect(() => {
+    if (!isApiConfigured) return;
+    imagesApi.getImageProviders()
+      .then((result) => setCodexAvailable(result.providers.openaiCodex))
+      .catch(() => setCodexAvailable(false));
+  }, []);
 
   const handleImprove = useCallback(async () => {
     const base = prompt.trim();
@@ -90,11 +96,10 @@ export default function ImageGenScreen() {
     setError(null);
     setImageUrl(null);
     try {
-      const fullPrompt = `${base}, ${style} style, high quality, beautiful lighting`;
-      const res = await imagesApi.generateImage(fullPrompt);
+      const fullPrompt = `Create an image of ${base}, ${style} style, high quality, beautiful lighting.`;
+      const res = await imagesApi.generateImage(fullPrompt, provider);
       if (res.imageUrl) {
         setImageUrl(res.imageUrl);
-        updateProfile({ stars: profile.stars + 1 });
       } else {
         setError(res.error ?? 'Could not create the image. Please try again.');
       }
@@ -107,7 +112,7 @@ export default function ImageGenScreen() {
     } finally {
       setGenerating(false);
     }
-  }, [prompt, style, profile.stars, updateProfile]);
+  }, [prompt, style, provider]);
 
   const handleNewImage = useCallback(() => {
     setImageUrl(null);
@@ -125,7 +130,10 @@ export default function ImageGenScreen() {
         >
           <Text style={styles.backText}>‹ Back</Text>
         </Pressable>
-        <Text style={styles.title}>Create AI Art</Text>
+        <View style={styles.heading}>
+          <Text style={styles.title}>Create an image</Text>
+          <Text style={styles.subtitle}>Describe an idea and choose a visual style.</Text>
+        </View>
         <View style={styles.backBtn} />
       </View>
 
@@ -155,19 +163,20 @@ export default function ImageGenScreen() {
                 resizeMode="cover"
                 accessibilityLabel="Your generated AI artwork"
               />
-              <Button title="Create Another" onPress={handleNewImage} variant="primary" />
-              <Text style={styles.hint}>
-                Press and hold the image to save or share it.
-              </Text>
+              <Button title="Make another image" onPress={handleNewImage} variant="primary" />
+              <Text style={styles.hint}>Press and hold the image to save or share it.</Text>
             </View>
           ) : (
             <View style={styles.form}>
-              <Text style={styles.label}>Describe your image</Text>
+              <View>
+                <Text style={styles.label}>What would you like to see?</Text>
+                <Text style={styles.helper}>A subject and setting are enough to begin. Add colors or a mood if you like.</Text>
+              </View>
               <TextInput
                 style={styles.input}
                 value={prompt}
                 onChangeText={setPrompt}
-                placeholder="A beautiful sunset over a calm lake…"
+                placeholder="A small cottage beside a lake at sunset"
                 placeholderTextColor={colors.textMuted}
                 multiline
                 editable={!generating}
@@ -191,7 +200,54 @@ export default function ImageGenScreen() {
                 )}
               </Pressable>
 
-              <Text style={styles.label}>Quick ideas</Text>
+              <Text style={styles.label}>Choose a style</Text>
+              <View style={styles.styles}>
+                {STYLE_PRESETS.map((preset) => {
+                  const active = style === preset.id;
+                  return (
+                    <Pressable
+                      key={preset.id}
+                      onPress={() => setStyle(preset.id)}
+                      style={[styles.styleCard, active && styles.styleCardActive]}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`${preset.label} style`}
+                      accessibilityState={{ selected: active }}
+                    >
+                      <Text style={[styles.styleLabel, active && styles.styleLabelActive]}>{preset.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <View>
+                <Text style={styles.label}>Image service</Text>
+                <View style={styles.providerList}>
+                  <Pressable
+                    onPress={() => setProvider('fal')}
+                    style={[styles.providerOption, provider === 'fal' && styles.providerActive]}
+                    accessibilityRole="radio"
+                    accessibilityLabel="Fal.ai, current image service"
+                    accessibilityState={{ selected: provider === 'fal' }}
+                  >
+                    <Text style={styles.providerTitle}>Fal.ai</Text>
+                    <Text style={styles.providerDescription}>Current image service</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => codexAvailable && setProvider('openai-codex')}
+                    disabled={!codexAvailable}
+                    style={[styles.providerOption, provider === 'openai-codex' && styles.providerActive, !codexAvailable && styles.providerDisabled]}
+                    accessibilityRole="radio"
+                    accessibilityLabel="OpenAI Codex test provider"
+                    accessibilityState={{ selected: provider === 'openai-codex', disabled: !codexAvailable }}
+                  >
+                    <Text style={styles.providerTitle}>OpenAI Codex · test</Text>
+                    <Text style={styles.providerDescription}>{codexAvailable ? 'Uses the authorized ChatGPT plan' : 'Not configured on this server'}</Text>
+                  </Pressable>
+                </View>
+                {!codexAvailable && <Text style={styles.helper}>To test this option, configure an authorized ChatGPT plan access token on the server. It is never sent to this screen.</Text>}
+              </View>
+
+              <Text style={styles.label}>Or start with an idea</Text>
               <View style={styles.chips}>
                 {PROMPT_IDEAS.map((idea) => (
                   <Pressable
@@ -206,28 +262,6 @@ export default function ImageGenScreen() {
                 ))}
               </View>
 
-              <Text style={styles.label}>Style</Text>
-              <View style={styles.styles}>
-                {STYLE_PRESETS.map((preset) => {
-                  const active = style === preset.id;
-                  return (
-                    <Pressable
-                      key={preset.id}
-                      onPress={() => setStyle(preset.id)}
-                      style={[styles.styleCard, active && styles.styleCardActive]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${preset.label} style`}
-                      accessibilityState={{ selected: active }}
-                    >
-                      <Text style={styles.styleEmoji}>{preset.emoji}</Text>
-                      <Text style={[styles.styleLabel, active && styles.styleLabelActive]}>
-                        {preset.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-
               {error && <InfoBanner tone="danger" message={error} />}
 
               <Pressable
@@ -237,18 +271,13 @@ export default function ImageGenScreen() {
                 accessibilityLabel="Create image"
                 style={[styles.generateWrap, !canGenerate && styles.generateDisabled]}
               >
-                <LinearGradient
-                  colors={gradients.art}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.generate}
-                >
+                <View style={styles.generate}>
                   {generating ? (
                     <ActivityIndicator color={colors.textOnDark} />
                   ) : (
-                    <Text style={styles.generateText}>🪄 Create Image</Text>
+                    <Text style={styles.generateText}>Create image</Text>
                   )}
-                </LinearGradient>
+                </View>
               </Pressable>
             </View>
           )}
@@ -260,6 +289,7 @@ export default function ImageGenScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  heading: { flex: 1, gap: 2 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -271,30 +301,35 @@ const styles = StyleSheet.create({
   },
   backBtn: { minWidth: 64, minHeight: 44, justifyContent: 'center' },
   backText: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.primary },
-  title: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.textPrimary },
-  scroll: { padding: spacing.lg, gap: spacing.lg },
-  form: { gap: spacing.md },
+  title: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.textPrimary },
+  subtitle: { fontSize: fontSize.xs, lineHeight: 19, color: colors.textSecondary },
+  scroll: { padding: spacing.lg, gap: spacing.xl },
+  form: { gap: spacing.xl },
   label: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textPrimary },
+  helper: { marginTop: spacing.xs, fontSize: fontSize.xs, lineHeight: 21, color: colors.textSecondary },
   input: {
-    minHeight: 96,
-    backgroundColor: colors.surfaceMuted,
+    minHeight: 128,
+    marginTop: spacing.sm,
+    backgroundColor: colors.surface,
     borderRadius: radius.md,
     padding: spacing.lg,
     fontSize: fontSize.md,
     color: colors.textPrimary,
     textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   improveBtn: {
     minHeight: 48,
     borderRadius: radius.md,
-    borderWidth: 2,
-    borderColor: colors.purple,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   improveDisabled: { opacity: 0.4 },
-  improveText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.purple },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  improveText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   chip: {
     minHeight: 44,
     paddingHorizontal: spacing.lg,
@@ -305,30 +340,38 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   chipText: { fontSize: fontSize.sm, color: colors.textSecondary, fontWeight: fontWeight.medium },
-  styles: { flexDirection: 'row', gap: spacing.sm },
+  styles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   styleCard: {
-    flex: 1,
-    minHeight: 64,
+    minWidth: '46%',
+    flexGrow: 1,
+    minHeight: 52,
     borderRadius: radius.md,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    paddingHorizontal: spacing.sm,
   },
-  styleCardActive: { borderColor: colors.purple, backgroundColor: '#F5F3FF' },
-  styleEmoji: { fontSize: 22 },
-  styleLabel: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: colors.textSecondary },
-  styleLabelActive: { color: colors.purple },
+  styleCardActive: { borderColor: colors.ink, backgroundColor: colors.surfaceMuted },
+  styleLabel: { fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: colors.textSecondary, textAlign: 'center' },
+  styleLabelActive: { color: colors.textPrimary, fontWeight: fontWeight.bold },
+  providerList: { gap: spacing.sm, marginTop: spacing.sm },
+  providerOption: { minHeight: 64, justifyContent: 'center', padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  providerActive: { borderColor: colors.ink, backgroundColor: colors.surfaceMuted },
+  providerDisabled: { backgroundColor: colors.surfaceSubtle, opacity: 0.75 },
+  providerTitle: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  providerDescription: { marginTop: 2, fontSize: fontSize.xs, lineHeight: 19, color: colors.textSecondary },
   generateWrap: { borderRadius: radius.lg, overflow: 'hidden', marginTop: spacing.sm },
   generateDisabled: { opacity: 0.4 },
   generate: {
-    minHeight: 56,
+    minHeight: 60,
+    backgroundColor: colors.ink,
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  generateText: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textOnDark },
+  generateText: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.textOnDark },
   resultWrap: { gap: spacing.lg },
   resultImage: {
     width: '100%',

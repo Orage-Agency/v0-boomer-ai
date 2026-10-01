@@ -1,5 +1,8 @@
-import { apiPost } from './client';
-import type { GenerateImageResult } from '@/types';
+import { apiGet, apiPost } from './client';
+import { API_PATHS } from '@boomer-ai/shared';
+import type { GenerateImageResult, ImageProviderAvailability } from '@/types';
+
+export type ImageProvider = 'fal' | 'openai-codex';
 
 /**
  * Image generation + prompt improvement APIs.
@@ -9,12 +12,16 @@ import type { GenerateImageResult } from '@/types';
  * improve-prompt: POST { prompt } -> { improvedPrompt } | { error }
  */
 
-export function generateImage(prompt: string): Promise<GenerateImageResult> {
-  return apiPost<GenerateImageResult>('/api/generate-image', { prompt });
+export function getImageProviders(): Promise<ImageProviderAvailability> {
+  return apiGet<ImageProviderAvailability>(API_PATHS.generateImage);
+}
+
+export function generateImage(prompt: string, provider: ImageProvider): Promise<GenerateImageResult> {
+  return apiPost<GenerateImageResult>(API_PATHS.generateImage, { prompt, provider });
 }
 
 export function improvePrompt(
   prompt: string,
 ): Promise<{ improvedPrompt?: string; error?: string }> {
-  return apiPost('/api/improve-prompt', { prompt });
+  return apiPost(API_PATHS.improvePrompt, { prompt });
 }

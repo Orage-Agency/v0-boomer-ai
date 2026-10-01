@@ -3,86 +3,28 @@
 import { useState, useEffect } from "react"
 import { AvatarSelection } from "@/components/boomer-ai/avatar-selection"
 import { AgeSelection } from "@/components/boomer-ai/age-selection"
-import { Quiz } from "@/components/boomer-ai/quiz"
 import { LearningLevel } from "@/components/boomer-ai/learning-level"
 import { MainApp } from "@/components/boomer-ai/main-app"
 import { Stepper } from "@/components/boomer-ai/stepper"
+import { API_PATHS, DEFAULT_PROFILE, type UserProfile } from "@boomer-ai/shared"
 
-export type UserProfile = {
-  persona: string | null
-  age: string | null
-  aiLevel: number
-  userTitle: string | null
-  avatarSrc: string | null
-  level: string | null
-  stars: number
-  streak: number
-  badges: string[]
-  lessonsCompleted: string[]
-  userName: string | null
-  name?: string
-  deviceId: string | null
-  dailyArtCount: number
-  lastArtDate: string | null
-  pinnedFeatures: string[]
-  email: string | null
-  isLoggedIn: boolean
-}
-
-function calculateLevelFromStars(stars: number): string {
-  if (stars < 200) return "Basic"
-  if (stars < 600) return "Intermediate"
-  if (stars < 1400) return "Advanced"
-  return "Expert"
-}
-
-const DEFAULT_PROFILE: UserProfile = {
-  persona: null,
-  age: null,
-  aiLevel: 0,
-  userTitle: null,
-  avatarSrc: null,
-  level: null,
-  stars: 0,
-  streak: 0,
-  badges: [],
-  lessonsCompleted: [],
-  userName: null,
-  deviceId: null,
-  dailyArtCount: 0,
-  lastArtDate: null,
-  pinnedFeatures: [],
-  email: null,
-  isLoggedIn: false,
-}
+export type { UserProfile }
 
 export default function BoomerAIPage() {
   const [currentView, setCurrentView] = useState<"onboarding" | "app">("onboarding")
-  const [onboardingStep, setOnboardingStep] = useState<"avatar" | "age" | "quiz" | "level">("avatar")
+  const [onboardingStep, setOnboardingStep] = useState<"avatar" | "age" | "level">("avatar")
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_PROFILE)
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
-    let deviceId = localStorage.getItem("boomer-device-id")
-    if (!deviceId) {
-      deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      localStorage.setItem("boomer-device-id", deviceId)
-    }
-
-    // Try to load existing profile
-    loadProfile(deviceId)
-  }, [])
-
   const loadProfile = async (deviceId: string) => {
     try {
-      const response = await fetch(`/api/profile?deviceId=${deviceId}`)
+      const response = await fetch(`${API_PATHS.profile}?deviceId=${deviceId}`)
       const data = await response.json()
 
       if (data.success && data.profile) {
         const loadedProfile = { ...data.profile, deviceId, isLoggedIn: false, email: null }
         setUserProfile(loadedProfile)
-        if (loadedProfile.persona && loadedProfile.level) {
+        if (loadedProfile.level) {
           setCurrentView("app")
         }
       } else {
@@ -92,7 +34,7 @@ export default function BoomerAIPage() {
           if (saved) {
             const profile = JSON.parse(saved)
             setUserProfile({ ...profile, deviceId })
-            if (profile.persona && profile.level) {
+            if (profile.level) {
               setCurrentView("app")
             }
           } else {
@@ -109,7 +51,7 @@ export default function BoomerAIPage() {
         if (saved) {
           const profile = JSON.parse(saved)
           setUserProfile({ ...profile, deviceId })
-          if (profile.persona && profile.level) {
+          if (profile.level) {
             setCurrentView("app")
           }
         } else {
@@ -121,9 +63,33 @@ export default function BoomerAIPage() {
     }
   }
 
+  useEffect(() => {
+    let active = true
+
+    const bootstrap = async () => {
+      const newDeviceId = `device_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
+      let deviceId = newDeviceId
+
+      try {
+        deviceId = localStorage.getItem("boomer-device-id") || newDeviceId
+        localStorage.setItem("boomer-device-id", deviceId)
+      } catch {
+        // Continue with an in-memory ID when browser storage is unavailable.
+      }
+
+      await loadProfile(deviceId)
+      if (active) setMounted(true)
+    }
+
+    void bootstrap()
+    return () => {
+      active = false
+    }
+  }, [])
+
   const saveToDatabase = async (profile: UserProfile) => {
     try {
-      await fetch("/api/profile", {
+      await fetch(API_PATHS.profile, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profile),
@@ -134,11 +100,6 @@ export default function BoomerAIPage() {
   }
 
   const updateProfile = (updates: Partial<UserProfile>) => {
-    if (updates.stars !== undefined) {
-      const correctLevel = calculateLevelFromStars(updates.stars)
-      updates.level = correctLevel
-    }
-
     const newProfile = { ...userProfile, ...updates }
     setUserProfile(newProfile)
     if (mounted) {
@@ -159,12 +120,17 @@ export default function BoomerAIPage() {
     setOnboardingStep("avatar")
   }
 
+  const skipOnboarding = () => {
+    updateProfile({ age: userProfile.age ?? null, aiLevel: 0, level: userProfile.level || "Beginner" })
+    setCurrentView("app")
+  }
+
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center" role="status" aria-live="polite" aria-busy="true">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-          <p className="text-slate-600 font-medium">Loading Boomer AI...</p>
+          <div className="w-12 h-12 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" aria-hidden="true" />
+          <p className="text-slate-700 text-lg font-medium">Preparando tu espacio…</p>
         </div>
       </div>
     )
@@ -183,17 +149,22 @@ export default function BoomerAIPage() {
       <div className="relative bg-white w-full max-w-md md:max-w-2xl lg:max-w-full lg:w-screen mx-auto h-screen overflow-hidden flex flex-col md:border-x md:border-slate-200 lg:border-none">
         {currentView === "onboarding" && (
           <>
-            <Stepper
-              currentStep={
-                onboardingStep === "avatar" ? 1 : onboardingStep === "age" ? 2 : onboardingStep === "quiz" ? 3 : 4
-              }
-            />
+            <div className="flex items-center gap-4 px-6 pt-5 pb-4 border-b border-slate-200">
+              <Stepper currentStep={onboardingStep === "avatar" ? 1 : onboardingStep === "age" ? 2 : 3} />
+              <button
+                type="button"
+                onClick={skipOnboarding}
+                className="shrink-0 rounded-lg px-3 py-2 text-base font-semibold text-slate-700 underline decoration-slate-400 underline-offset-4 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"
+              >
+                Skip for now
+              </button>
+            </div>
 
             <main className="flex-grow overflow-y-auto hide-scrollbar">
               {onboardingStep === "avatar" && (
                 <AvatarSelection
-                  onSelect={(persona, userTitle, avatarSrc, userName) => {
-                    updateProfile({ persona, userTitle, avatarSrc, userName, name: userName })
+                  onSelect={(appearance) => {
+                    updateProfile({ ...appearance, name: appearance.userName })
                     setOnboardingStep("age")
                   }}
                 />
@@ -203,20 +174,10 @@ export default function BoomerAIPage() {
                 <AgeSelection
                   onSelect={(age) => {
                     updateProfile({ age, aiLevel: 0 })
-                    setOnboardingStep("quiz")
+                    setOnboardingStep("level")
                   }}
-                />
-              )}
-
-              {onboardingStep === "quiz" && (
-                <Quiz
-                  onComplete={(score) => {
-                    let recommendedLevel = "Absolute Beginner"
-                    if (score > 7) recommendedLevel = "Advanced"
-                    else if (score > 5) recommendedLevel = "Intermediate"
-                    else if (score > 3) recommendedLevel = "Beginner"
-
-                    updateProfile({ aiLevel: score, level: recommendedLevel })
+                  onSkip={() => {
+                    updateProfile({ age: null, aiLevel: 0 })
                     setOnboardingStep("level")
                   }}
                 />
@@ -226,7 +187,7 @@ export default function BoomerAIPage() {
                 <LearningLevel
                   recommendedLevel={userProfile.level || "Beginner"}
                   onContinue={(level) => {
-                    updateProfile({ level, stars: 5, badges: ["Getting Started"] })
+                    updateProfile({ level, aiLevel: 0 })
                     setCurrentView("app")
                   }}
                 />

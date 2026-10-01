@@ -21,8 +21,6 @@ export interface AuthResult {
   error?: string
 }
 
-const SESSION_KEY = "boomer_session"
-
 /**
  * Create a new user account via API
  */
@@ -30,16 +28,12 @@ export async function createUser(email: string, password: string, name: string):
   try {
     const response = await fetch("/api/auth/signup", {
       method: "POST",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, name }),
     })
 
     const result = await response.json()
-
-    if (result.success && result.user) {
-      // Save session locally
-      saveSession({ email: result.user.email, name: result.user.name, userId: result.user.id })
-    }
 
     return result
   } catch (error) {
@@ -55,16 +49,12 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
   try {
     const response = await fetch("/api/auth/login", {
       method: "POST",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     })
 
     const result = await response.json()
-
-    if (result.success && result.user) {
-      // Save session locally
-      saveSession({ email: result.user.email, name: result.user.name, userId: result.user.id })
-    }
 
     return result
   } catch (error) {
@@ -77,11 +67,13 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
  * Update user stars via API
  */
 export async function updateUserStars(email: string, stars: number, level: string): Promise<AuthResult> {
+  void email
   try {
     const response = await fetch("/api/auth/update-stars", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, stars, level }),
+      credentials: "same-origin",
+      body: JSON.stringify({ stars, level }),
     })
 
     return await response.json()
@@ -92,38 +84,25 @@ export async function updateUserStars(email: string, stars: number, level: strin
 }
 
 /**
- * Get user by email via API
+ * Account lookup by email is intentionally unavailable without a session.
  */
 export async function getUserByEmail(email: string): Promise<AuthResult> {
-  try {
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password: "" }), // Will fail but we can check if user exists
-    })
-
-    return await response.json()
-  } catch (error) {
-    return { success: false, error: "User not found" }
-  }
+  void email
+  return { success: false, error: "Sign in to access account details" }
 }
 
 /**
  * Delete user account via API
  */
 export async function deleteUser(email: string): Promise<{ success: boolean }> {
+  void email
   try {
     const response = await fetch("/api/auth/delete", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      credentials: "same-origin",
     })
 
     const result = await response.json()
-
-    if (result.success) {
-      clearSession()
-    }
 
     return result
   } catch (error) {
@@ -132,28 +111,19 @@ export async function deleteUser(email: string): Promise<{ success: boolean }> {
   }
 }
 
-/**
- * Session Management (localStorage for client-side session tracking)
- */
-function saveSession(session: { email: string; name: string; userId: string }): void {
-  if (typeof window === "undefined") return
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-}
-
-export function getSession(): { email: string; name: string; userId: string } | null {
-  if (typeof window === "undefined") return null
-  const data = localStorage.getItem(SESSION_KEY)
-  return data ? JSON.parse(data) : null
-}
-
 export function clearSession(): void {
   if (typeof window === "undefined") return
-  localStorage.removeItem(SESSION_KEY)
+  void fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" })
 }
 
 /**
  * Check if user is logged in (has valid session)
  */
-export function isLoggedIn(): boolean {
-  return getSession() !== null
+export async function isLoggedIn(): Promise<boolean> {
+  try {
+    const response = await fetch("/api/auth/me", { credentials: "same-origin" })
+    return response.ok
+  } catch {
+    return false
+  }
 }

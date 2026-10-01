@@ -4,14 +4,14 @@ import { useConversation } from "@elevenlabs/react"
 import { useState, useEffect, useRef } from "react"
 import { PhoneOff, Mic, Volume2, VolumeX, ArrowLeft, Send } from "lucide-react"
 import type { UserProfile } from "@/app/page"
+import { MarkdownMessage } from "./markdown-message"
 
 interface VoiceChatTabProps {
   userProfile: UserProfile
-  updateProfile: (updates: Partial<UserProfile>) => void
   onBack: () => void
 }
 
-export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTabProps) {
+export function VoiceChatTab({ userProfile, onBack }: VoiceChatTabProps) {
   const [hasStarted, setHasStarted] = useState(false)
   const [conversationMessages, setConversationMessages] = useState<Array<{ role: string; content: string }>>([])
   const [textInput, setTextInput] = useState("")
@@ -160,9 +160,6 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
         agentId: process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "",
       })
 
-      updateProfile({
-        stars: userProfile.stars + 2,
-      })
     } catch (error) {
       console.error("[v0] Failed to start voice assistant:", error)
       alert("Please allow microphone access to use the voice assistant.")
@@ -212,17 +209,17 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
       {!hasStarted ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 pb-4">
           <div className="relative">
-            <div className="w-28 h-28 rounded-full overflow-hidden shadow-xl border-2 border-white ring-2 ring-blue-200">
-              <img src="/voice-assistant-avatar.jpg" alt="Boomer AI Assistant" className="w-full h-full object-cover" />
+            <div className="w-28 h-28 rounded-full overflow-hidden shadow-xl border-2 border-white ring-2 ring-blue-200 bg-white">
+              <img src={userProfile.assistantSrc || "/assistants/assistant_woman.png"} alt="Boomer AI Assistant" className="w-full h-full object-cover" />
             </div>
             <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400/20 to-purple-400/20 animate-pulse" />
           </div>
 
           <div className="max-w-sm text-center">
-            <h2 className="text-xl font-black text-slate-900 mb-2">Hi {userProfile.name}!</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-2">Hi {userProfile.name || userProfile.userName || "there"}!</h2>
             <p className="text-base text-slate-700 font-semibold mb-1">Ready to chat with AI?</p>
             <p className="text-sm text-slate-600">
-              Tap below and start talking - you'll see your words appear on screen!
+              Tap below and start talking - you&apos;ll see your words appear on screen!
             </p>
           </div>
 
@@ -232,7 +229,7 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-black text-base shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 touch-manipulation min-h-[48px]"
           >
             <Mic className="w-5 h-5" />
-            Start Talking (+2 Stars)
+            Start talking
           </button>
         </div>
       ) : (
@@ -240,8 +237,8 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
           {/* Logo & Status */}
           <div className="flex-shrink-0 flex flex-col items-center gap-3 py-4">
             <div className="relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-white">
-                <img src="/voice-assistant-avatar.jpg" alt="AI Assistant" className="w-full h-full object-cover" />
+              <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-white bg-white">
+                <img src={userProfile.assistantSrc || "/assistants/assistant_woman.png"} alt="AI Assistant" className="w-full h-full object-cover" />
               </div>
               {conversation.isSpeaking && (
                 <div className="absolute inset-0 rounded-full bg-gradient-to-br from-green-400/40 to-emerald-400/40 animate-pulse" />
@@ -275,7 +272,7 @@ export function VoiceChatTab({ userProfile, updateProfile, onBack }: VoiceChatTa
                     }`}
                   >
                     <div className="text-xs font-bold mb-1 opacity-70">{msg.role === "user" ? "You" : "AI"}</div>
-                    <div className="text-sm font-semibold leading-relaxed">{msg.content}</div>
+                    <MarkdownMessage text={msg.content} isUser={msg.role === "user"} />
                   </div>
                 ))}
 

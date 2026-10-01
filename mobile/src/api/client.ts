@@ -42,28 +42,33 @@ async function parseJson<T>(res: Response): Promise<T> {
   return body as T;
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
+export async function apiGet<T>(path: string, headers: HeadersInit = {}): Promise<T> {
   const res = await fetch(url(path), {
     method: 'GET',
-    headers: { Accept: 'application/json' },
+    headers: { Accept: 'application/json', ...headers },
   });
   return parseJson<T>(res);
 }
 
-export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+export async function apiPost<T>(
+  path: string,
+  body: unknown,
+  headers: HeadersInit = {},
+): Promise<T> {
   const res = await fetch(url(path), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      ...headers,
     },
     body: JSON.stringify(body),
   });
   return parseJson<T>(res);
 }
 
-export async function apiDelete<T>(path: string): Promise<T> {
-  const res = await fetch(url(path), { method: 'DELETE' });
+export async function apiDelete<T>(path: string, headers: HeadersInit = {}): Promise<T> {
+  const res = await fetch(url(path), { method: 'DELETE', headers });
   return parseJson<T>(res);
 }
 

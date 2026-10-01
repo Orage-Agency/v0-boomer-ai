@@ -8,11 +8,17 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_ENV": "development"
+      },
       "ios": { "simulator": true }
     },
     "preview": {
       "distribution": "store",
       "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_ENV": "production"
+      },
       "ios": {
         "resourceClass": "m-medium"
       }
@@ -21,6 +27,9 @@
       "channel": "production",
       "autoIncrement": true,
       "credentialsSource": "local",
+      "env": {
+        "EXPO_PUBLIC_API_ENV": "production"
+      },
       "ios": {
         "resourceClass": "m-medium"
       }

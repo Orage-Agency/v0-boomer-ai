@@ -1,7 +1,8 @@
-import { neon } from "@neondatabase/serverless"
 import { NextResponse } from "next/server"
+import { sql } from "@/lib/neon-client"
+import { getAuthenticatedUser } from "@/lib/server-auth"
 
-const sql = neon(process.env.DATABASE_URL!)
+export const runtime = "nodejs"
 
 /**
  * POST /api/redeem
@@ -10,44 +11,27 @@ const sql = neon(process.env.DATABASE_URL!)
  * Codes are server-side validated and tied to a user (one user can only
  * redeem a given code once; max_uses caps total redemptions across users).
  *
- * Body: { email: string, password: string, code: string }
- *
- * The caller supplies credentials so we can resolve the user record without
- * trusting client-side identity. If the user does not exist yet we DO NOT
- * auto-create — the client should sign up first then redeem. This keeps
- * codes from being abused as a free signup oracle.
- */
+ * Body: { code: string }
+ * Account identity is resolved from the revocable session, never from a
+ * caller-supplied email or password.
+*/
 export async function POST(request: Request) {
   try {
-    const { email, password, code } = await request.json()
+    const { code } = await request.json()
 
-    if (!email || !password || !code) {
+    if (!code) {
       return NextResponse.json(
-        { success: false, error: "Email, password, and code are required" },
+        { success: false, error: "An access code is required" },
         { status: 400 },
       )
     }
 
+    const user = await getAuthenticatedUser(request)
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Sign in before redeeming a code" }, { status: 401 })
+    }
+
     const normalizedCode = String(code).trim().toUpperCase()
-    const normalizedEmail = String(email).toLowerCase().trim()
-
-    const users = await sql`
-      SELECT id, email, password_hash, name, stars, level, is_pro, pro_source, pro_expires_at
-      FROM boomer_users
-      WHERE email = ${normalizedEmail}
-    `
-
-    if (users.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "No account found with this email. Sign up first, then redeem." },
-        { status: 404 },
-      )
-    }
-
-    const user = users[0]
-    if (user.password_hash !== password) {
-      return NextResponse.json({ success: false, error: "Incorrect password" }, { status: 401 })
-    }
 
     const codes = await sql`
       SELECT id, plan, max_uses, used_count, expires_at, revoked_at
