@@ -58,6 +58,7 @@ Inventario de archivos versionados de Boomer AI. Se incluyen código, documentac
 |---|---|
 | `app/api/auth/delete/route.ts` | Endpoint para eliminar una cuenta o usuario autenticado. |
 | `app/api/auth/login/route.ts` | Endpoint de inicio de sesión. |
+| `app/api/auth/logout/route.ts` | Revoca una sesión activa. |
 | `app/api/auth/me/route.ts` | Endpoint para recuperar los datos de la sesión/usuario actual. |
 | `app/api/auth/signup/route.ts` | Endpoint de registro de usuario. |
 | `app/api/auth/update-stars/route.ts` | Endpoint para actualizar estrellas del usuario. |
@@ -113,6 +114,8 @@ Inventario de archivos versionados de Boomer AI. Se incluyen código, documentac
 | `lib/content-moderation.ts` | Términos y utilidades de filtrado de contenido. |
 | `lib/db-service.ts` | Capa de persistencia de datos del usuario usada por la web. |
 | `lib/neon-client.ts` | Cliente de conexión a Neon Postgres desde el servidor. |
+| `lib/passwords.ts` | Hash scrypt y verificación con migración de credenciales heredadas. |
+| `lib/server-auth.ts` | Emisión, validación, cookie y revocación de sesiones de cuenta. |
 | `lib/utils.ts` | Utilidades compartidas; incluye composición y combinación de clases CSS. |
 | `styles/globals.css` | Hoja de estilos global complementaria. |
 
@@ -240,6 +243,8 @@ Inventario de archivos versionados de Boomer AI. Se incluyen código, documentac
 | `scripts/002-create-conversations-table.sql` | SQL para crear la tabla de conversaciones. |
 | `scripts/003-add-ip-tracking.sql` | SQL para añadir seguimiento de direcciones IP. |
 | `scripts/004-create-access-codes-and-pro.sql` | SQL para códigos de acceso y datos de entitlement Pro. |
+| `scripts/005-secure-auth-sessions.sql` | SQL para sesiones revocables asociadas a cuentas. |
+| `scripts/passwords.test.mjs` | Pruebas de hashes de contraseña y compatibilidad con cuentas heredadas. |
 | `scripts/generate-access-code.mjs` | Script para generar códigos de acceso. |
 
 ## Recursos públicos web

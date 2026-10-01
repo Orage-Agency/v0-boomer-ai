@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server"
 import { sql } from "@/lib/neon-client"
+import { createSession, setSessionCookie } from "@/lib/server-auth"
+import { hashPassword, verifyPassword } from "@/lib/passwords"
+
+export const runtime = "nodejs"
 
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json()
 
-    if (!email || !password) {
+    if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
       return NextResponse.json({ success: false, error: "Email and password are required" }, { status: 400 })
     }
 
@@ -21,14 +25,22 @@ export async function POST(request: Request) {
 
     const user = users[0]
 
-    if (user.password_hash !== password) {
+    const passwordCheck = await verifyPassword(password, user.password_hash)
+    if (!passwordCheck.valid) {
       return NextResponse.json({ success: false, error: "Incorrect password" }, { status: 401 })
     }
+
+    if (passwordCheck.needsRehash) {
+      const passwordHash = await hashPassword(password)
+      await sql`UPDATE boomer_users SET password_hash = ${passwordHash}, updated_at = NOW() WHERE id = ${user.id}`
+    }
+
+    const session = await createSession(String(user.id))
 
     const expired = user.pro_expires_at && new Date(user.pro_expires_at) < new Date()
     const isPro = !!user.is_pro && !expired
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
         id: user.id,
@@ -42,7 +54,10 @@ export async function POST(request: Request) {
         createdAt: user.created_at,
         updatedAt: user.updated_at,
       },
+      ...(request.headers.get("x-boomer-client") === "mobile" ? { sessionToken: session.token } : {}),
     })
+    setSessionCookie(response, session.token, session.expiresAt)
+    return response
   } catch (error) {
     console.error("Login error:", error)
     return NextResponse.json({ success: false, error: "Failed to sign in" }, { status: 500 })

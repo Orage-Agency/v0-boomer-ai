@@ -12,30 +12,10 @@ import {
   signup as apiSignup,
   redeemCode as apiRedeem,
   refreshMe as apiMe,
+  logout as apiLogout,
 } from '@/api/auth';
 import { readStoredAuth, writeStoredAuth } from './authStorage';
 
-/**
- * Tracks the (optional) signed-in account.
- *
- * The native app is device-only by default — no login required to use free
- * features. An account is only needed when the user:
- *   (a) wants to log in on a new device to restore a Pro purchase, or
- *   (b) has an off-store access / bypass code to redeem.
- *
- * Account credentials use Keychain/Keystore on native and the current browser
- * tab session on web. Server returns a fresh `isPro` flag on every
- * login/refresh; the mobile EntitlementContext ORs this with RC's entitlements.
- */
-
-/**
- * Hardcoded bypass / access codes. These work entirely offline — no API call,
- * no email/password required. Used for VIPs, founders, friends + family, and
- * in-person demo guests where the network might be unreliable.
- *
- * A matched code persists a synthetic `AccountUser` with isPro=true, which
- * EntitlementContext ORs into the entitled flag.
- */
 const HARDCODED_BYPASS_CODES = new Set<string>([
   'BOOMERAI2026',
   'BOOMER-VIP-2026',
@@ -46,37 +26,17 @@ const HARDCODED_BYPASS_CODES = new Set<string>([
   'BOOMER-GUEST-003',
 ]);
 
-function normalizeCode(code: string): string {
-  return code.trim().toUpperCase();
-}
-
-function isHardcodedBypass(code: string): boolean {
-  return HARDCODED_BYPASS_CODES.has(normalizeCode(code));
-}
-
-function makeBypassUser(code: string, email?: string): AccountUser {
-  const normalized = normalizeCode(code);
-  return {
-    id: `bypass:${normalized}`,
-    email: email?.trim() || 'bypass@boomer.ai',
-    name: 'Boomer AI guest',
-    stars: 0,
-    level: 'pro',
-    isPro: true,
-    proSource: `bypass-code:${normalized}`,
-    proExpiresAt: null,
-  };
-}
-
 type StoredAuth = {
   email: string;
-  password: string;
   user: AccountUser;
+  sessionToken: string | null;
+  /** Read once to migrate legacy installs, then discarded. */
+  password?: string;
 };
 
 type AuthContextValue = {
   user: AccountUser | null;
-  /** True until the persisted session is loaded from AsyncStorage. */
+  sessionToken: string | null;
   hydrated: boolean;
   signIn(email: string, password: string): Promise<AccountUser>;
   signUp(email: string, password: string, name: string): Promise<AccountUser>;
@@ -91,83 +51,120 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [auth, setAuth] = useState<StoredAuth | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const stored = await readStoredAuth<StoredAuth>();
-        if (stored) setAuth(stored);
-      } catch {
-        // ignore — treat as logged-out
-      } finally {
-        setHydrated(true);
-      }
-    })();
-  }, []);
-
   const persist = useCallback(async (next: StoredAuth | null) => {
     setAuth(next);
     await writeStoredAuth(next);
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const stored = await readStoredAuth<StoredAuth>();
+        if (!stored) return;
+
+        const { password: legacyPassword, ...safeStored } = stored;
+        let next = { ...safeStored, sessionToken: stored.sessionToken ?? null };
+        if (!next.sessionToken && legacyPassword) {
+          try {
+            const migrated = await apiLogin(stored.email, legacyPassword);
+            next = { email: migrated.user.email, user: migrated.user, sessionToken: migrated.sessionToken };
+          } catch {
+            next = { email: stored.email, user: stored.user, sessionToken: null };
+          }
+        } else if (next.sessionToken) {
+          try {
+            next.user = await apiMe(next.sessionToken);
+          } catch {
+            next = { email: stored.email, user: stored.user, sessionToken: null };
+          }
+        }
+        if (active) {
+          setAuth(next);
+          await writeStoredAuth(next);
+        }
+      } catch {
+        // A damaged or unavailable local session leaves the app signed out.
+      } finally {
+        if (active) setHydrated(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const signIn = useCallback(
     async (email: string, password: string) => {
-      const user = await apiLogin(email, password);
-      await persist({ email, password, user });
-      return user;
+      const session = await apiLogin(email.trim(), password);
+      await persist({ ...session, email: session.user.email });
+      return session.user;
     },
     [persist],
   );
 
   const signUp = useCallback(
     async (email: string, password: string, name: string) => {
-      const user = await apiSignup(email, password, name);
-      await persist({ email, password, user });
-      return user;
+      const session = await apiSignup(email.trim(), password, name.trim());
+      await persist({ ...session, email: session.user.email });
+      return session.user;
     },
     [persist],
   );
 
   const redeem = useCallback(
     async (code: string, email?: string, password?: string) => {
-      // Hardcoded bypass codes work offline, no email/password required.
-      if (isHardcodedBypass(code)) {
-        const e = (email ?? auth?.email ?? '').trim();
-        const p = password ?? auth?.password ?? '';
-        const bypassUser = makeBypassUser(code, e);
-        await persist({
-          email: e || bypassUser.email,
-          password: p,
-          user: bypassUser,
-        });
+      const normalized = code.trim().toUpperCase();
+      if (HARDCODED_BYPASS_CODES.has(normalized)) {
+        const bypassUser: AccountUser = {
+          id: `bypass:${normalized}`,
+          email: email?.trim() || auth?.email || 'bypass@boomer.ai',
+          name: 'Boomer AI guest',
+          stars: 0,
+          level: 'pro',
+          isPro: true,
+          proSource: `bypass-code:${normalized}`,
+          proExpiresAt: null,
+        };
+        await persist({ email: bypassUser.email, user: bypassUser, sessionToken: null });
         return bypassUser;
       }
-      const e = email ?? auth?.email;
-      const p = password ?? auth?.password;
-      if (!e || !p) throw new Error('Sign in first, then redeem your code.');
-      const user = await apiRedeem(e, p, code);
-      await persist({ email: e, password: p, user });
+
+      let current = auth;
+      if (!current?.sessionToken) {
+        if (!email || !password) throw new Error('Sign in first, then redeem your code.');
+        const session = await apiLogin(email.trim(), password);
+        current = { ...session, email: session.user.email };
+      }
+      const user = await apiRedeem(current.sessionToken!, normalized);
+      await persist({ ...current, user, email: user.email });
       return user;
     },
     [auth, persist],
   );
 
   const refresh = useCallback(async () => {
-    if (!auth) return;
+    if (!auth?.sessionToken) return;
     try {
-      const user = await apiMe(auth.email, auth.password);
+      const user = await apiMe(auth.sessionToken);
       await persist({ ...auth, user });
     } catch {
-      // silent — stale token; user can re-login if needed
+      // Keep the local profile visible; the next sign-in can renew the session.
     }
   }, [auth, persist]);
 
   const signOut = useCallback(async () => {
-    await persist(null);
-  }, [persist]);
+    try {
+      if (auth?.sessionToken) await apiLogout(auth.sessionToken);
+    } finally {
+      await persist(null);
+    }
+  }, [auth, persist]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user: auth?.user ?? null,
+      sessionToken: auth?.sessionToken ?? null,
       hydrated,
       signIn,
       signUp,

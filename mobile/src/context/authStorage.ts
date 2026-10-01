@@ -32,9 +32,9 @@ async function writeCurrent(value: string | null): Promise<void> {
 }
 
 /**
- * Read account data from Keychain/Keystore on native, or from the current
- * browser tab session on web. Migrate and remove the previous plaintext
- * AsyncStorage/localStorage entry the first time this is called.
+ * Read revocable session data from Keychain/Keystore on native, or from the
+ * current browser tab session on web. Legacy credentials are read only long
+ * enough for AuthContext to exchange them for a session token.
  */
 export async function readStoredAuth<T>(): Promise<T | null> {
   let serialized: string | null = null;

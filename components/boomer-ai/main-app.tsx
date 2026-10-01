@@ -449,6 +449,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
         {activeTab === "profile" && (
           <ProfileView
             userProfile={userProfile}
+            updateProfile={updateProfile}
             onReset={() => onReset?.()}
             onBack={() => setActiveTab("home")}
 

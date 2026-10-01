@@ -4,11 +4,13 @@ import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
+import { useAuth } from '@/context/AuthContext';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { profile, resetOnboarding, deleteAccount } = useProfile();
+  const { user, signOut } = useAuth();
   const displayName = profile.name || profile.userName || 'User';
   const completedLessons = profile.lessonsCompleted?.length ?? 0;
 
@@ -48,6 +50,21 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.name}>{displayName}</Text>
           <Text style={styles.title}>Your Profile</Text>
+        </View>
+
+        <View style={styles.accountCard}>
+          <Text style={styles.cardTitle}>Your account</Text>
+          {user && !user.id.startsWith('bypass:') ? (
+            <>
+              <Text style={styles.cardHint}>Signed in as {user.email}. Your account can keep progress across devices.</Text>
+              <Button title="Sign out" onPress={() => void signOut()} variant="secondary" />
+            </>
+          ) : (
+            <>
+              <Text style={styles.cardHint}>Create an account or sign in to keep your learning progress across devices.</Text>
+              <Button title="Sign in or create account" onPress={() => router.push('/login')} />
+            </>
+          )}
         </View>
 
         <View style={styles.card}>
@@ -91,6 +108,7 @@ const styles = StyleSheet.create({
   name: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.textPrimary },
   title: { fontSize: fontSize.md, color: colors.textSecondary },
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
+  accountCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
   cardTitle: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.textPrimary },
   cardHint: { fontSize: fontSize.sm, lineHeight: 23, color: colors.textSecondary },
   rows: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, overflow: 'hidden' },

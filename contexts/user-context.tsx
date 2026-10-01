@@ -61,30 +61,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [gallery, setGallery] = useState<db.GalleryImage[]>([])
   const [chatHistory, setChatHistory] = useState<db.ChatMessage[]>([])
 
-  // Load session on mount
-  useEffect(() => {
-    const loadSession = async () => {
-      setIsLoading(true)
-
-      const savedSession = localStorage.getItem("boomer_session")
-      if (savedSession) {
-        try {
-          const session = JSON.parse(savedSession)
-          if (session.email) {
-            await loadUserData(session.email, session.name)
-          }
-        } catch (error) {
-          console.error("Failed to load session:", error)
-        }
-      }
-
-      setIsLoading(false)
-    }
-
-    loadSession()
-  }, [])
-
-  const loadUserData = async (userEmail: string, userName?: string) => {
+  const loadUserData = useCallback(async (userEmail: string, userName?: string) => {
     setIsLoading(true)
 
     try {
@@ -136,15 +113,42 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     setIsLoading(false)
-  }
+  }, [])
+
+  // Load session on mount. The server validates the HttpOnly cookie; browser
+  // storage is never accepted as proof of identity.
+  useEffect(() => {
+    let active = true
+    const loadSession = async () => {
+      localStorage.removeItem("boomer_session")
+      try {
+        const response = await fetch("/api/auth/me", { credentials: "same-origin" })
+        const result = await response.json()
+        if (active && result.success && result.user?.email) {
+          await loadUserData(result.user.email, result.user.name)
+        }
+      } catch {
+        // Offline users can still use the local, anonymous profile.
+      } finally {
+        if (active) setIsLoading(false)
+      }
+    }
+    void loadSession()
+    return () => { active = false }
+  }, [loadUserData])
 
   const login = useCallback(async (userEmail: string, userName: string) => {
-    localStorage.setItem("boomer_session", JSON.stringify({ email: userEmail, name: userName }))
+    const response = await fetch("/api/auth/me", { credentials: "same-origin" })
+    const result = await response.json()
+    if (!response.ok || !result.success || result.user?.email !== userEmail) {
+      throw new Error("Sign in to continue")
+    }
     await loadUserData(userEmail, userName)
-  }, [])
+  }, [loadUserData])
 
   const logout = useCallback(() => {
     localStorage.removeItem("boomer_session")
+    void fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" })
     setIsLoggedIn(false)
     setEmail(null)
     setName(null)
@@ -216,7 +220,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     await loadUserData(email, name || undefined)
     setIsLoading(false)
-  }, [email, name])
+  }, [email, name, loadUserData])
 
   const updateProfileAction = useCallback(
     async (updates: { name?: string; profilePhotoUrl?: string }) => {
