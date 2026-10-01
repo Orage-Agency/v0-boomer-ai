@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Play, CheckCircle, ArrowRight, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
+import { LESSONS as VIDEO_LESSONS } from "@boomer-ai/shared"
 
 interface LessonsTabProps {
   userProfile: UserProfile
@@ -11,52 +12,6 @@ interface LessonsTabProps {
   onNavigateToChat?: (prompt: string) => void
 }
 
-const VIDEO_LESSONS = [
-  {
-    id: "ask-ai-diy",
-    title: "Ask AI and Do It Yourself",
-    duration: "2 min",
-    url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/4b3e23ac-d014-420c-9189-f91877c98e5d.mp4",
-    prompt: "How can I use AI to help me do things myself? Give me 3 practical examples I can try today!",
-  },
-  {
-    id: "interact-family",
-    title: "Interact with Your Family",
-    duration: "3 min",
-    url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/b397f50d-34b5-461e-bc14-a19abc3b66db.mp4",
-    prompt:
-      "Help me find fun activities to do with my granddaughter, like playing volleyball or other games we can enjoy together!",
-  },
-  {
-    id: "easy-push-button",
-    title: "Easy to Use - Push a Button and Make Things Happen",
-    duration: "2 min",
-    url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/bf06e1a1-37a6-46f5-9ba6-ec12a739e098.mp4",
-    prompt: "Show me how easy it is to use AI - what are some simple things I can ask you to do right now?",
-  },
-  {
-    id: "sports-stats",
-    title: "Sports and Stats - Ask AI",
-    duration: "4 min",
-    url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/33a0a5dc-ee0b-4eff-a9e7-a3e8bed599be.mp4",
-    prompt: "Tell me about my favorite sports team's latest stats and what makes them special this season!",
-  },
-  {
-    id: "ai-new-boomers",
-    title: "AI is New to Boomers",
-    duration: "3 min",
-    url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/dace82a2-eb45-4c97-8337-4e2ceb2c211f.mp4",
-    prompt: "Explain AI to me in a way that's easy to understand - what is it and how can it help me in my daily life?",
-  },
-  {
-    id: "learn-ai-how-to",
-    title: "Learn AI and How to Use It",
-    duration: "2 min",
-    url: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/424fdb71-3868-4075-8785-45d414ebf5ad.mp4",
-    prompt:
-      "Teach me the basics of using AI effectively - what are the best ways to ask questions and get helpful answers?",
-  },
-]
 
 export function LessonsTab({ userProfile, updateProfile, onNavigateToChat }: LessonsTabProps) {
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null)

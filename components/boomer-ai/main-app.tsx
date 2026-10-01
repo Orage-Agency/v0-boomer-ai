@@ -13,6 +13,7 @@ import { VoiceChatTab } from "./voice-chat-tab"
 import { AiArtTab } from "./ai-art-tab"
 import { QuickQuestionsTab } from "./quick-questions"
 import type { UserProfile } from "@/app/page"
+import { API_PATHS } from "@boomer-ai/shared"
 
 interface MainAppProps {
   userProfile: UserProfile
@@ -133,7 +134,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
       }
 
       try {
-        const response = await fetch(`/api/conversations?deviceId=${deviceId}`)
+        const response = await fetch(`${API_PATHS.conversations}?deviceId=${deviceId}`)
 
         if (response.ok) {
           try {

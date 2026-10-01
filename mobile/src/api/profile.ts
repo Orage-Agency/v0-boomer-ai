@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from './client';
+import { API_PATHS } from '@boomer-ai/shared';
 import type { UserProfile } from '@/types';
 
 /**
@@ -25,9 +26,9 @@ type SaveProfileResponse = {
 
 export function getProfile(deviceId: string): Promise<GetProfileResponse> {
   const q = new URLSearchParams({ deviceId });
-  return apiGet<GetProfileResponse>(`/api/profile?${q.toString()}`);
+  return apiGet<GetProfileResponse>(`${API_PATHS.profile}?${q.toString()}`);
 }
 
 export function saveProfile(profile: UserProfile): Promise<SaveProfileResponse> {
-  return apiPost<SaveProfileResponse>('/api/profile', profile);
+  return apiPost<SaveProfileResponse>(API_PATHS.profile, profile);
 }

@@ -1,4 +1,5 @@
 import { apiPost } from './client';
+import { API_PATHS } from '@boomer-ai/shared';
 import type { GenerateImageResult } from '@/types';
 
 /**
@@ -10,11 +11,11 @@ import type { GenerateImageResult } from '@/types';
  */
 
 export function generateImage(prompt: string): Promise<GenerateImageResult> {
-  return apiPost<GenerateImageResult>('/api/generate-image', { prompt });
+  return apiPost<GenerateImageResult>(API_PATHS.generateImage, { prompt });
 }
 
 export function improvePrompt(
   prompt: string,
 ): Promise<{ improvedPrompt?: string; error?: string }> {
-  return apiPost('/api/improve-prompt', { prompt });
+  return apiPost(API_PATHS.improvePrompt, { prompt });
 }

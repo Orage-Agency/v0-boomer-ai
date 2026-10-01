@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Wand2, Download, Share2, Loader2, AlertTriangle, ArrowLeft, Sparkles, RefreshCw } from "lucide-react"
 import { containsProhibitedContent, SAFETY_MESSAGE } from "@/lib/content-moderation"
+import { API_PATHS } from "@boomer-ai/shared"
 
 interface AiArtTabProps {
   onBack: () => void
@@ -48,7 +49,7 @@ export function AiArtTab({ onBack }: AiArtTabProps) {
     try {
       const fullPrompt = `${prompt}, ${selectedStyle} style, high quality, beautiful lighting`
       
-      const response = await fetch("/api/generate-image", {
+      const response = await fetch(API_PATHS.generateImage, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: fullPrompt }),

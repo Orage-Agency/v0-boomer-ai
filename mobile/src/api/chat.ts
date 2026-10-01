@@ -1,4 +1,5 @@
 import { apiFetchRaw } from './client';
+import { API_PATHS } from '@boomer-ai/shared';
 import { env } from '@/config/env';
 import type { ChatMessage } from '@/types';
 
@@ -74,7 +75,7 @@ function parsePayload(payload: string): string {
  * Calls `onDelta` with cumulative text as chunks are parsed.
  */
 export async function sendChat(opts: SendChatOptions): Promise<string> {
-  const res = await apiFetchRaw('/api/chat', {
+  const res = await apiFetchRaw(API_PATHS.chat, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

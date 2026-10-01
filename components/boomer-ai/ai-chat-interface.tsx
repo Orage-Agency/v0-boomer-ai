@@ -4,6 +4,7 @@ import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { useState } from "react"
 import { Mic, Send, ArrowLeft } from "lucide-react"
+import { API_PATHS } from "@boomer-ai/shared"
 
 interface AIChatInterfaceProps {
   onBack?: () => void
@@ -14,7 +15,7 @@ export function AIChatInterface({ onBack }: AIChatInterfaceProps) {
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null)
 
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    transport: new DefaultChatTransport({ api: API_PATHS.chat }),
   })
 
   const suggestedPrompts = [

@@ -6,47 +6,9 @@ import { AgeSelection } from "@/components/boomer-ai/age-selection"
 import { LearningLevel } from "@/components/boomer-ai/learning-level"
 import { MainApp } from "@/components/boomer-ai/main-app"
 import { Stepper } from "@/components/boomer-ai/stepper"
+import { API_PATHS, DEFAULT_PROFILE, type UserProfile } from "@boomer-ai/shared"
 
-export type UserProfile = {
-  persona: string | null
-  age: string | null
-  aiLevel: number
-  userTitle: string | null
-  avatarSrc: string | null
-  level: string | null
-  stars: number
-  streak: number
-  badges: string[]
-  lessonsCompleted: string[]
-  userName: string | null
-  name?: string
-  deviceId: string | null
-  dailyArtCount: number
-  lastArtDate: string | null
-  pinnedFeatures: string[]
-  email: string | null
-  isLoggedIn: boolean
-}
-
-const DEFAULT_PROFILE: UserProfile = {
-  persona: null,
-  age: null,
-  aiLevel: 0,
-  userTitle: null,
-  avatarSrc: null,
-  level: null,
-  stars: 0,
-  streak: 0,
-  badges: [],
-  lessonsCompleted: [],
-  userName: null,
-  deviceId: null,
-  dailyArtCount: 0,
-  lastArtDate: null,
-  pinnedFeatures: [],
-  email: null,
-  isLoggedIn: false,
-}
+export type { UserProfile }
 
 export default function BoomerAIPage() {
   const [currentView, setCurrentView] = useState<"onboarding" | "app">("onboarding")
@@ -68,7 +30,7 @@ export default function BoomerAIPage() {
 
   const loadProfile = async (deviceId: string) => {
     try {
-      const response = await fetch(`/api/profile?deviceId=${deviceId}`)
+      const response = await fetch(`${API_PATHS.profile}?deviceId=${deviceId}`)
       const data = await response.json()
 
       if (data.success && data.profile) {
@@ -115,7 +77,7 @@ export default function BoomerAIPage() {
 
   const saveToDatabase = async (profile: UserProfile) => {
     try {
-      await fetch("/api/profile", {
+      await fetch(API_PATHS.profile, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profile),

@@ -5,6 +5,7 @@ import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { Sparkles, X, ChevronDown, ChevronUp, Lightbulb, RefreshCw, AlertCircle, Volume2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { API_PATHS } from "@boomer-ai/shared"
 
 interface ChatTabProps {
   pendingMessage: string | null
@@ -179,7 +180,7 @@ export function ChatTab({
 
   const { messages, sendMessage, status, setMessages, error, reload } = useChat({
     transport: new DefaultChatTransport({
-      api: "/api/chat",
+      api: API_PATHS.chat,
     }),
     body: {
       model: "openai/gpt-4o-mini",
@@ -320,7 +321,7 @@ export function ChatTab({
 
   const loadConversation = async (id: string) => {
     try {
-      const response = await fetch(`/api/conversations?id=${id}`)
+      const response = await fetch(`${API_PATHS.conversations}?id=${id}`)
       if (response.ok) {
         const data = await response.json()
         if (data.messages) {
@@ -343,7 +344,7 @@ export function ChatTab({
       const title = messages[0]?.parts?.[0]?.text?.substring(0, 50) || "New conversation"
       const preview = messages[messages.length - 1]?.parts?.[0]?.text?.substring(0, 100) || ""
 
-      const response = await fetch("/api/conversations", {
+      const response = await fetch(API_PATHS.conversations, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

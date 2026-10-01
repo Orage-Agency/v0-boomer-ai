@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ["@boomer-ai/shared"],
   typescript: {
     ignoreBuildErrors: true,
   },

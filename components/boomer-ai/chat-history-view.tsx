@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { ArrowLeft, MessageSquare, Trash2, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { UserProfile } from "@/app/page"
+import { API_PATHS } from "@boomer-ai/shared"
 
 interface Conversation {
   id: string
@@ -35,7 +36,7 @@ export function ChatHistoryView({ userProfile, onLoadConversation, onBack }: Cha
         return
       }
 
-      const response = await fetch(`/api/conversations?deviceId=${deviceId}`)
+      const response = await fetch(`${API_PATHS.conversations}?deviceId=${deviceId}`)
       if (response.ok) {
         const data = await response.json()
         setConversations(data.conversations || [])
@@ -51,7 +52,7 @@ export function ChatHistoryView({ userProfile, onLoadConversation, onBack }: Cha
     if (!confirm("Are you sure you want to delete this conversation?")) return
 
     try {
-      const response = await fetch(`/api/conversations?id=${conversationId}`, {
+      const response = await fetch(`${API_PATHS.conversations}?id=${conversationId}`, {
         method: "DELETE",
       })
 

@@ -17,6 +17,9 @@ importers:
       '@ai-sdk/xai':
         specifier: 2.0.29
         version: 2.0.29(zod@3.25.76)
+      '@boomer-ai/shared':
+        specifier: file:./mobile/shared
+        version: file:mobile/shared
       '@elevenlabs/react':
         specifier: 0.9.1
         version: 0.9.1(@types/dom-mediacapture-record@1.0.22)(react@19.0.0)
@@ -353,6 +356,9 @@ packages:
   '@babel/types@7.29.8':
     resolution: {integrity: sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg==}
     engines: {node: '>=6.9.0'}
+
+  '@boomer-ai/shared@file:mobile/shared':
+    resolution: {directory: mobile/shared, type: directory}
 
   '@bufbuild/protobuf@1.10.1':
     resolution: {integrity: sha512-wJ8ReQbHxsAfXhrf9ixl0aYbZorRuOWpBNzm8pL8ftmSxQx/wnJD5Eg861NwJU/czy2VXFIebCeZnZrI9rktIQ==}
@@ -4251,6 +4257,8 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
+
+  '@boomer-ai/shared@file:mobile/shared': {}
 
   '@bufbuild/protobuf@1.10.1': {}
 

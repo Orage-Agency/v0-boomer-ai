@@ -18,6 +18,17 @@ Inventario de archivos versionados de Boomer AI. Se incluyen código, documentac
 | `postcss.config.mjs` | Plugins de PostCSS usados por estilos web. |
 | `tsconfig.json` | Opciones del compilador TypeScript web. |
 
+### Datos y contratos compartidos
+
+| Archivo | Descripción |
+|---|---|
+| `mobile/shared/package.json` | Paquete local consumido por Next.js y Expo. |
+| `mobile/shared/src/api.ts` | Rutas y contratos de las operaciones API compartidas. |
+| `mobile/shared/src/content.ts` | Fuente común del contenido de lecciones, consejos y preguntas rápidas. |
+| `mobile/shared/src/index.ts` | Exportaciones públicas del paquete compartido. |
+| `mobile/shared/src/profile.ts` | Modelo de perfil y valores iniciales comunes. |
+| `mobile/shared/src/progress.ts` | Reglas para combinar progreso local y de cuenta. |
+
 ## Instrucciones y documentación
 
 | Archivo | Descripción |
@@ -166,7 +177,8 @@ Inventario de archivos versionados de Boomer AI. Se incluyen código, documentac
 | `mobile/src/context/ProfileContext.tsx` | Estado del perfil, carga remota y caché local. |
 | `mobile/src/context/purchases.ts` | Integración de RevenueCat y operaciones de compra. |
 | `mobile/src/context/storage.ts` | Identificador de dispositivo y persistencia AsyncStorage. |
-| `mobile/src/data/content.ts` | Contenido estático de aprendizaje usado por móvil. |
+| `mobile/src/data/content.ts` | Puente de compatibilidad móvil hacia el contenido compartido. |
+| `mobile/src/data/progress.test.ts` | Cobertura para la unión del progreso local y el de cuenta. |
 | `mobile/src/lib/freeTier.ts` | Reglas y límites de uso del nivel gratuito. |
 | `mobile/src/screens/pendingPrompt.ts` | Estado auxiliar para conservar un prompt pendiente. |
 | `mobile/src/screens/useChat.ts` | Hook que coordina estado, envío y recepción de mensajes. |

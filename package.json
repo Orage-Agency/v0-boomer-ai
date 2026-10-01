@@ -9,6 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@boomer-ai/shared": "file:./mobile/shared",
     "@ai-sdk/openai": "latest",
     "@ai-sdk/react": "latest",
     "@ai-sdk/xai": "2.0.29",
