@@ -381,8 +381,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             { id: "chat", icon: MessageSquare, label: "Chat" },
             { id: "lessons", icon: BookOpen, label: "Learn" },
             { id: "tips", icon: Lightbulb, label: "Tips" },
-            { id: "play", icon: Gamepad2, label: "Play" },
-            { id: "aiart", icon: Palette, label: "AI Art" },
+            { id: "profile", icon: User, label: "Profile" },
           ].map((item) => {
             const IconComponent = item.icon
             return (
@@ -480,9 +479,8 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             onOpenLessons={() => setActiveTab("lessons")}
             onOpenTips={() => setActiveTab("tips")}
             onOpenQuestions={() => setActiveTab("questions")}
-            onOpenVoice={() => setActiveTab("voice")}
+  onOpenVoice={() => setActiveTab("voice")}
   onOpenAiArt={() => setActiveTab("aiart")}
-  onOpenGames={() => setActiveTab("play")}
   onOpenAskMe={() => setActiveTab("askme")}
   />
         )}
@@ -662,8 +660,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             { id: "chat", icon: MessageSquare, label: "Chat" },
             { id: "lessons", icon: BookOpen, label: "Learn" },
             { id: "tips", icon: Lightbulb, label: "Tips" },
-            { id: "play", icon: Gamepad2, label: "Play" },
-            { id: "aiart", icon: Palette, label: "AI Art" },
+            { id: "profile", icon: User, label: "Profile" },
           ].map((item) => {
             const IconComponent = item.icon
             return (
