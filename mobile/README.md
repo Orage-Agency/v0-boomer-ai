@@ -162,3 +162,21 @@ scheme's StoreKit Configuration unset and follow §6 below.
 - `EXPO_PUBLIC_RC_ANDROID_KEY` — RevenueCat Android public SDK key (Phase 2).
 - `expo.extra.apiBaseUrl` in `app.json` — origin of the Vercel-hosted
   Next.js backend that serves `/api/*` (chat, images, profile sync).
+
+---
+
+## Local development and verification
+
+Run these commands from `mobile/`:
+
+```sh
+npm ci
+npm run web       # Start the Expo Web client
+npm run verify    # TypeScript, ESLint, Jest, and a production web export
+```
+
+`npm run ios` and `npm run android` start native development builds and require
+the corresponding Xcode or Android SDK/emulator setup. Expo Web uses a
+tab-scoped auth session; iOS and Android store account credentials using the
+system Keychain/Keystore. Tests live outside `app/` because Expo Router treats
+files in that folder as routes.

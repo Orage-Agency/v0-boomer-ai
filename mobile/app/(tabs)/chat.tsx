@@ -3,7 +3,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,

@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 /**
  * Centralized runtime configuration.
@@ -54,4 +55,5 @@ export const isApiConfigured = !env.apiBaseUrl.includes('CHANGE-ME');
 
 /** True when a real RevenueCat key has been supplied for the current platform. */
 export const isRevenueCatConfigured =
-  isRealKey(env.revenueCat.iosApiKey) || isRealKey(env.revenueCat.androidApiKey);
+  (Platform.OS === 'ios' && isRealKey(env.revenueCat.iosApiKey)) ||
+  (Platform.OS === 'android' && isRealKey(env.revenueCat.androidApiKey));

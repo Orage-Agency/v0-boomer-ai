@@ -32,7 +32,7 @@ export default function RootLayout() {
               }}
             >
               <Stack.Screen name="index" />
-              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="onboarding/index" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="voice" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="image-gen" options={{ animation: 'slide_from_right' }} />

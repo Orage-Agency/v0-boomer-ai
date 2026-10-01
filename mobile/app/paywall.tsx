@@ -253,7 +253,7 @@ export default function PaywallScreen() {
         const playStoreUrl = `https://play.google.com/redeem?code=${encodeURIComponent(promoCode.trim())}`;
         await Linking.openURL(playStoreUrl);
       }
-    } catch (e) {
+    } catch {
       setMessage('Could not open the code redemption screen. Please try again.');
     } finally {
       setPromoLoading(false);

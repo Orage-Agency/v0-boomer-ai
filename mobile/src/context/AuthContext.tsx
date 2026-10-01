@@ -6,7 +6,6 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   AccountUser,
   login as apiLogin,
@@ -14,6 +13,7 @@ import {
   redeemCode as apiRedeem,
   refreshMe as apiMe,
 } from '@/api/auth';
+import { readStoredAuth, writeStoredAuth } from './authStorage';
 
 /**
  * Tracks the (optional) signed-in account.
@@ -23,12 +23,10 @@ import {
  *   (a) wants to log in on a new device to restore a Pro purchase, or
  *   (b) has an off-store access / bypass code to redeem.
  *
- * We persist email + password in AsyncStorage (matching the existing simple
- * web auth). Server returns a fresh `isPro` flag on every login/refresh; the
- * mobile EntitlementContext ORs this with RC's customerInfo.entitlements.
+ * Account credentials use Keychain/Keystore on native and the current browser
+ * tab session on web. Server returns a fresh `isPro` flag on every
+ * login/refresh; the mobile EntitlementContext ORs this with RC's entitlements.
  */
-
-const STORAGE_KEY = 'boomer.auth.v1';
 
 /**
  * Hardcoded bypass / access codes. These work entirely offline — no API call,
@@ -96,8 +94,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (raw) setAuth(JSON.parse(raw) as StoredAuth);
+        const stored = await readStoredAuth<StoredAuth>();
+        if (stored) setAuth(stored);
       } catch {
         // ignore — treat as logged-out
       } finally {
@@ -108,8 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const persist = useCallback(async (next: StoredAuth | null) => {
     setAuth(next);
-    if (next) await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    else await AsyncStorage.removeItem(STORAGE_KEY);
+    await writeStoredAuth(next);
   }, []);
 
   const signIn = useCallback(
