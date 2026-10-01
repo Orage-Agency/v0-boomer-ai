@@ -1,5 +1,6 @@
 import { consumeStream, convertToModelMessages, gateway, streamText, type UIMessage } from "ai"
 import { containsProhibitedContent } from "@/lib/content-moderation"
+import { BOOMER_AI_CHAT_SYSTEM_PROMPT } from "@/lib/chat-system-prompt"
 
 export const maxDuration = 60
 
@@ -73,8 +74,7 @@ export async function POST(req: Request) {
     
     const result = streamText({
       model: gateway("openai/gpt-4o-mini"),
-      system:
-        "You are a friendly and helpful AI companion named Boomer AI. You specialize in helping older adults learn about and use technology. Always provide clear, concise, and easy-to-understand answers. Be patient, encouraging, and supportive. When explaining technical concepts, use simple language and relatable examples. Break down complex topics into simple steps. When analyzing images, describe what you see in detail and provide helpful context. You must refuse any requests for inappropriate, harmful, violent, sexual, or illegal content.",
+      system: BOOMER_AI_CHAT_SYSTEM_PROMPT,
       messages: prompt,
       abortSignal: req.signal,
     })

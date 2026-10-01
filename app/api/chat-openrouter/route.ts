@@ -1,3 +1,5 @@
+import { BOOMER_AI_CHAT_SYSTEM_PROMPT } from "@/lib/chat-system-prompt"
+
 export const maxDuration = 30
 
 export async function POST(req: Request) {
@@ -58,8 +60,7 @@ export async function POST(req: Request) {
   const allMessages = [
     {
       role: "system",
-      content:
-        "You are a friendly and helpful AI companion named Boomer AI. You specialize in helping older adults learn about and use technology. Always provide clear, concise, and easy-to-understand answers. Be patient, encouraging, and supportive. When explaining technical concepts, use simple language and relatable examples. Break down complex topics into simple steps. When analyzing images, describe what you see in detail and provide helpful context about what's in the image, what it might be used for, and any relevant information that would be helpful to someone learning about technology.",
+      content: BOOMER_AI_CHAT_SYSTEM_PROMPT,
     },
     ...openRouterMessages,
   ]
