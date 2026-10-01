@@ -26,6 +26,7 @@ Boomer AI helps adults, especially people with limited experience using AI, lear
 
 - Work through the project cycle in order: **Planeo** (confirm goal, scope, baseline, and safe approach) → **Construyo** (change only the agreed scope) → **Verifico** (run relevant requested checks and report evidence/limits) → **Completo** (summarize outcome and remaining work). Do not call the task complete before verification and a clear handoff.
 - Preserve existing behavior and product content unless the user asks to change them.
+- Treat web and `mobile/` as paired clients: any product, content, interaction, or behavior change made in one must be reflected in the other in the same task. Keep platform-specific component implementations as aligned clones with equivalent purpose, copy, states, accessibility, and behavior. Before completing a change, inspect and verify both clients; if a capability is genuinely platform-specific, document why and provide the closest equivalent in the other client where possible.
 - Before UI edits, inspect the target screen and its neighboring navigation/state flows in both the relevant web or mobile app and shared guidance.
 - Do not claim a behavior works from source inspection alone. State what was inspected and what was actually verified.
 - Do not commit, push, deploy, or modify unrelated files without an explicit request.
