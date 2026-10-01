@@ -1,6 +1,8 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
   FlatList,
+  Alert,
+  Image,
   Modal,
   KeyboardAvoidingView,
   Platform,
@@ -13,6 +15,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -52,6 +56,7 @@ export default function Chat() {
   const { sessionToken } = useAuth();
   const { entitled } = useEntitlement();
   const [input, setInput] = useState('');
+  const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [historyVisible, setHistoryVisible] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -98,8 +103,9 @@ export default function Chat() {
       const trimmed = text.trim();
       if (!trimmed) return;
       const runSend = () => {
-        void send(trimmed);
+        void send(trimmed, attachedImage ?? undefined);
         setInput('');
+        setAttachedImage(null);
         setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
       };
       if (entitledRef.current) {
@@ -111,8 +117,34 @@ export default function Chat() {
         if (ok) runSend();
       })();
     },
-    [consumeFreeQuota, send],
+    [attachedImage, consumeFreeQuota, send],
   );
+
+  const pickPhoto = useCallback(async (useCamera: boolean) => {
+    const permission = useCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Allow photo access to attach an image.');
+      return;
+    }
+    const result = useCamera
+      ? await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, base64: true, quality: 0.8 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, base64: true, quality: 0.8 });
+    const asset = result.canceled ? undefined : result.assets[0];
+    if (asset?.base64) {
+      setAttachedImage(`data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}`);
+      if (!input.trim()) setInput('What can you tell me about this image?');
+    }
+  }, [input]);
+
+  const addPhoto = useCallback(() => {
+    Alert.alert('Add a photo', 'Choose how to add an image to your message.', [
+      { text: 'Choose a photo', onPress: () => void pickPhoto(false) },
+      { text: 'Take a photo', onPress: () => void pickPhoto(true) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }, [pickPhoto]);
 
   const openHistory = useCallback(async () => {
     setHistoryVisible(true);
@@ -286,7 +318,29 @@ export default function Chat() {
           </View>
         )}
 
+        {attachedImage && (
+          <View style={styles.attachmentPreview}>
+            <Image source={{ uri: attachedImage }} style={styles.attachmentImage} accessibilityLabel="Photo attached" />
+            <Pressable
+              onPress={() => setAttachedImage(null)}
+              style={styles.removeAttachment}
+              accessibilityRole="button"
+              accessibilityLabel="Remove attached photo"
+              hitSlop={8}
+            >
+              <Ionicons name="close-circle" size={24} color={colors.textPrimary} />
+            </Pressable>
+          </View>
+        )}
         <View style={styles.inputBar}>
+          <Pressable
+            onPress={addPhoto}
+            style={styles.iconButton}
+            accessibilityRole="button"
+            accessibilityLabel="Add a photo"
+          >
+            <Ionicons name="add" size={28} color={colors.textPrimary} />
+          </Pressable>
           <TextInput
             style={styles.input}
             value={input}
@@ -297,6 +351,15 @@ export default function Chat() {
             editable={!busy}
             accessibilityLabel="Message input"
           />
+          <Pressable
+            onPress={() => router.push('/voice')}
+            disabled={busy}
+            style={[styles.iconButton, busy && styles.sendDisabled]}
+            accessibilityRole="button"
+            accessibilityLabel="Open voice chat"
+          >
+            <Ionicons name="mic-outline" size={23} color={colors.textPrimary} />
+          </Pressable>
           <AnimatedPressable
             onPress={() => handleSend(input)}
             disabled={busy || !input.trim()}
@@ -404,6 +467,30 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+  },
+  iconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attachmentPreview: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    alignSelf: 'flex-start',
+    position: 'relative',
+  },
+  attachmentImage: { width: 64, height: 64, borderRadius: radius.md },
+  removeAttachment: {
+    position: 'absolute',
+    right: -8,
+    top: -8,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
   },
   input: {
     flex: 1,

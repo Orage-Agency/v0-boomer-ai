@@ -52,7 +52,7 @@ export function useChatSession() {
   }, [sessionToken]);
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, capturedImage?: string) => {
       const trimmed = text.trim();
       if (!trimmed || status === 'streaming' || status === 'submitted') return;
       setError(null);
@@ -76,6 +76,7 @@ export function useChatSession() {
       try {
         const full = await chatApi.sendChat({
           messages: history,
+          capturedImage,
           conversationId: conversationId.current == null ? undefined : String(conversationId.current),
           onDelta: (cumulative) => {
             setStatus('streaming');

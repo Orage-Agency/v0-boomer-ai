@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Home, MessageSquare, BookOpen, Mic, MicOff, Send, Lightbulb, History, Menu, RotateCcw, X, User, ImagePlus, Camera } from "lucide-react"
+import { Home, MessageSquare, BookOpen, Mic, MicOff, Send, Lightbulb, History, Menu, RotateCcw, X, User, Plus } from "lucide-react"
 import { HomeTab } from "./home-tab"
 import { ChatTab } from "./chat-tab"
 import { LessonsTab } from "./lessons-tab"
@@ -27,6 +27,7 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
   >("home")
   const [inputValue, setInputValue] = useState("")
   const [isListening, setIsListening] = useState(false)
+  const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false)
   const [interimTranscript, setInterimTranscript] = useState("")
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const recognitionRef = useRef<any>(null)
@@ -528,31 +529,37 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
           className="hidden"
         />
 
-        <div className="flex items-center gap-2 bg-slate-100 rounded-2xl p-2 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.15)]">
+        <div className="relative flex items-center gap-2 bg-slate-100 rounded-2xl p-2 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.15)]">
+          {isAttachmentMenuOpen && (
+            <div className="absolute bottom-full left-2 mb-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg" role="group" aria-label="Add to message">
+              <button
+                onClick={() => {
+                  setIsAttachmentMenuOpen(false)
+                  imageInputRef.current?.click()
+                }}
+                className="flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-800 hover:bg-slate-50"
+              >
+                <span>Choose a photo</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsAttachmentMenuOpen(false)
+                  cameraInputRef.current?.click()
+                }}
+                className="flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-800 hover:bg-slate-50"
+              >
+                <span>Take a photo</span>
+              </button>
+            </div>
+          )}
           <button
-            onClick={() => imageInputRef.current?.click()}
+            onClick={() => setIsAttachmentMenuOpen((open) => !open)}
             className="p-3 rounded-xl transition-all flex-shrink-0 touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-white"
-            aria-label="Attach photo from library"
+            aria-label="Add an attachment"
+            aria-expanded={isAttachmentMenuOpen}
+            aria-haspopup="true"
           >
-            <ImagePlus className="w-6 h-6" />
-          </button>
-          <button
-            onClick={() => cameraInputRef.current?.click()}
-            className="p-3 rounded-xl transition-all flex-shrink-0 touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-white"
-            aria-label="Take a photo with camera"
-          >
-            <Camera className="w-6 h-6" />
-          </button>
-          <button
-            onClick={toggleVoiceRecognition}
-            className={`p-3 rounded-xl transition-all flex-shrink-0 touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center ${
-              isListening
-                ? "text-white bg-red-500 shadow-lg animate-pulse"
-                : "text-slate-500 hover:text-blue-600 hover:bg-white"
-            }`}
-            aria-label={isListening ? "Stop listening" : "Start voice input"}
-          >
-            {isListening ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+            <Plus className="w-6 h-6" />
           </button>
           <textarea
             ref={textareaRef}
@@ -570,6 +577,18 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             rows={1}
             style={{ fontSize: "16px" }}
           />
+          <button
+            onClick={toggleVoiceRecognition}
+            className={`p-3 rounded-xl transition-all flex-shrink-0 touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center ${
+              isListening
+                ? "text-white bg-red-600"
+                : "text-slate-600 hover:text-blue-700 hover:bg-white"
+            }`}
+            aria-label={isListening ? "Stop voice input" : "Dictate a message"}
+            title={isListening ? "Stop voice input" : "Dictate a message"}
+          >
+            {isListening ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+          </button>
           <button
             onClick={handleSendMessage}
             disabled={!inputValue.trim()}
