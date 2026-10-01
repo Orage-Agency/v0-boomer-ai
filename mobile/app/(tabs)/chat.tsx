@@ -198,7 +198,7 @@ export default function Chat() {
   );
 
   const busy = status === 'streaming' || status === 'submitted';
-  const assistantBackground = PROFILE_BACKGROUNDS.find((background) => background.id === profile.assistantBackground) ?? PROFILE_BACKGROUNDS[1];
+  const assistantBackground = PROFILE_BACKGROUNDS.find((background) => background.id === profile.assistantBackground) ?? PROFILE_BACKGROUNDS[0];
   const assistantSource = ASSISTANT_SOURCES[profile.assistantSrc ?? ''] ?? ASSISTANT_SOURCES['/assistants/assistant_woman.png'];
 
   return (

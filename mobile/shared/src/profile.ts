@@ -32,7 +32,7 @@ export const DEFAULT_PROFILE: UserProfile = {
   avatarSrc: null,
   assistantSrc: null,
   avatarBackground: 'peach',
-  assistantBackground: 'sky',
+  assistantBackground: 'white',
   level: null,
   stars: 0,
   streak: 0,
@@ -49,6 +49,7 @@ export const DEFAULT_PROFILE: UserProfile = {
 
 /** Shared, restrained gradient choices for profile and assistant portraits. */
 export const PROFILE_BACKGROUNDS = [
+  { id: 'white', label: 'White', colors: ['#FFFFFF', '#FFFFFF'], css: '#FFFFFF' },
   { id: 'peach', label: 'Peach', colors: ['#FCE7D8', '#F8D6C5'], css: 'linear-gradient(135deg, #FCE7D8, #F8D6C5)' },
   { id: 'sky', label: 'Sky', colors: ['#DCEFFA', '#C9E2F4'], css: 'linear-gradient(135deg, #DCEFFA, #C9E2F4)' },
   { id: 'sage', label: 'Sage', colors: ['#E2EEDF', '#CDDFC9'], css: 'linear-gradient(135deg, #E2EEDF, #CDDFC9)' },

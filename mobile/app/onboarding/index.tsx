@@ -56,7 +56,7 @@ export default function Onboarding() {
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [selectedAssistant, setSelectedAssistant] = useState(ASSISTANTS[0].image);
   const [avatarBackground, setAvatarBackground] = useState<string>('peach');
-  const [assistantBackground, setAssistantBackground] = useState<string>('sky');
+  const [assistantBackground, setAssistantBackground] = useState<string>('white');
   const [selectedLevel, setSelectedLevel] = useState('Beginner');
 
   const stepNumber = { avatar: 1, age: 2, level: 3 }[step];
