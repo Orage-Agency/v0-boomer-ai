@@ -24,6 +24,7 @@ Boomer AI helps adults, especially people with limited experience using AI, lear
 
 ## Working constraints
 
+- Work through the project cycle in order: **Planeo** (confirm goal, scope, baseline, and safe approach) → **Construyo** (change only the agreed scope) → **Verifico** (run relevant requested checks and report evidence/limits) → **Completo** (summarize outcome and remaining work). Do not call the task complete before verification and a clear handoff.
 - Preserve existing behavior and product content unless the user asks to change them.
 - Before UI edits, inspect the target screen and its neighboring navigation/state flows in both the relevant web or mobile app and shared guidance.
 - Do not claim a behavior works from source inspection alone. State what was inspected and what was actually verified.
