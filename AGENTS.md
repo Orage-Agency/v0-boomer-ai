@@ -29,3 +29,7 @@ Boomer AI helps adults, especially people with limited experience using AI, lear
 - Before UI edits, inspect the target screen and its neighboring navigation/state flows in both the relevant web or mobile app and shared guidance.
 - Do not claim a behavior works from source inspection alone. State what was inspected and what was actually verified.
 - Do not commit, push, deploy, or modify unrelated files without an explicit request.
+
+## Índice de archivos
+
+- Consulta [`.agents/INDEX.md`](.agents/INDEX.md) para ver el inventario de archivos versionados, sus ubicaciones y una descripción breve de cada uno.
