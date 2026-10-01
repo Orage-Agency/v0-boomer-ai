@@ -160,8 +160,21 @@ scheme's StoreKit Configuration unset and follow §6 below.
 
 - `EXPO_PUBLIC_RC_IOS_KEY` — RevenueCat iOS public SDK key (see above).
 - `EXPO_PUBLIC_RC_ANDROID_KEY` — RevenueCat Android public SDK key (Phase 2).
-- `expo.extra.apiBaseUrl` in `app.json` — origin of the Vercel-hosted
-  Next.js backend that serves `/api/*` (chat, images, profile sync).
+- The EAS `development` profile uses the local Next.js API. iOS Simulator and
+  Expo Web use `http://localhost:3000`; Android Emulator uses
+  `http://10.0.2.2:3000`.
+- On a physical device, set `EXPO_PUBLIC_API_BASE_URL` to the Next.js server's
+  private LAN address (for example, `http://192.168.1.20:3000`) in
+  `mobile/.env.local`. Start Next.js bound to the LAN interface with
+  `pnpm dev -- --hostname 0.0.0.0` from the repository root.
+- EAS `preview` and `production` profiles use the production API configured in
+  `app.json` (`https://boomerai.orage.agency`). They reject localhost and
+  private-network origins at config/build time. There is no environment
+  fallback between development and production.
+- `EXPO_PUBLIC_API_ENV` selects `development` or `production` for local Expo
+  builds; EAS profiles set it automatically. `EXPO_PUBLIC_API_BASE_URL` is
+  optional in development and must be a public HTTPS origin if overriding the
+  production endpoint.
 
 ---
 
@@ -172,7 +185,7 @@ Run these commands from `mobile/`:
 ```sh
 npm ci
 npm run web       # Start the Expo Web client
-npm run verify    # TypeScript, ESLint, Jest, and a production web export
+npm run verify    # TypeScript, ESLint, Jest, and a static web export
 ```
 
 `npm run ios` and `npm run android` start native development builds and require
