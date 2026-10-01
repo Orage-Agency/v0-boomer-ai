@@ -14,14 +14,9 @@ import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
 
-/**
- * Onboarding wizard — FULLY IMPLEMENTED.
- * Steps mirror the web app exactly:
- *   1. Avatar + name  2. Age range  3. 3-question quiz  4. Learning level
- * Scoring + recommended-level logic copied from app/page.tsx + quiz.tsx.
- */
+/** The mobile onboarding mirrors the web flow with platform-native controls. */
 
-type Step = 'avatar' | 'age' | 'quiz' | 'level';
+type Step = 'avatar' | 'age' | 'level';
 
 const AVATARS = [
   {
@@ -40,63 +35,27 @@ const AVATARS = [
 
 const AGE_RANGES = ['50-59', '60-69', '70-79', '80+'];
 
-const QUIZ = [
-  {
-    question: "How familiar are you with 'AI'?",
-    answers: [
-      { text: "Never heard of it.", value: 1 },
-      { text: "Heard of it, don't know what it is.", value: 2 },
-      { text: 'I have a basic idea.', value: 3 },
-      { text: 'I understand it well.', value: 4 },
-    ],
-  },
-  {
-    question: 'Have you used a voice assistant?',
-    answers: [
-      { text: 'Never.', value: 1 },
-      { text: 'A few times.', value: 2 },
-      { text: 'Yes, regularly.', value: 3 },
-      { text: 'I use it daily.', value: 4 },
-    ],
-  },
-  {
-    question: 'How comfortable are you with new tech?',
-    answers: [
-      { text: 'Not comfortable at all.', value: 1 },
-      { text: 'A bit nervous, but willing.', value: 2 },
-      { text: 'Comfortable with guidance.', value: 3 },
-      { text: 'Excited to learn!', value: 4 },
-    ],
-  },
-];
-
 const LEVELS = [
-  { name: 'Absolute Beginner', emoji: '👶', desc: "Brand new to tech. We'll start from the very beginning." },
-  { name: 'Beginner', emoji: '✨', desc: 'Start from the basics. No prior AI experience needed.' },
-  { name: 'Intermediate', emoji: '⚡', desc: "You've tried tech and want practical workflows." },
-  { name: 'Advanced', emoji: '🧠', desc: 'Dive deep into capabilities and customization.' },
+  { name: 'Beginner', desc: 'I am new to AI and want practical examples.' },
+  { name: 'Intermediate', desc: 'I know a few basics and want to do more.' },
+  { name: 'Advanced', desc: 'I use AI regularly and want to explore further.' },
 ];
 
-function recommendFromScore(score: number): string {
-  if (score > 7) return 'Advanced';
-  if (score > 5) return 'Intermediate';
-  if (score > 3) return 'Beginner';
-  return 'Absolute Beginner';
+function normalizeLevel(level: string | null | undefined): string {
+  if (level === 'Intermediate' || level === 'Advanced') return level;
+  return 'Beginner';
 }
 
 export default function Onboarding() {
   const router = useRouter();
-  const { updateProfile, setView } = useProfile();
+  const { profile, updateProfile, setView } = useProfile();
 
   const [step, setStep] = useState<Step>('avatar');
   const [name, setName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
-  const [quizIndex, setQuizIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [recommended, setRecommended] = useState('Beginner');
   const [selectedLevel, setSelectedLevel] = useState('Beginner');
 
-  const stepNumber = { avatar: 1, age: 2, quiz: 3, level: 4 }[step];
+  const stepNumber = { avatar: 1, age: 2, level: 3 }[step];
 
   const completeAvatar = () => {
     const avatar = AVATARS.find((a) => a.name === selectedAvatar);
@@ -111,35 +70,37 @@ export default function Onboarding() {
     setStep('age');
   };
 
-  const completeAge = (age: string) => {
+  const completeAge = (age: string | null) => {
     updateProfile({ age, aiLevel: 0 });
-    setStep('quiz');
+    setSelectedLevel(normalizeLevel(profile.level));
+    setStep('level');
   };
 
-  const answerQuiz = (value: number) => {
-    const newScore = score + value;
-    if (quizIndex < QUIZ.length - 1) {
-      setScore(newScore);
-      setQuizIndex(quizIndex + 1);
-    } else {
-      const rec = recommendFromScore(newScore);
-      setRecommended(rec);
-      setSelectedLevel(rec);
-      updateProfile({ aiLevel: newScore, level: rec });
-      setStep('level');
-    }
+  const skipOnboarding = () => {
+    updateProfile({ aiLevel: 0, level: normalizeLevel(profile.level) });
+    setView('app');
+    router.replace('/(tabs)');
   };
 
   const completeLevel = () => {
-    // Matches web: seed 5 stars + "Getting Started" badge, enter app.
-    updateProfile({ level: selectedLevel, stars: 5, badges: ['Getting Started'] });
+    updateProfile({ level: selectedLevel, aiLevel: 0 });
     setView('app');
     router.replace('/(tabs)');
   };
 
   return (
     <Screen centered>
-      <Stepper current={stepNumber} total={4} />
+      <View style={styles.progressHeader}>
+        <Stepper current={stepNumber} total={3} />
+        <Pressable
+          onPress={skipOnboarding}
+          style={styles.skipButton}
+          accessibilityRole="button"
+          accessibilityLabel="Skip for now"
+        >
+          <Text style={styles.skipText}>Skip for now</Text>
+        </Pressable>
+      </View>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {step === 'avatar' && (
           <View style={styles.section}>
@@ -181,8 +142,8 @@ export default function Onboarding() {
 
         {step === 'age' && (
           <View style={styles.section}>
-            <Text style={styles.bigTitle}>Your age range?</Text>
-            <Text style={styles.subtitle}>This helps tailor tips and font sizes.</Text>
+            <Text style={styles.bigTitle}>Would you like to share your age range?</Text>
+            <Text style={styles.subtitle}>This is optional. You can change it later.</Text>
             <View style={styles.optionList}>
               {AGE_RANGES.map((age) => (
                 <Pressable
@@ -196,37 +157,14 @@ export default function Onboarding() {
                 </Pressable>
               ))}
             </View>
-          </View>
-        )}
-
-        {step === 'quiz' && (
-          <View style={styles.section}>
-            <Text style={styles.bigTitle}>{QUIZ[quizIndex].question}</Text>
-            <View style={styles.optionList}>
-              {QUIZ[quizIndex].answers.map((a) => (
-                <Pressable
-                  key={a.text}
-                  onPress={() => answerQuiz(a.value)}
-                  style={styles.optionRow}
-                  accessibilityRole="button"
-                  accessibilityLabel={a.text}
-                >
-                  <Text style={styles.optionTextLeft}>{a.text}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <Text style={styles.progress}>
-              Question {quizIndex + 1} of {QUIZ.length}
-            </Text>
+            <Button title="Prefer not to say" onPress={() => completeAge(null)} variant="secondary" />
           </View>
         )}
 
         {step === 'level' && (
           <View style={styles.section}>
-            <Text style={styles.bigTitle}>Choose Your Learning Level</Text>
-            <Text style={styles.subtitle}>
-              We recommend <Text style={styles.bold}>{recommended}</Text>
-            </Text>
+            <Text style={styles.bigTitle}>How would you like to begin?</Text>
+            <Text style={styles.subtitle}>Choose a starting point. You can change it whenever you like.</Text>
             <View style={styles.optionList}>
               {LEVELS.map((lvl) => {
                 const active = selectedLevel === lvl.name;
@@ -237,13 +175,10 @@ export default function Onboarding() {
                     style={[styles.levelCard, active && styles.levelCardActive]}
                     accessibilityRole="button"
                     accessibilityLabel={lvl.name}
+                    accessibilityState={{ selected: active }}
                   >
-                    <Text style={styles.levelEmoji}>{lvl.emoji}</Text>
                     <View style={styles.flex}>
-                      <Text style={styles.levelName}>
-                        {lvl.name}
-                        {recommended === lvl.name ? '  ⭐' : ''}
-                      </Text>
+                      <Text style={styles.levelName}>{lvl.name}</Text>
                       <Text style={styles.levelDesc}>{lvl.desc}</Text>
                     </View>
                   </Pressable>
@@ -260,13 +195,16 @@ export default function Onboarding() {
 
 function Stepper({ current, total }: { current: number; total: number }) {
   return (
-    <View style={styles.stepper}>
-      {Array.from({ length: total }).map((_, i) => (
-        <View
-          key={i}
-          style={[styles.stepDot, i < current ? styles.stepDotActive : undefined]}
-        />
-      ))}
+    <View style={styles.progress}>
+      <Text style={styles.progressText}>Step {current} of {total}</Text>
+      <View
+        style={styles.progressTrack}
+        accessibilityRole="progressbar"
+        accessibilityLabel={`Onboarding step ${current} of ${total}`}
+        accessibilityValue={{ min: 1, max: total, now: current }}
+      >
+        <View style={[styles.progressFill, { width: `${(current / total) * 100}%` }]} />
+      </View>
     </View>
   );
 }
@@ -275,19 +213,33 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl },
   section: { gap: spacing.lg },
-  stepper: {
+  progressHeader: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    alignItems: 'center',
+    gap: spacing.md,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
   },
-  stepDot: {
-    flex: 1,
+  progress: { flex: 1, gap: spacing.xs },
+  progressText: { fontSize: fontSize.sm, color: colors.textSecondary, fontWeight: fontWeight.semibold },
+  progressTrack: {
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.border,
+    overflow: 'hidden',
   },
-  stepDotActive: { backgroundColor: colors.primary },
+  progressFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.ink,
+  },
+  skipButton: {
+    minHeight: 44,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipText: { fontSize: fontSize.sm, color: colors.textPrimary, fontWeight: fontWeight.semibold, textDecorationLine: 'underline' },
   bigTitle: {
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.black,
@@ -349,11 +301,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     width: '100%',
   },
-  progress: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
   levelCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -364,8 +311,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-  levelCardActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
-  levelEmoji: { fontSize: 28 },
+  levelCardActive: { borderColor: colors.ink, backgroundColor: colors.surfaceSubtle },
   levelName: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.bold,

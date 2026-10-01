@@ -3,30 +3,33 @@ interface StepperProps {
 }
 
 const STEPS = [
-  { number: 1, label: "Choose" },
+  { number: 1, label: "Guide" },
   { number: 2, label: "Age" },
-  { number: 3, label: "Quiz" },
-  { number: 4, label: "Level" },
+  { number: 3, label: "Level" },
 ]
 
 export function Stepper({ currentStep }: StepperProps) {
   return (
-    <div className="px-6 pt-6 pb-4 bg-white/90 backdrop-blur-sm border-b border-slate-200/50">
-      <ol className="flex items-center justify-center gap-6">
+    <div className="min-w-0 flex-1">
+      <p className="mb-2 text-sm font-medium text-slate-600" aria-live="polite">
+        Step {currentStep} of {STEPS.length}
+      </p>
+      <ol
+        className="flex items-center gap-2"
+        role="progressbar"
+        aria-label="Onboarding progress"
+        aria-valuemin={1}
+        aria-valuemax={STEPS.length}
+        aria-valuenow={currentStep}
+      >
         {STEPS.map((step) => (
-          <li key={step.number} className="flex items-center gap-2 text-sm">
+          <li key={step.number} className="min-w-0 flex-1">
             <div
-              className={`w-2 h-2 rounded-full transition-colors ${
-                step.number <= currentStep ? "bg-blue-600" : "bg-slate-300"
+              className={`h-1.5 rounded-full transition-colors ${
+                step.number <= currentStep ? "bg-slate-800" : "bg-slate-200"
               }`}
             />
-            <span
-              className={`font-medium transition-colors ${
-                step.number <= currentStep ? "text-slate-900" : "text-slate-400"
-              }`}
-            >
-              {step.label}
-            </span>
+            <span className="sr-only">{step.label}</span>
           </li>
         ))}
       </ol>

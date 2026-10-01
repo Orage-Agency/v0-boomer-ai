@@ -88,7 +88,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   );
 
   const decideView = useCallback((p: UserProfile) => {
-    if (p.persona && p.level) return 'app' as const;
+    if (p.level) return 'app' as const;
     return 'onboarding' as const;
   }, []);
 
