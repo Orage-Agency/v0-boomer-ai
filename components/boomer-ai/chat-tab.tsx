@@ -321,7 +321,8 @@ export function ChatTab({
 
   const loadConversation = async (id: string) => {
     try {
-      const response = await fetch(`${API_PATHS.conversations}?id=${id}`)
+      const deviceId = localStorage.getItem("boomer-device-id")
+      const response = await fetch(`${API_PATHS.conversations}?id=${id}&deviceId=${encodeURIComponent(deviceId || "")}`)
       if (response.ok) {
         const data = await response.json()
         if (data.messages) {

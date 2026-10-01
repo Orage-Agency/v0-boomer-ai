@@ -1,12 +1,16 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
   FlatList,
+  Modal,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +23,9 @@ import { useChatSession } from '@/screens/useChat';
 import { consumePendingPrompt, subscribePendingPrompt } from '@/screens/pendingPrompt';
 import { useProfile } from '@/context/ProfileContext';
 import { useEntitlement } from '@/context/EntitlementContext';
+import { useAuth } from '@/context/AuthContext';
+import { conversationsApi } from '@/api';
+import { getDeviceId } from '@/context/storage';
 import {
   FREE_FEATURES,
   chatCounterStorageKey,
@@ -40,10 +47,17 @@ const STARTER_PROMPTS = [
 
 export default function Chat() {
   const router = useRouter();
-  const { messages, status, error, send } = useChatSession();
+  const { messages, status, error, send, reset, loadConversation } = useChatSession();
   const { apiConfigured } = useProfile();
+  const { sessionToken } = useAuth();
   const { entitled } = useEntitlement();
   const [input, setInput] = useState('');
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<
+    { id: number | string; title: string; preview: string; timestamp: string }[]
+  >([]);
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
   // Keep latest entitled inside callbacks without re-creating subscriptions.
@@ -100,6 +114,31 @@ export default function Chat() {
     [consumeFreeQuota, send],
   );
 
+  const openHistory = useCallback(async () => {
+    setHistoryVisible(true);
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const deviceId = await getDeviceId();
+      const response = await conversationsApi.listConversations(deviceId, sessionToken);
+      setConversations(response.conversations);
+    } catch (e) {
+      setHistoryError(e instanceof Error ? e.message : 'Unable to load saved conversations.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [sessionToken]);
+
+  const openConversation = useCallback(async (id: number | string) => {
+    try {
+      const deviceId = await getDeviceId();
+      await loadConversation(id, deviceId);
+      setHistoryVisible(false);
+    } catch (e) {
+      setHistoryError(e instanceof Error ? e.message : 'Unable to open this conversation.');
+    }
+  }, [loadConversation]);
+
   // Keep a stable ref so focus/subscription handlers always call the latest
   // version of handleSend without re-registering on every render.
   const handleSendRef = useRef(handleSend);
@@ -125,7 +164,71 @@ export default function Chat() {
     <Screen centered edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Chat</Text>
+        <View style={styles.headerActions}>
+          {messages.length > 0 && (
+            <Pressable
+              style={styles.headerButton}
+              onPress={reset}
+              accessibilityRole="button"
+              accessibilityLabel="Start a new chat"
+            >
+              <Text style={styles.headerButtonText}>New chat</Text>
+            </Pressable>
+          )}
+          <Pressable
+            style={styles.headerButton}
+            onPress={() => void openHistory()}
+            accessibilityRole="button"
+          >
+            <Text style={styles.headerButtonText}>History</Text>
+          </Pressable>
+        </View>
       </View>
+
+      <Modal
+        visible={historyVisible}
+        animationType="slide"
+        onRequestClose={() => setHistoryVisible(false)}
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.historyScreen}>
+          <View style={styles.historyHeader}>
+            <Text style={styles.historyTitle}>Saved conversations</Text>
+            <Pressable
+              onPress={() => setHistoryVisible(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Close saved conversations"
+              hitSlop={12}
+            >
+              <Text style={styles.headerButtonText}>Close</Text>
+            </Pressable>
+          </View>
+          {historyLoading ? (
+            <ActivityIndicator style={styles.historyLoading} color={colors.ink} />
+          ) : historyError ? (
+            <Text style={styles.historyMessage} accessibilityRole="alert">{historyError}</Text>
+          ) : conversations.length === 0 ? (
+            <Text style={styles.historyMessage}>Saved conversations will appear here.</Text>
+          ) : (
+            <ScrollView contentContainerStyle={styles.historyList}>
+              {conversations.map((conversation) => (
+                <Pressable
+                  key={conversation.id}
+                  style={styles.historyItem}
+                  onPress={() => void openConversation(conversation.id)}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.historyItemTitle} numberOfLines={2}>{conversation.title}</Text>
+                  <Text style={styles.historyItemPreview} numberOfLines={2}>{conversation.preview}</Text>
+                  <Text style={styles.historyItemDate}>
+                    {new Date(conversation.timestamp).toLocaleDateString()}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -250,6 +353,19 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   title: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.textPrimary },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  headerButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm },
+  headerButtonText: { fontSize: fontSize.sm, color: colors.textPrimary, fontWeight: fontWeight.semibold, textDecorationLine: 'underline' },
+  historyScreen: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
+  historyHeader: { minHeight: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: colors.border },
+  historyTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.textPrimary },
+  historyLoading: { marginTop: spacing.xl },
+  historyMessage: { marginTop: spacing.xl, fontSize: fontSize.md, color: colors.textSecondary, lineHeight: 26 },
+  historyList: { paddingVertical: spacing.md, gap: spacing.md },
+  historyItem: { padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, gap: spacing.xs },
+  historyItemTitle: { fontSize: fontSize.md, color: colors.textPrimary, fontWeight: fontWeight.semibold },
+  historyItemPreview: { fontSize: fontSize.sm, color: colors.textSecondary, lineHeight: 23 },
+  historyItemDate: { fontSize: fontSize.xs, color: colors.textMuted },
   bannerWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   emptyEmoji: { fontSize: 48, marginBottom: spacing.md },

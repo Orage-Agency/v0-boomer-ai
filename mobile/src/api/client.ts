@@ -67,8 +67,8 @@ export async function apiPost<T>(
   return parseJson<T>(res);
 }
 
-export async function apiDelete<T>(path: string): Promise<T> {
-  const res = await fetch(url(path), { method: 'DELETE' });
+export async function apiDelete<T>(path: string, headers: HeadersInit = {}): Promise<T> {
+  const res = await fetch(url(path), { method: 'DELETE', headers });
   return parseJson<T>(res);
 }
 

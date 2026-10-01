@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { chatApi, conversationsApi } from '@/api';
 import { getDeviceId } from '@/context/storage';
 import { isApiConfigured } from '@/config/env';
+import { useAuth } from '@/context/AuthContext';
 import type { ChatMessage } from '@/types';
 
 /**
@@ -20,6 +21,7 @@ function nextId(prefix: string): string {
 export type ChatStatus = 'idle' | 'submitted' | 'streaming' | 'error';
 
 export function useChatSession() {
+  const { sessionToken } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<ChatStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export function useChatSession() {
           title,
           preview,
           messages: msgs,
-        });
+        }, sessionToken);
         if (res.id && conversationId.current == null) {
           conversationId.current = res.id;
         }
@@ -47,7 +49,7 @@ export function useChatSession() {
         /* best effort */
       }
     }, 1000);
-  }, []);
+  }, [sessionToken]);
 
   const send = useCallback(
     async (text: string) => {
@@ -111,5 +113,13 @@ export function useChatSession() {
     conversationId.current = null;
   }, []);
 
-  return { messages, status, error, send, reset };
+  const loadConversation = useCallback(async (id: number | string, deviceId: string) => {
+    const row = await conversationsApi.getConversation(id, deviceId, sessionToken);
+    conversationId.current = row.id;
+    setMessages(row.messages);
+    setError(null);
+    setStatus('idle');
+  }, [sessionToken]);
+
+  return { messages, status, error, send, reset, loadConversation };
 }

@@ -1,34 +1,24 @@
+import { API_PATHS, type ProfileResponse } from '@boomer-ai/shared';
 import { apiGet, apiPost } from './client';
-import { API_PATHS } from '@boomer-ai/shared';
 import type { UserProfile } from '@/types';
 
-/**
- * Profile API. Matches app/api/profile/route.ts.
- *
- * GET  /api/profile?deviceId=...  -> { success, profile }
- * POST /api/profile  (body = full UserProfile JSON) -> { success, deviceId }
- *
- * The backend keys profiles by `deviceId` and stores the whole profile blob.
- * Device-only: no `email` is ever sent.
- */
-
-type GetProfileResponse = {
-  success: boolean;
-  profile?: UserProfile;
-  error?: string;
-};
-
-type SaveProfileResponse = {
-  success: boolean;
-  deviceId?: string;
-  error?: string;
-};
-
-export function getProfile(deviceId: string): Promise<GetProfileResponse> {
-  const q = new URLSearchParams({ deviceId });
-  return apiGet<GetProfileResponse>(`${API_PATHS.profile}?${q.toString()}`);
+export function getProfile(
+  deviceId: string,
+  sessionToken?: string | null,
+): Promise<ProfileResponse> {
+  const query = new URLSearchParams({ deviceId });
+  const headers: HeadersInit = sessionToken
+    ? { Authorization: `Bearer ${sessionToken}` }
+    : {};
+  return apiGet<ProfileResponse>(`${API_PATHS.profile}?${query.toString()}`, headers);
 }
 
-export function saveProfile(profile: UserProfile): Promise<SaveProfileResponse> {
-  return apiPost<SaveProfileResponse>(API_PATHS.profile, profile);
+export function saveProfile(
+  profile: UserProfile,
+  sessionToken?: string | null,
+): Promise<ProfileResponse> {
+  const headers: HeadersInit = sessionToken
+    ? { Authorization: `Bearer ${sessionToken}` }
+    : {};
+  return apiPost<ProfileResponse>(API_PATHS.profile, profile, headers);
 }

@@ -20,8 +20,8 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ProfileProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <ProfileProvider>
           <EntitlementProvider>
             <StatusBar style="dark" />
             <Stack
@@ -54,8 +54,8 @@ export default function RootLayout() {
               />
             </Stack>
           </EntitlementProvider>
-        </AuthProvider>
-      </ProfileProvider>
+        </ProfileProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

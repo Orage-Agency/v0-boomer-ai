@@ -21,17 +21,25 @@ type ConversationRow = {
   message_count: number;
 };
 
-export function listConversations(deviceId: string): Promise<ListResponse> {
+function sessionHeaders(sessionToken?: string | null): HeadersInit {
+  return sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {};
+}
+
+export function listConversations(deviceId: string, sessionToken?: string | null): Promise<ListResponse> {
   return apiGet<ListResponse>(
     `${API_PATHS.conversations}?deviceId=${encodeURIComponent(deviceId)}`,
+    sessionHeaders(sessionToken),
   );
 }
 
 export function getConversation(
   id: number | string,
+  deviceId: string,
+  sessionToken?: string | null,
 ): Promise<ConversationRow> {
   return apiGet<ConversationRow>(
-    `${API_PATHS.conversations}?id=${encodeURIComponent(String(id))}`,
+    `${API_PATHS.conversations}?id=${encodeURIComponent(String(id))}&deviceId=${encodeURIComponent(deviceId)}`,
+    sessionHeaders(sessionToken),
   );
 }
 
@@ -40,12 +48,17 @@ export function saveConversation(params: {
   title: string;
   preview: string;
   messages: ChatMessage[];
-}): Promise<{ success: boolean; id: number }> {
-  return apiPost(API_PATHS.conversations, params);
+}, sessionToken?: string | null): Promise<{ success: boolean; id: number }> {
+  return apiPost(API_PATHS.conversations, params, sessionHeaders(sessionToken));
 }
 
 export function deleteConversation(
   id: number | string,
+  deviceId: string,
+  sessionToken?: string | null,
 ): Promise<{ success: boolean }> {
-  return apiDelete(`${API_PATHS.conversations}?id=${encodeURIComponent(String(id))}`);
+  return apiDelete(
+    `${API_PATHS.conversations}?id=${encodeURIComponent(String(id))}&deviceId=${encodeURIComponent(deviceId)}`,
+    sessionHeaders(sessionToken),
+  );
 }

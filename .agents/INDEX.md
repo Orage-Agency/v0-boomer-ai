@@ -65,10 +65,10 @@ Inventario de archivos versionados de Boomer AI. Se incluyen código, documentac
 | `app/api/chat/route.ts` | Endpoint de conversación con IA mediante el proveedor configurado y moderación de contenido. |
 | `app/api/chat-grok/route.ts` | Endpoint de chat con Grok, con soporte para imagen capturada. |
 | `app/api/chat-openrouter/route.ts` | Endpoint de chat que envía solicitudes a modelos de OpenRouter. |
-| `app/api/conversations/route.ts` | Endpoints para listar, leer, guardar y eliminar conversaciones. |
+| `app/api/conversations/route.ts` | Endpoints de conversaciones por dispositivo o cuenta sincronizada. |
 | `app/api/generate-image/route.ts` | Endpoint de generación de imágenes. |
 | `app/api/improve-prompt/route.ts` | Endpoint para sugerir una versión mejorada de un prompt. |
-| `app/api/profile/route.ts` | Endpoints para leer y guardar perfiles asociados al dispositivo. |
+| `app/api/profile/route.ts` | Endpoints para combinar perfiles locales y sincronizar perfiles asociados a cuentas. |
 | `app/api/redeem/route.ts` | Endpoint para validar y canjear códigos de acceso/Pro. |
 | `app/api/tts/route.ts` | Endpoint de texto a voz que conecta con ElevenLabs. |
 
@@ -85,7 +85,6 @@ Inventario de archivos versionados de Boomer AI. Se incluyen código, documentac
 | `components/boomer-ai/auth-screen.tsx` | Pantalla de acceso y registro. |
 | `components/boomer-ai/avatar-selection.tsx` | Selector de avatar de perfil. |
 | `components/boomer-ai/camera-modal.tsx` | Modal para capturar o adjuntar una imagen al flujo de chat. |
-| `components/boomer-ai/celebration-modal.tsx` | Modal de reconocimiento al completar una actividad. |
 | `components/boomer-ai/chat-history-view.tsx` | Vista del historial de conversaciones. |
 | `components/boomer-ai/chat-tab.tsx` | Pestaña de chat de la aplicación. |
 | `components/boomer-ai/header.tsx` | Encabezado principal de la aplicación. |
@@ -95,11 +94,9 @@ Inventario de archivos versionados de Boomer AI. Se incluyen código, documentac
 | `components/boomer-ai/lessons-tab.tsx` | Pestaña de listado de lecciones. |
 | `components/boomer-ai/main-app.tsx` | Contenedor y coordinación de vistas principales de la app web. |
 | `components/boomer-ai/main-menu.tsx` | Menú de navegación principal. |
-| `components/boomer-ai/play-tab.tsx` | Pestaña de actividades de juego/práctica. |
 | `components/boomer-ai/profile-view.tsx` | Vista y edición del perfil del usuario. |
 | `components/boomer-ai/questions-tab.tsx` | Pestaña de preguntas y respuestas rápidas. |
 | `components/boomer-ai/quick-questions.tsx` | Componente de preguntas rápidas sugeridas. |
-| `components/boomer-ai/quiz.tsx` | Flujo de cuestionario o práctica guiada. |
 | `components/boomer-ai/stepper.tsx` | Indicador y controles de pasos secuenciales. |
 | `components/boomer-ai/tips-tab.tsx` | Pestaña con consejos de uso de IA. |
 | `components/boomer-ai/voice-assistant.tsx` | Interfaz del asistente de voz. |
@@ -244,6 +241,7 @@ Inventario de archivos versionados de Boomer AI. Se incluyen código, documentac
 | `scripts/003-add-ip-tracking.sql` | SQL para añadir seguimiento de direcciones IP. |
 | `scripts/004-create-access-codes-and-pro.sql` | SQL para códigos de acceso y datos de entitlement Pro. |
 | `scripts/005-secure-auth-sessions.sql` | SQL para sesiones revocables asociadas a cuentas. |
+| `scripts/006-account-profile-sync.sql` | SQL para asociar perfiles y conversaciones a cuentas. |
 | `scripts/passwords.test.mjs` | Pruebas de hashes de contraseña y compatibilidad con cuentas heredadas. |
 | `scripts/generate-access-code.mjs` | Script para generar códigos de acceso. |
 

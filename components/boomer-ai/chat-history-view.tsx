@@ -52,7 +52,8 @@ export function ChatHistoryView({ userProfile, onLoadConversation, onBack }: Cha
     if (!confirm("Are you sure you want to delete this conversation?")) return
 
     try {
-      const response = await fetch(`${API_PATHS.conversations}?id=${conversationId}`, {
+      const deviceId = localStorage.getItem("boomer-device-id") || ""
+      const response = await fetch(`${API_PATHS.conversations}?id=${conversationId}&deviceId=${encodeURIComponent(deviceId)}`, {
         method: "DELETE",
       })
 
