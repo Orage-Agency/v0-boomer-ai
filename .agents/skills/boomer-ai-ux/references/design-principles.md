@@ -21,6 +21,18 @@ The product should help a person move from curiosity to a small, useful action, 
 - Explain the system's limits and uncertainty in plain language. When the AI misunderstands, acknowledge it, offer a repair path, and keep the user's original goal in view.
 - Reinforce a useful action with specific, brief language (for example, “Adding who the note is for helped make the tone clearer.”). Do not award points or overpraise routine actions.
 
+## Onboarding and progress
+
+- Preserve the current onboarding structure as the starting point; improve orientation without adding more prerequisite steps.
+- Place an overall progress indicator at the top. During question sequences, also state how many questions remain in plain text.
+- Offer “Skip for now” so users can reach the app without completing every setup question. Use neutral beginner defaults, avoid inferring age or ability, and let users fill in optional details later.
+- Make skip behavior clear before the user chooses it. Skipping must not look like failure or create a lower status.
+
+## Web and mobile relationship
+
+- Compare the web and mobile app through actual user tasks before recommending consolidation. Similar branding or feature names alone do not prove the experiences are equivalent.
+- If their core flows substantially overlap, propose one coherent product experience and one source of truth for identity and learning progress. Explain any remaining platform-specific behavior before implementation; do not start a migration without user direction.
+
 ## Prompt-learning pattern
 
 For an unclear or broad prompt, respond to the likely intent first. Then optionally show one concrete detail that can improve a future request: who it is for, what outcome is wanted, preferred format, or an important constraint. Demonstrate with a short before/after only when it makes the lesson easier to understand. Keep it invitational; do not demand a rewrite or label the user's wording as wrong.

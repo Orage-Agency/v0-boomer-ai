@@ -20,6 +20,8 @@ Use for any Boomer AI interface design, critique, navigation, onboarding, conten
 - Treat mistakes as ordinary exploration. Preserve user input, support edit/retry/undo where practical, explain system limits, and offer a clear recovery step without blame.
 - For a vague prompt, answer the likely intent first. Add at most one optional improvement tip when it helps; never call the prompt bad or block help until it is rewritten.
 - Protect readability and user control across age, vision, motor, cognitive, language, and device differences. Do not assume a single interaction mode.
+- Preserve the current onboarding structure unless asked to redesign it. For onboarding improvements, show a top-level progress bar and the number of questions remaining; provide “Skip for now” with neutral, beginner-friendly defaults, leaving personal details such as age optional.
+- Treat web/mobile consolidation as a discovery decision. Wait for the user's hands-on comparison; if flows substantially overlap, recommend one coherent product and shared user/learning state before proposing code consolidation.
 
 ## Decision Gates
 
@@ -29,6 +31,8 @@ Use for any Boomer AI interface design, critique, navigation, onboarding, conten
 | Success feedback | Name the useful action in plain language; add no points or celebration mechanic. |
 | Prompt could be clearer | Fulfill intent, then offer one optional, specific tip. |
 | Failure or uncertain AI output | State what happened and a next step; preserve user control and dignity. |
+| Onboarding | Keep the familiar flow; expose progress and remaining questions, and allow skipping with neutral defaults. |
+| Web and mobile overlap | Compare tested flows first; recommend consolidation only after confirming the overlap. |
 
 ## Execution Steps
 

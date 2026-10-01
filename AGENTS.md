@@ -12,13 +12,15 @@ Boomer AI helps adults, especially people with limited experience using AI, lear
 - Reinforce a successful action with brief, specific, adult-sounding acknowledgment that names what worked. Keep praise contextual and non-quantified; avoid generic celebration, animation, badges, and reward currency.
 - If a prompt is vague, first respond to the user's likely request. Then, where useful, offer one optional, concrete tip for adding a detail such as audience, purpose, format, or constraints. Never label the prompt bad, wrong, or failed, and do not require a rewrite before helping.
 - Prefer progressive disclosure: show the primary learning path first and place optional play and creation tools in a clearly secondary area. Explain what an activity teaches before asking users to choose it.
+- Keep the current onboarding flow as the baseline unless asked to redesign it. When improving it, show overall progress at the top and the number of questions remaining; offer “Skip for now” with neutral beginner defaults, without requiring age or implying failure.
+- Treat web/mobile consolidation as conditional on product review: compare the user's tested flows first, then propose one coherent product and shared user/learning state if the experiences substantially overlap. Do not merge or rewrite either frontend before that review.
 - Design for readability, keyboard and screen-reader access, zoom, touch, and different levels of familiarity. Do not infer capability from age; test with representative users whenever possible.
 
 ## Project skills
 
-- For interface design, critique, information architecture, interaction, or visual changes, read [`.agents/skills/boomer-ai-ux/SKILL.md`](skills/boomer-ai-ux/SKILL.md) and its local design principles reference.
-- For AI coaching, prompt feedback, or learning-oriented assistant responses, read [`.agents/skills/boomer-ai-prompt-coach/SKILL.md`](skills/boomer-ai-prompt-coach/SKILL.md).
-- Read [`.agents/docs/ux-learning-resources.md`](docs/ux-learning-resources.md) for the curated study videos and references.
+- For interface design, critique, information architecture, interaction, or visual changes, read [`.agents/skills/boomer-ai-ux/SKILL.md`](.agents/skills/boomer-ai-ux/SKILL.md) and its local design principles reference.
+- For AI coaching, prompt feedback, or learning-oriented assistant responses, read [`.agents/skills/boomer-ai-prompt-coach/SKILL.md`](.agents/skills/boomer-ai-prompt-coach/SKILL.md).
+- Read [`.agents/docs/ux-learning-resources.md`](.agents/docs/ux-learning-resources.md) for the curated study videos and references.
 
 ## Working constraints
 

@@ -30,3 +30,6 @@ yarn-error.log*
 # local skill registry
 .atl/
 next-env.d.ts
+
+# Database services
+.neon
