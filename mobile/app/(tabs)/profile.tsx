@@ -1,11 +1,22 @@
 import React, { useCallback } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
 import { useAuth } from '@/context/AuthContext';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
+import { PROFILE_BACKGROUNDS } from '@boomer-ai/shared';
+
+const AVATAR_SOURCES: Record<string, number> = {
+  '/avatars/otter.webp': require('../../assets/avatars/otter.webp'),
+  '/avatars/giraffe.webp': require('../../assets/avatars/giraffe.webp'),
+  '/avatars/eagle.webp': require('../../assets/avatars/eagle.webp'),
+  '/avatars/elephant.webp': require('../../assets/avatars/elephant.webp'),
+  '/avatars/dog.webp': require('../../assets/avatars/dog.webp'),
+  '/avatars/wolf.webp': require('../../assets/avatars/wolf.webp'),
+};
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -13,6 +24,7 @@ export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const displayName = profile.name || profile.userName || 'User';
   const completedLessons = profile.lessonsCompleted?.length ?? 0;
+  const avatarBackground = PROFILE_BACKGROUNDS.find((background) => background.id === profile.avatarBackground) ?? PROFILE_BACKGROUNDS[0];
 
   const confirmReset = useCallback(() => {
     Alert.alert('Start over?', 'This will return you to onboarding and reset the profile and progress on this device.', [
@@ -45,9 +57,11 @@ export default function ProfileScreen() {
     <Screen centered edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.identity}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
-          </View>
+          <LinearGradient colors={avatarBackground.colors} style={styles.avatar}>
+            {profile.avatarSrc
+              ? <Image source={AVATAR_SOURCES[profile.avatarSrc] ?? { uri: profile.avatarSrc }} style={styles.avatarImage} />
+              : <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>}
+          </LinearGradient>
           <Text style={styles.name}>{displayName}</Text>
           <Text style={styles.title}>Your Profile</Text>
         </View>
@@ -103,8 +117,9 @@ function ProfileRow({ label, value, last = false }: { label: string; value: stri
 const styles = StyleSheet.create({
   scroll: { padding: spacing.xl, gap: spacing.xl },
   identity: { alignItems: 'center', gap: spacing.xs },
-  avatar: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
-  avatarText: { fontSize: fontSize.xxl, fontWeight: fontWeight.bold, color: colors.textOnDark },
+  avatar: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: spacing.sm },
+  avatarImage: { width: '100%', height: '100%' },
+  avatarText: { fontSize: fontSize.xxl, fontWeight: fontWeight.bold, color: colors.textPrimary },
   name: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.textPrimary },
   title: { fontSize: fontSize.md, color: colors.textSecondary },
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },

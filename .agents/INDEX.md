@@ -193,6 +193,14 @@ Inventario de archivos versionados de Boomer AI. Se incluyen código, documentac
 | `mobile/assets/favicon.png` | Favicon de la versión web servida por Expo. |
 | `mobile/assets/icon.png` | Icono principal de la aplicación móvil. |
 | `mobile/assets/splash.png` | Imagen de la pantalla de inicio. |
+| `mobile/assets/avatars/otter.webp` | Avatar de nutria empaquetado para uso sin conexión en móvil. |
+| `mobile/assets/avatars/giraffe.webp` | Avatar de jirafa empaquetado para uso sin conexión en móvil. |
+| `mobile/assets/avatars/eagle.webp` | Avatar de águila empaquetado para uso sin conexión en móvil. |
+| `mobile/assets/avatars/elephant.webp` | Avatar de elefante empaquetado para uso sin conexión en móvil. |
+| `mobile/assets/avatars/dog.webp` | Avatar de perro empaquetado para uso sin conexión en móvil. |
+| `mobile/assets/avatars/wolf.webp` | Avatar de lobo empaquetado para uso sin conexión en móvil. |
+| `mobile/assets/assistants/assistant_woman.png` | Retrato del asistente empaquetado para uso sin conexión en móvil. |
+| `mobile/assets/assistants/assistant_man.png` | Retrato del asistente empaquetado para uso sin conexión en móvil. |
 
 ### Proyecto nativo iOS
 
@@ -262,3 +270,11 @@ Inventario de archivos versionados de Boomer AI. Se incluyen código, documentac
 | `public/placeholder.jpg` | Imagen genérica de reemplazo. |
 | `public/placeholder.svg` | Imagen vectorial genérica de reemplazo. |
 | `public/voice-assistant-avatar.jpg` | Avatar usado en la experiencia del asistente de voz. |
+| `public/avatars/otter.webp` | Avatar seleccionable de nutria. |
+| `public/avatars/giraffe.webp` | Avatar seleccionable de jirafa. |
+| `public/avatars/eagle.webp` | Avatar seleccionable de águila. |
+| `public/avatars/elephant.webp` | Avatar seleccionable de elefante. |
+| `public/avatars/dog.webp` | Avatar seleccionable de perro. |
+| `public/avatars/wolf.webp` | Avatar seleccionable de lobo. |
+| `public/assistants/assistant_woman.png` | Retrato seleccionable del asistente. |
+| `public/assistants/assistant_man.png` | Retrato seleccionable del asistente. |

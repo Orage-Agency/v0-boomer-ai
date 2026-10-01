@@ -4,6 +4,7 @@ import { useConversation } from "@elevenlabs/react"
 import { useState, useEffect, useRef } from "react"
 import { PhoneOff, Mic, Volume2, VolumeX, ArrowLeft, Send } from "lucide-react"
 import type { UserProfile } from "@/app/page"
+import { PROFILE_BACKGROUNDS } from "@boomer-ai/shared"
 
 interface VoiceChatTabProps {
   userProfile: UserProfile
@@ -11,6 +12,7 @@ interface VoiceChatTabProps {
 }
 
 export function VoiceChatTab({ userProfile, onBack }: VoiceChatTabProps) {
+  const assistantBackground = PROFILE_BACKGROUNDS.find((background) => background.id === userProfile.assistantBackground)?.css ?? PROFILE_BACKGROUNDS[1].css
   const [hasStarted, setHasStarted] = useState(false)
   const [conversationMessages, setConversationMessages] = useState<Array<{ role: string; content: string }>>([])
   const [textInput, setTextInput] = useState("")
@@ -208,8 +210,8 @@ export function VoiceChatTab({ userProfile, onBack }: VoiceChatTabProps) {
       {!hasStarted ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 pb-4">
           <div className="relative">
-            <div className="w-28 h-28 rounded-full overflow-hidden shadow-xl border-2 border-white ring-2 ring-blue-200">
-              <img src="/voice-assistant-avatar.jpg" alt="Boomer AI Assistant" className="w-full h-full object-cover" />
+            <div className="w-28 h-28 rounded-full overflow-hidden shadow-xl border-2 border-white ring-2 ring-blue-200" style={{ background: assistantBackground }}>
+              <img src={userProfile.assistantSrc || "/assistants/assistant_woman.png"} alt="Boomer AI Assistant" className="w-full h-full object-cover" />
             </div>
             <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400/20 to-purple-400/20 animate-pulse" />
           </div>
@@ -236,8 +238,8 @@ export function VoiceChatTab({ userProfile, onBack }: VoiceChatTabProps) {
           {/* Logo & Status */}
           <div className="flex-shrink-0 flex flex-col items-center gap-3 py-4">
             <div className="relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-white">
-                <img src="/voice-assistant-avatar.jpg" alt="AI Assistant" className="w-full h-full object-cover" />
+              <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-white" style={{ background: assistantBackground }}>
+                <img src={userProfile.assistantSrc || "/assistants/assistant_woman.png"} alt="AI Assistant" className="w-full h-full object-cover" />
               </div>
               {conversation.isSpeaking && (
                 <div className="absolute inset-0 rounded-full bg-gradient-to-br from-green-400/40 to-emerald-400/40 animate-pulse" />

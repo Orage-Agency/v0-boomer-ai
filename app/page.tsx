@@ -151,8 +151,8 @@ export default function BoomerAIPage() {
             <main className="flex-grow overflow-y-auto hide-scrollbar">
               {onboardingStep === "avatar" && (
                 <AvatarSelection
-                  onSelect={(persona, userTitle, avatarSrc, userName) => {
-                    updateProfile({ persona, userTitle, avatarSrc, userName, name: userName })
+                  onSelect={(appearance) => {
+                    updateProfile({ ...appearance, name: appearance.userName })
                     setOnboardingStep("age")
                   }}
                 />

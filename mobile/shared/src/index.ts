@@ -7,6 +7,6 @@ export type {
   ProfileResponse,
 } from './api';
 export * from './content';
-export { DEFAULT_PROFILE } from './profile';
+export { DEFAULT_PROFILE, PROFILE_BACKGROUNDS } from './profile';
 export type { UserProfile } from './profile';
 export { mergeUserProfiles } from './progress';

@@ -2,91 +2,163 @@
 
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
-
-interface AvatarSelectionProps {
-  onSelect: (persona: string, userTitle: string, avatarSrc: string, userName: string) => void
-}
+import { PROFILE_BACKGROUNDS } from "@boomer-ai/shared"
 
 const AVATARS = [
-  {
-    name: "Angela",
-    userTitle: "Ms. Amis",
-    image: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/68cc6833d74f6bc1c662a144.jpeg",
-  },
-  {
-    name: "Dave",
-    userTitle: "Dave",
-    image: "https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/68cc69bd09fa3e4671b9618e.jpeg",
-  },
-]
+  { name: "Otter", image: "/avatars/otter.webp" },
+  { name: "Giraffe", image: "/avatars/giraffe.webp" },
+  { name: "Eagle", image: "/avatars/eagle.webp" },
+  { name: "Elephant", image: "/avatars/elephant.webp" },
+  { name: "Dog", image: "/avatars/dog.webp" },
+  { name: "Wolf", image: "/avatars/wolf.webp" },
+] as const
+
+const ASSISTANTS = [
+  { name: "Assistant woman", image: "/assistants/assistant_woman.png" },
+  { name: "Assistant man", image: "/assistants/assistant_man.png" },
+] as const
+
+export type ProfileAppearance = {
+  persona: string
+  userTitle: string
+  avatarSrc: string
+  assistantSrc: string
+  avatarBackground: string
+  assistantBackground: string
+  userName: string
+}
+
+interface AvatarSelectionProps {
+  onSelect: (appearance: ProfileAppearance) => void
+}
 
 export function AvatarSelection({ onSelect }: AvatarSelectionProps) {
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null)
+  const [selectedAssistant, setSelectedAssistant] = useState<string>(ASSISTANTS[0].image)
+  const [avatarBackground, setAvatarBackground] = useState<string>("peach")
+  const [assistantBackground, setAssistantBackground] = useState<string>("sky")
   const [userName, setUserName] = useState("")
 
   const handleContinue = () => {
-    if (!selected || !userName.trim()) return
-    const avatar = AVATARS.find((a) => a.name === selected)
-    if (avatar) {
-      onSelect(avatar.name, avatar.userTitle, avatar.image, userName.trim())
-    }
+    const avatar = AVATARS.find((item) => item.name === selectedAvatar)
+    if (!avatar || !userName.trim()) return
+    onSelect({
+      persona: avatar.name,
+      userTitle: avatar.name,
+      avatarSrc: avatar.image,
+      assistantSrc: selectedAssistant,
+      avatarBackground,
+      assistantBackground,
+      userName: userName.trim(),
+    })
   }
 
   return (
-    <section className="flex flex-col items-center justify-center text-center p-4 h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="w-full max-w-sm">
-        <img src="/boomer-ai-logo.png" alt="Boomer AI" className="h-48 w-auto object-contain mx-auto mb-4" />
+    <section className="mx-auto w-full max-w-2xl px-5 py-7 text-left">
+      <div className="mx-auto max-w-xl">
+        <h2 className="text-2xl font-bold text-slate-900">Personalize your profile</h2>
+        <p className="mt-2 text-base leading-6 text-slate-600">Choose a picture for your profile and one for the assistant.</p>
 
-        <div className="mb-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-4 shadow-lg">
-          <p className="text-xl font-bold text-blue-900 leading-tight">Come On In, the AI Waters Are Just Fine! 🌊</p>
-        </div>
+        <label className="mt-6 block text-base font-semibold text-slate-900" htmlFor="profile-name">Your name</label>
+        <Input
+          id="profile-name"
+          type="text"
+          autoComplete="given-name"
+          placeholder="Enter your name"
+          value={userName}
+          onChange={(event) => setUserName(event.target.value)}
+          className="mt-2 min-h-12 text-base"
+        />
 
-        <h2 className="text-2xl font-bold text-slate-900 mb-1">Choose Your Friendly Guide</h2>
-        <p className="text-base text-slate-600 mb-4">Pick a companion for your AI adventure!</p>
+        <fieldset className="mt-7">
+          <legend className="text-lg font-semibold text-slate-900">Your avatar</legend>
+          <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6">
+            {AVATARS.map((avatar) => {
+              const active = selectedAvatar === avatar.name
+              return (
+                <button
+                  key={avatar.name}
+                  type="button"
+                  onClick={() => setSelectedAvatar(avatar.name)}
+                  aria-pressed={active}
+                  className={`min-h-28 rounded-xl border-2 p-2 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 ${active ? "border-slate-900 bg-slate-50" : "border-slate-200 hover:border-slate-400"}`}
+                >
+                  <span className="mx-auto flex h-16 w-16 items-center justify-center overflow-hidden rounded-full" style={{ background: backgroundCss(avatarBackground) }}>
+                    <img src={avatar.image} alt="" className="h-full w-full object-cover" />
+                  </span>
+                  <span className="mt-2 block text-sm font-semibold text-slate-900">{avatar.name}</span>
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
 
-        <div className="mb-4">
-          <Input
-            type="text"
-            placeholder="Enter your name"
-            value={userName}
-            onChange={(e) => setUserName(e.target.value)}
-            className="text-lg py-6 text-center font-medium"
-          />
-        </div>
+        <BackgroundPicker label="Avatar background" value={avatarBackground} onChange={setAvatarBackground} />
 
-        <div className="grid grid-cols-2 gap-3">
-          {AVATARS.map((avatar) => (
-            <button
-              key={avatar.name}
-              onClick={() => setSelected(avatar.name)}
-              className={`group p-2 text-center rounded-2xl bg-white border-2 transition-all duration-200 ${
-                selected === avatar.name
-                  ? avatar.name === "Angela"
-                    ? "border-pink-500 shadow-lg scale-105"
-                    : "border-blue-500 shadow-lg scale-105"
-                  : "border-slate-200 hover:border-blue-500 hover:shadow-lg hover:scale-105"
-              }`}
-            >
-              <img
-                src={avatar.image || "/placeholder.svg"}
-                alt={`${avatar.name} avatar`}
-                className="w-20 h-20 object-cover rounded-full mx-auto shadow-md group-hover:shadow-xl transition-shadow"
-              />
-              <p className="mt-2 font-bold text-base text-slate-900">{avatar.name}</p>
-            </button>
-          ))}
-        </div>
+        <fieldset className="mt-7">
+          <legend className="text-lg font-semibold text-slate-900">Assistant picture</legend>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            {ASSISTANTS.map((assistant) => {
+              const active = selectedAssistant === assistant.image
+              return (
+                <button
+                  key={assistant.image}
+                  type="button"
+                  onClick={() => setSelectedAssistant(assistant.image)}
+                  aria-pressed={active}
+                  className={`flex min-h-24 items-center gap-3 rounded-xl border-2 p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 ${active ? "border-slate-900 bg-slate-50" : "border-slate-200 hover:border-slate-400"}`}
+                >
+                  <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full" style={{ background: backgroundCss(assistantBackground) }}>
+                    <img src={assistant.image} alt="" className="h-full w-full object-cover" />
+                  </span>
+                  <span className="text-sm font-semibold text-slate-900">{assistant.name}</span>
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
+
+        <BackgroundPicker label="Assistant background" value={assistantBackground} onChange={setAssistantBackground} />
 
         <button
+          type="button"
           onClick={handleContinue}
-          disabled={!selected || !userName.trim()}
-          className="mt-4 w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed text-white font-bold text-lg py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+          disabled={!selectedAvatar || !userName.trim()}
+          className="mt-8 min-h-12 w-full rounded-xl bg-slate-900 px-6 py-3 text-base font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"
         >
-          Let's Get Started! 🚀
+          Continue
         </button>
-
-        <p className="mt-3 text-sm text-slate-500">You can change this anytime.</p>
       </div>
     </section>
+  )
+}
+
+function backgroundCss(id: string) {
+  return PROFILE_BACKGROUNDS.find((background) => background.id === id)?.css ?? PROFILE_BACKGROUNDS[0].css
+}
+
+function BackgroundPicker({ label, value, onChange }: { label: string; value: string; onChange: (id: string) => void }) {
+  return (
+    <fieldset className="mt-5">
+      <legend className="text-sm font-semibold text-slate-800">{label}</legend>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {PROFILE_BACKGROUNDS.map((background) => {
+          const active = value === background.id
+          return (
+            <button
+              key={background.id}
+              type="button"
+              onClick={() => onChange(background.id)}
+              aria-label={`${label}: ${background.label}`}
+              aria-pressed={active}
+              className={`flex min-h-11 items-center gap-2 rounded-lg border px-2 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 ${active ? "border-slate-900" : "border-slate-200 hover:border-slate-400"}`}
+            >
+              <span aria-hidden="true" className="h-7 w-7 rounded-md border border-black/10" style={{ background: background.css }} />
+              <span className="text-xs font-medium text-slate-800">{background.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </fieldset>
   )
 }

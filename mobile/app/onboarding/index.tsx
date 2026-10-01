@@ -9,28 +9,29 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useProfile } from '@/context/ProfileContext';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
+import { PROFILE_BACKGROUNDS } from '@boomer-ai/shared';
 
 /** The mobile onboarding mirrors the web flow with platform-native controls. */
 
 type Step = 'avatar' | 'age' | 'level';
 
 const AVATARS = [
-  {
-    name: 'Angela',
-    userTitle: 'Ms. Amis',
-    image:
-      'https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/68cc6833d74f6bc1c662a144.jpeg',
-  },
-  {
-    name: 'Dave',
-    userTitle: 'Dave',
-    image:
-      'https://storage.googleapis.com/msgsndr/651kIrlKk834C2FEl66i/media/68cc69bd09fa3e4671b9618e.jpeg',
-  },
+  { name: 'Otter', image: '/avatars/otter.webp', source: require('../../assets/avatars/otter.webp') },
+  { name: 'Giraffe', image: '/avatars/giraffe.webp', source: require('../../assets/avatars/giraffe.webp') },
+  { name: 'Eagle', image: '/avatars/eagle.webp', source: require('../../assets/avatars/eagle.webp') },
+  { name: 'Elephant', image: '/avatars/elephant.webp', source: require('../../assets/avatars/elephant.webp') },
+  { name: 'Dog', image: '/avatars/dog.webp', source: require('../../assets/avatars/dog.webp') },
+  { name: 'Wolf', image: '/avatars/wolf.webp', source: require('../../assets/avatars/wolf.webp') },
+];
+
+const ASSISTANTS = [
+  { name: 'Assistant woman', image: '/assistants/assistant_woman.png', source: require('../../assets/assistants/assistant_woman.png') },
+  { name: 'Assistant man', image: '/assistants/assistant_man.png', source: require('../../assets/assistants/assistant_man.png') },
 ];
 
 const AGE_RANGES = ['50-59', '60-69', '70-79', '80+'];
@@ -53,6 +54,9 @@ export default function Onboarding() {
   const [step, setStep] = useState<Step>('avatar');
   const [name, setName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
+  const [selectedAssistant, setSelectedAssistant] = useState(ASSISTANTS[0].image);
+  const [avatarBackground, setAvatarBackground] = useState<string>('peach');
+  const [assistantBackground, setAssistantBackground] = useState<string>('sky');
   const [selectedLevel, setSelectedLevel] = useState('Beginner');
 
   const stepNumber = { avatar: 1, age: 2, level: 3 }[step];
@@ -60,10 +64,14 @@ export default function Onboarding() {
   const completeAvatar = () => {
     const avatar = AVATARS.find((a) => a.name === selectedAvatar);
     if (!avatar || !name.trim()) return;
+    const assistant = ASSISTANTS.find((item) => item.image === selectedAssistant) ?? ASSISTANTS[0];
     updateProfile({
       persona: avatar.name,
-      userTitle: avatar.userTitle,
+      userTitle: avatar.name,
       avatarSrc: avatar.image,
+      assistantSrc: assistant.image,
+      avatarBackground,
+      assistantBackground,
       userName: name.trim(),
       name: name.trim(),
     });
@@ -104,8 +112,9 @@ export default function Onboarding() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {step === 'avatar' && (
           <View style={styles.section}>
-            <Text style={styles.bigTitle}>Choose Your Friendly Guide</Text>
-            <Text style={styles.subtitle}>Pick a companion for your AI adventure!</Text>
+            <Text style={styles.bigTitle}>Personalize your profile</Text>
+            <Text style={styles.subtitle}>Choose a picture for your profile and one for the assistant.</Text>
+            <Text style={styles.fieldTitle}>Your name</Text>
             <TextInput
               style={styles.input}
               value={name}
@@ -115,7 +124,8 @@ export default function Onboarding() {
               autoCapitalize="words"
               accessibilityLabel="Your name"
             />
-            <View style={styles.avatarRow}>
+            <Text style={styles.fieldTitle}>Your avatar</Text>
+            <View style={styles.avatarGrid}>
               {AVATARS.map((a) => {
                 const active = selectedAvatar === a.name;
                 return (
@@ -125,15 +135,41 @@ export default function Onboarding() {
                     style={[styles.avatarCard, active && styles.avatarCardActive]}
                     accessibilityRole="button"
                     accessibilityLabel={`Choose ${a.name}`}
+                    accessibilityState={{ selected: active }}
                   >
-                    <Image source={{ uri: a.image }} style={styles.avatarImg} />
+                    <LinearGradient colors={getBackground(avatarBackground).colors} style={styles.avatarImageBg}>
+                      <Image source={a.source} style={styles.avatarImg} />
+                    </LinearGradient>
                     <Text style={styles.avatarName}>{a.name}</Text>
                   </Pressable>
                 );
               })}
             </View>
+            <BackgroundPicker label="Avatar background" value={avatarBackground} onChange={setAvatarBackground} />
+            <Text style={styles.fieldTitle}>Assistant picture</Text>
+            <View style={styles.assistantRow}>
+              {ASSISTANTS.map((assistant) => {
+                const active = selectedAssistant === assistant.image;
+                return (
+                  <Pressable
+                    key={assistant.image}
+                    onPress={() => setSelectedAssistant(assistant.image)}
+                    style={[styles.assistantCard, active && styles.avatarCardActive]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Choose ${assistant.name}`}
+                    accessibilityState={{ selected: active }}
+                  >
+                    <LinearGradient colors={getBackground(assistantBackground).colors} style={styles.avatarImageBg}>
+                      <Image source={assistant.source} style={styles.avatarImg} />
+                    </LinearGradient>
+                    <Text style={styles.avatarName}>{assistant.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <BackgroundPicker label="Assistant background" value={assistantBackground} onChange={setAssistantBackground} />
             <Button
-              title="Let's Get Started!"
+              title="Continue"
               onPress={completeAvatar}
               disabled={!selectedAvatar || !name.trim()}
             />
@@ -209,6 +245,36 @@ function Stepper({ current, total }: { current: number; total: number }) {
   );
 }
 
+function getBackground(id: string) {
+  return PROFILE_BACKGROUNDS.find((background) => background.id === id) ?? PROFILE_BACKGROUNDS[0];
+}
+
+function BackgroundPicker({ label, value, onChange }: { label: string; value: string; onChange: (id: string) => void }) {
+  return (
+    <View style={styles.palette}>
+      <Text style={styles.paletteTitle}>{label}</Text>
+      <View style={styles.paletteOptions}>
+        {PROFILE_BACKGROUNDS.map((background) => {
+          const active = value === background.id;
+          return (
+            <Pressable
+              key={background.id}
+              onPress={() => onChange(background.id)}
+              style={[styles.colorOption, active && styles.colorOptionActive]}
+              accessibilityRole="button"
+              accessibilityLabel={`${label}: ${background.label}`}
+              accessibilityState={{ selected: active }}
+            >
+              <LinearGradient colors={background.colors} style={styles.colorSwatch} />
+              <Text style={styles.colorName}>{background.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl },
@@ -261,8 +327,21 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     textAlign: 'center',
   },
+  fieldTitle: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.textPrimary },
   avatarRow: { flexDirection: 'row', gap: spacing.md },
+  avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center' },
+  assistantRow: { flexDirection: 'row', gap: spacing.md },
   avatarCard: {
+    width: '31%',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 2,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    gap: spacing.sm,
+  },
+  assistantCard: {
     flex: 1,
     alignItems: 'center',
     padding: spacing.md,
@@ -273,12 +352,20 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   avatarCardActive: { borderColor: colors.primary },
-  avatarImg: { width: 80, height: 80, borderRadius: 40 },
+  avatarImageBg: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarImg: { width: 76, height: 76, borderRadius: 38 },
   avatarName: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.bold,
     color: colors.textPrimary,
   },
+  palette: { gap: spacing.sm },
+  paletteTitle: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  paletteOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  colorOption: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
+  colorOptionActive: { borderWidth: 2, borderColor: colors.ink },
+  colorSwatch: { width: 24, height: 24, borderRadius: 6 },
+  colorName: { fontSize: fontSize.xs, color: colors.textPrimary },
   optionList: { gap: spacing.md },
   optionRow: {
     minHeight: 56,

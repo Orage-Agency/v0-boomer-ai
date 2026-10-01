@@ -13,7 +13,7 @@ import { VoiceChatTab } from "./voice-chat-tab"
 import { AiArtTab } from "./ai-art-tab"
 import { QuickQuestionsTab } from "./quick-questions"
 import type { UserProfile } from "@/app/page"
-import { API_PATHS } from "@boomer-ai/shared"
+import { API_PATHS, PROFILE_BACKGROUNDS } from "@boomer-ai/shared"
 
 interface MainAppProps {
   userProfile: UserProfile
@@ -22,6 +22,7 @@ interface MainAppProps {
 }
 
 export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
+  const assistantBackground = PROFILE_BACKGROUNDS.find((background) => background.id === userProfile.assistantBackground)?.css ?? PROFILE_BACKGROUNDS[1].css
   const [activeTab, setActiveTab] = useState<
     "home" | "chat" | "lessons" | "tips" | "profile" | "history" | "questions" | "voice" | "aiart" | "askme"
   >("home")
@@ -359,8 +360,8 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
                 : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
             }`}
           >
-            <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-purple-200">
-              <img src="/voice-assistant-avatar.jpg" alt="" className="w-full h-full object-cover" />
+              <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-purple-200" style={{ background: assistantBackground }}>
+              <img src={userProfile.assistantSrc || "/assistants/assistant_woman.png"} alt="" className="w-full h-full object-cover" />
             </div>
             <span className="text-base font-semibold">Voice Chat</span>
           </button>
@@ -395,8 +396,8 @@ export function MainApp({ userProfile, updateProfile, onReset }: MainAppProps) {
             className="relative group touch-manipulation flex items-center gap-2 min-h-[44px]"
             aria-label="Talk to AI Assistant"
           >
-              <div className="w-[44px] h-[44px] rounded-full border border-slate-300 overflow-hidden">
-                <img src="/voice-assistant-avatar.jpg" alt="Voice Assistant" className="w-full h-full object-cover" />
+              <div className="w-[44px] h-[44px] rounded-full border border-slate-300 overflow-hidden" style={{ background: assistantBackground }}>
+                <img src={userProfile.assistantSrc || "/assistants/assistant_woman.png"} alt="Voice Assistant" className="w-full h-full object-cover" />
               </div>
           </button>
 

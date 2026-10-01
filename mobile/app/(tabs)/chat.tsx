@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -36,6 +37,7 @@ import {
   todayKey,
 } from '@/lib/freeTier';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme/theme';
+import { PROFILE_BACKGROUNDS } from '@boomer-ai/shared';
 import type { ChatMessage } from '@/types';
 
 /**
@@ -49,10 +51,15 @@ const STARTER_PROMPTS = [
   'Tell me a fun fact about technology.',
 ];
 
+const ASSISTANT_SOURCES: Record<string, number> = {
+  '/assistants/assistant_woman.png': require('../../assets/assistants/assistant_woman.png'),
+  '/assistants/assistant_man.png': require('../../assets/assistants/assistant_man.png'),
+};
+
 export default function Chat() {
   const router = useRouter();
   const { messages, status, error, send, reset, loadConversation } = useChatSession();
-  const { apiConfigured } = useProfile();
+  const { apiConfigured, profile } = useProfile();
   const { sessionToken } = useAuth();
   const { entitled } = useEntitlement();
   const [input, setInput] = useState('');
@@ -191,11 +198,18 @@ export default function Chat() {
   );
 
   const busy = status === 'streaming' || status === 'submitted';
+  const assistantBackground = PROFILE_BACKGROUNDS.find((background) => background.id === profile.assistantBackground) ?? PROFILE_BACKGROUNDS[1];
+  const assistantSource = ASSISTANT_SOURCES[profile.assistantSrc ?? ''] ?? ASSISTANT_SOURCES['/assistants/assistant_woman.png'];
 
   return (
     <Screen centered edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Chat</Text>
+        <View style={styles.chatIdentity}>
+          <LinearGradient colors={assistantBackground.colors} style={styles.assistantAvatar}>
+            <Image source={assistantSource} style={styles.assistantAvatarImage} accessibilityLabel="Your assistant" />
+          </LinearGradient>
+          <Text style={styles.title}>Chat</Text>
+        </View>
         <View style={styles.headerActions}>
           {messages.length > 0 && (
             <Pressable
@@ -416,6 +430,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   title: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.textPrimary },
+  chatIdentity: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  assistantAvatar: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden' },
+  assistantAvatarImage: { width: '100%', height: '100%' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   headerButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm },
   headerButtonText: { fontSize: fontSize.sm, color: colors.textPrimary, fontWeight: fontWeight.semibold, textDecorationLine: 'underline' },
